@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.ktimazstudio"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.ktimazstudio"
-        minSdk = 31
-        targetSdk = 34
+        minSdk = 25
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -22,11 +22,17 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+shrinkResources true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+debug {
+            minifyEnabled true
+            shrinkResources true
+           
         }
     }
     compileOptions {
