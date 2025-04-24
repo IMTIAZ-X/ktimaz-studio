@@ -1,4 +1,4 @@
-package com.ktimazstudio
+package com.ktimazstudio.ui.theme
 
 import android.app.Activity
 import android.os.Build
