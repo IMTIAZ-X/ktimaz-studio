@@ -23,13 +23,13 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
-shrinkResources true
+  			shrinkResources true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
-debug {
+		debug {
             minifyEnabled true
             shrinkResources true
            
