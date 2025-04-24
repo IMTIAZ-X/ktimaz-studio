@@ -1,4 +1,4 @@
-package com.ktimazstudio
+package com.ktimazstudio.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
