@@ -13,12 +13,32 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        
+       
+    versionName = getGitTag()
+    versionCode = getGitCommitCount()
+    
+    fun getGitTag(): String = "git describe --tags".runCommand() ?: "1.0.0"
+    
+    fun getGitCommitCount(): Int = "git rev-list --count HEAD".runCommand()?.toInt() ?: 1
+
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
     }
+    
+    
+    signingConfigs {
+    create("release") {
+        storeFile = file("KtimazStudio.keystore")
+        storePassword = System.getenv("imtiaz")
+        keyAlias = System.getenv("imtiaz")
+        keyPassword = System.getenv("imtiaz")
+    }
+}
+
 
     buildTypes {
         getByName("release") {
@@ -28,6 +48,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
