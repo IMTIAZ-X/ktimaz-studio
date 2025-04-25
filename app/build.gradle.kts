@@ -39,9 +39,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("KtimazStudio.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            storePassword = System.getenv("imtiaz")
+            keyAlias = System.getenv("imtiaz")
+            keyPassword = System.getenv("imtiaz")
         }
     }
 
