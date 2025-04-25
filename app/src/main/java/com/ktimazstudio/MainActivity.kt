@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,22 +17,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.BackHandler
-import com.ktimazstudio.ui.theme.ktimaz // Ensure this is correctly imported and defined
+import com.ktimazstudio.ui.theme.ktimaz
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ktimaz { // Ensure this theme is properly defined in your project
+            ktimaz {
                 MainScreen()
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     val context = LocalContext.current
@@ -59,7 +62,7 @@ fun MainScreen() {
                 .fillMaxSize()
         ) {
             // Cards / Sections
-            CardItem("Messages", Icons.Filled.Message) {
+            CardItem("Messages", Icons.Filled.Chat) {
                 // context.startActivity(Intent(context, MessageActivity::class.java))
             }
 
@@ -71,18 +74,18 @@ fun MainScreen() {
                 // context.startActivity(Intent(context, ScreenActivity::class.java))
             }
 
-            CardItem("Scan", Icons.Filled.QrCode) {
+           // CardItem("Scan", Icons.Filled.QrCodeScanner) {
                 // context.startActivity(Intent(context, ScanActivity::class.java))
-            }
+           // }
 
             CardItem("Visit Website", Icons.Filled.Language) {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://imtiaz-x.github.io/IMTIAZDeveloper/"))
                 context.startActivity(intent)
             }
 
-            CardItem("Video Player", Icons.Filled.PlayCircle) {
+          //  CardItem("Video Player", Icons.Filled.PlayCircleFilled) {
                 // context.startActivity(Intent(context, PlayerActivity::class.java))
-            }
+          //  }
 
             Spacer(modifier = Modifier.height(24.dp))
 
