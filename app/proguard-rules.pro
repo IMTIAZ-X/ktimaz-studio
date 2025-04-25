@@ -20,38 +20,8 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# Core Android rules
--keep class * extends android.app.Activity
--keep class * extends android.app.Service
--keep class * extends android.content.BroadcastReceiver
--keep class * extends android.app.Application
--keep class * extends android.content.ContentProvider
--keep class **.R$* { *; }
 
-# Preserve required entry points and UI components
--keepclassmembers class * {
-    public <init>(android.content.Context);
-    public <init>(android.content.Context, android.util.AttributeSet);
-    public <init>(android.content.Context, android.util.AttributeSet, int);
-}
 
-# Parcelables
--keep class * implements android.os.Parcelable {
-    public static final android.os.Parcelable$Creator *;
-}
-
-# Anti-debugging and anti-reverse
--assumenosideeffects class android.util.Log {
-    public static *** d(...);
-    public static *** i(...);
-    public static *** w(...);
-    public static *** v(...);
-    public static *** e(...);
-}
--assumenosideeffects class android.os.Debug {
-    public static boolean isDebuggerConnected();
-    public static boolean waitingForDebugger();
-}
 
 # Licensing
 -keep public class com.google.vending.licensing.ILicensingService
@@ -61,9 +31,9 @@
 -keepattributes *Annotation*, EnclosingMethod, InnerClasses
 
 # Obfuscation & Renaming via dictionary
--obfuscationdictionary dict.txt
--classobfuscationdictionary dict.txt
--packageobfuscationdictionary dict.txt
+#-obfuscationdictionary dict.txt
+#-classobfuscationdictionary dict.txt
+#-packageobfuscationdictionary dict.txt
 
 # Full obfuscation and shrinking
 -dontskipnonpubliclibraryclasses
