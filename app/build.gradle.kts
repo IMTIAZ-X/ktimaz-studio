@@ -38,10 +38,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("Ktimaz-studio.keystore")
-            storePassword = System.getenv("Ktimaz-studio12")
-            keyAlias = System.getenv("Ktimaz-studio")
-            keyPassword = System.getenv("Ktimaz-studio12")
+            storeFile = file("Antik.keystore")
+            storePassword = System.getenv("Antik123")
+            keyAlias = System.getenv("Antikmods")
+            keyPassword = System.getenv("Antik123")
         }
     }
 
