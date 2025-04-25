@@ -61,9 +61,9 @@
 -keepattributes *Annotation*, EnclosingMethod, InnerClasses
 
 # Obfuscation & Renaming via dictionary
--obfuscationdictionary obf/words.txt
--classobfuscationdictionary obf/class.txt
--packageobfuscationdictionary obf/package.txt
+-obfuscationdictionary dict.txt
+-classobfuscationdictionary dict.txt
+-packageobfuscationdictionary dict.txt
 
 # Full obfuscation and shrinking
 -dontskipnonpubliclibraryclasses
