@@ -11,26 +11,21 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.ScreenShare
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.ktimazstudio.ui.theme.AppTheme // Make sure this matches your actual theme file
+import androidx.activity.compose.BackHandler
+import com.ktimazstudio.ui.theme.ktimaz // Ensure this is correctly imported and defined
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            KTiMAZTheme {
+            ktimaz { // Ensure this theme is properly defined in your project
                 MainScreen()
             }
         }
@@ -47,7 +42,7 @@ fun MainScreen() {
                 title = { Text("KTiMAZ", color = MaterialTheme.colorScheme.primary) },
                 navigationIcon = {
                     IconButton(onClick = { (context as? Activity)?.onBackPressedDispatcher?.onBackPressed() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(
@@ -64,29 +59,29 @@ fun MainScreen() {
                 .fillMaxSize()
         ) {
             // Cards / Sections
-            CardItem("Messages", Icons.Default.Message) {
-               // context.startActivity(Intent(context, MessageActivity::class.java))
+            CardItem("Messages", Icons.Filled.Message) {
+                // context.startActivity(Intent(context, MessageActivity::class.java))
             }
 
-            CardItem("V-Messages", Icons.Default.Email) {
-              //  context.startActivity(Intent(context, VMessageActivity::class.java))
+            CardItem("V-Messages", Icons.Filled.Email) {
+                // context.startActivity(Intent(context, VMessageActivity::class.java))
             }
 
-            CardItem("Screen Viewer", Icons.Default.ScreenShare) {
-               // context.startActivity(Intent(context, ScreenActivity::class.java))
+            CardItem("Screen Viewer", Icons.Filled.ScreenShare) {
+                // context.startActivity(Intent(context, ScreenActivity::class.java))
             }
 
-            CardItem("Scan", Icons.Default.QrCodeScanner) {
-               // context.startActivity(Intent(context, ScanActivity::class.java))
+            CardItem("Scan", Icons.Filled.QrCode) {
+                // context.startActivity(Intent(context, ScanActivity::class.java))
             }
 
-            CardItem("Visit Website", Icons.Default.Public) {
+            CardItem("Visit Website", Icons.Filled.Language) {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://imtiaz-x.github.io/IMTIAZDeveloper/"))
                 context.startActivity(intent)
             }
 
-            CardItem("Video Player", Icons.Default.PlayCircleFilled) {
-               // context.startActivity(Intent(context, PlayerActivity::class.java))
+            CardItem("Video Player", Icons.Filled.PlayCircle) {
+                // context.startActivity(Intent(context, PlayerActivity::class.java))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
