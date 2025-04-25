@@ -1,31 +1,55 @@
-name: AndroidBuild
+name: ktimaz-studio
+
 on:
-  pull_request:
-    branches: [ main ]
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4.1.0
+    - name: Checkout
+      uses: actions/checkout@v4.1.0
 
-      - name: Setup Java JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'adopt'
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'adopt'
+        java-version: '17'
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+    - name: Decode Keystore
+      run: |
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-      - name: Build with Gradle
-        run: ./gradlew build
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
 
-      - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: AndroidRelease.apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+    - name: Set Git Tag Versioning
+      run: |
+        echo "VERSION_NAME=$(git describe --tags --always)" >> $GITHUB_ENV
+        echo "VERSION_CODE=$(git rev-list --count HEAD)" >> $GITHUB_ENV
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug
+
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: AndroidDebug.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
+
+    - name: Build Release APK
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: ./gradlew assembleRelease
+
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: AndroidRelease.apk
+        path: app/build/outputs/apk/release/app-release.apk
