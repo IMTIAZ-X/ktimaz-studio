@@ -1,25 +1,7 @@
-import java.io.ByteArrayOutputStream
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
 }
-
-fun String.runCommand(): String? {
-    return try {
-        val output = ByteArrayOutputStream()
-        exec {
-            commandLine = this@runCommand.split(" ")
-            standardOutput = output
-        }
-        output.toString().trim()
-    } catch (e: Exception) {
-        null
-    }
-}
-
-fun getGitTag(): String = "git describe --tags".runCommand() ?: "1.0.0"
-fun getGitCommitCount(): Int = "git rev-list --count HEAD".runCommand()?.toInt() ?: 1
 
 android {
     namespace = "com.ktimazstudio"
@@ -29,19 +11,12 @@ android {
         applicationId = "com.ktimazstudio"
         minSdk = 25
         targetSdk = 34
-        versionCode = getGitCommitCount()
-        versionName = getGitTag()
+        versionCode = 1
+        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables.useSupportLibrary = true
-    }
-
-    signingConfigs {
-        create("release") {
-            storeFile = file("Antik.keystore")
-            storePassword = System.getenv("Antik123")
-            keyAlias = System.getenv("Antikmods")
-            keyPassword = System.getenv("Antik123")
+        vectorDrawables {
+            useSupportLibrary = true
         }
     }
 
@@ -49,15 +24,18 @@ android {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         getByName("debug") {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
@@ -94,7 +72,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
