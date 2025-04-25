@@ -12,17 +12,22 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ktimaz"
         tools:targetApi="31">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.ktimaz"/>
-            <activity android:name=".SplashScreen">
-    <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-    </intent-filter>         
+            android:theme="@style/Theme.ktimaz" />
+
+        <activity
+            android:name=".SplashScreen"
+            android:exported="true"> <!-- REQUIRED for Android 12+ -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
+
     </application>
 
 </manifest>
