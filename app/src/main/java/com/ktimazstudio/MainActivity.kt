@@ -64,24 +64,24 @@ fun MainScreen() {
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
-            CardItem("Messages", R.drawable.chat) {
+            CardItem("Messages", R.mipmap.ic_launcher) {
                 // context.startActivity(Intent(context, MessageActivity::class.java))
             }
 
-            CardItem("V-Messages", R.drawable.email) {
+            CardItem("V-Messages", R.mipmap.ic_launcher) {
                 // context.startActivity(Intent(context, VMessageActivity::class.java))
             }
 
-            CardItem("Screen Viewer", R.drawable.screen_share) {
+            CardItem("Screen Viewer", R.mipmap.ic_launcher) {
                 // context.startActivity(Intent(context, ScreenActivity::class.java))
             }
 
-            CardItem("Visit Website", R.drawable.language) {
+            CardItem("Visit Website", R.mipmap.ic_launcher) {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://imtiaz-x.github.io/IMTIAZDeveloper/"))
                 context.startActivity(intent)
             }
 
-            CardItem("Video Player", R.drawable.play_circle) {
+            CardItem("Video Player", R.mipmap.ic_launcher) {
                 // context.startActivity(Intent(context, PlayerActivity::class.java))
             }
 
