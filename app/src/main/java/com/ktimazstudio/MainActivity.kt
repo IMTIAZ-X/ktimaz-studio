@@ -1,8 +1,6 @@
 package com.ktimazstudio
 
 import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,9 +13,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
 
 class MainActivity : ComponentActivity() {
@@ -39,11 +42,11 @@ fun MainScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("KTiMAZ") },
+                title = {
+                    Text("KTiMAZ Dashboard", fontWeight = FontWeight.Bold)
+                },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        (context as? Activity)?.finish()
-                    }) {
+                    IconButton(onClick = { (context as? Activity)?.finish() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
                             contentDescription = "Back"
@@ -51,42 +54,27 @@ fun MainScreen() {
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             )
         }
-    ) { innerPadding ->
+    ) { padding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(8.dp)
+                .padding(padding)
+                .padding(16.dp)
                 .verticalScroll(rememberScrollState())
-                .fillMaxSize()
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            CardGrid(
-                title1 = "Call",
-                icon1 = R.mipmap.ic_launcher,
-                onClick1 = {},
-                title2 = "Message",
-                icon2 = R.mipmap.ic_launcher,
-                onClick2 = {}
+            Text(
+                "Quick Access",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onBackground
             )
-            CardGrid(
-                title1 = "Nagad",
-                icon1 = R.mipmap.ic_launcher,
-                onClick1 = {},
-                title2 = "Ip scan",
-                icon2 = R.mipmap.ic_launcher,
-                onClick2 = {}
-            )
-            CardGrid(
-                title1 = "Movies",
-                icon1 = R.mipmap.ic_launcher,
-                onClick1 = {},
-                title2 = "Player",
-                icon2 = R.mipmap.ic_launcher,
-                onClick2 = {}
-            )
+            CardGrid("Call", R.mipmap.ic_launcher, {}, "Message", R.mipmap.ic_launcher, {})
+            CardGrid("Nagad", R.mipmap.ic_launcher, {}, "IP Scan", R.mipmap.ic_launcher, {})
+            CardGrid("Movies", R.mipmap.ic_launcher, {}, "Player", R.mipmap.ic_launcher, {})
         }
     }
 }
@@ -101,47 +89,58 @@ fun CardGrid(
     onClick2: () -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        CardItem(title = title1, iconResId = icon1, onClick = onClick1)
-        CardItem(title = title2, iconResId = icon2, onClick = onClick2)
+        CardItem(title1, painterResource(id = icon1), onClick1)
+        CardItem(title2, painterResource(id = icon2), onClick2)
     }
 }
 
 @Composable
-fun CardItem(title: String, iconResId: Int, onClick: () -> Unit) {
+fun CardItem(title: String, icon: Painter, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier
-            .width(160.dp)
-            .height(160.dp)
-            .clickable(onClick = onClick),
+            .weight(1f)
+            .aspectRatio(1f),
         shape = MaterialTheme.shapes.extraLarge,
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(
+                    brush = Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                        )
+                    )
+                )
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = iconResId),
-                contentDescription = title,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = icon,
+                    contentDescription = title,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
