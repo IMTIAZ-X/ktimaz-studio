@@ -20,7 +20,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.ktimazstudio.ui.theme.ktimaz
 
-@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +39,7 @@ fun MainScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("KTiMAZ", color = MaterialTheme.colorScheme.primary) },
+                title = { Text("KTiMAZ") },
                 navigationIcon = {
                     IconButton(onClick = {
                         (context as? Activity)?.finish()
@@ -60,42 +59,55 @@ fun MainScreen() {
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .padding(8.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
                 .fillMaxSize()
         ) {
-            CardItem("Messages", R.mipmap.ic_launcher) {
-                // context.startActivity(Intent(context, MessageActivity::class.java))
-            }
-
-            CardItem("V-Messages", R.mipmap.ic_launcher) {
-                // context.startActivity(Intent(context, VMessageActivity::class.java))
-            }
-
-            CardItem("Screen Viewer", R.mipmap.ic_launcher) {
-                // context.startActivity(Intent(context, ScreenActivity::class.java))
-            }
-
-            CardItem("Visit Website", R.mipmap.ic_launcher) {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://imtiaz-x.github.io/IMTIAZDeveloper/"))
-                context.startActivity(intent)
-            }
-
-            CardItem("Video Player", R.mipmap.ic_launcher) {
-                // context.startActivity(Intent(context, PlayerActivity::class.java))
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    // Add your action logic here
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Custom Button")
-            }
+            CardGrid(
+                title1 = "Call",
+                icon1 = R.mipmap.ic_launcher,
+                onClick1 = {},
+                title2 = "Message",
+                icon2 = R.mipmap.ic_launcher,
+                onClick2 = {}
+            )
+            CardGrid(
+                title1 = "Nagad",
+                icon1 = R.mipmap.ic_launcher,
+                onClick1 = {},
+                title2 = "Ip scan",
+                icon2 = R.mipmap.ic_launcher,
+                onClick2 = {}
+            )
+            CardGrid(
+                title1 = "Movies",
+                icon1 = R.mipmap.ic_launcher,
+                onClick1 = {},
+                title2 = "Player",
+                icon2 = R.mipmap.ic_launcher,
+                onClick2 = {}
+            )
         }
+    }
+}
+
+@Composable
+fun CardGrid(
+    title1: String,
+    icon1: Int,
+    onClick1: () -> Unit,
+    title2: String,
+    icon2: Int,
+    onClick2: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        CardItem(title = title1, iconResId = icon1, onClick = onClick1)
+        CardItem(title = title2, iconResId = icon2, onClick = onClick2)
     }
 }
 
@@ -103,8 +115,8 @@ fun MainScreen() {
 fun CardItem(title: String, iconResId: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .width(160.dp)
+            .height(160.dp)
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.extraLarge,
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
@@ -112,17 +124,24 @@ fun CardItem(title: String, iconResId: Int, onClick: () -> Unit) {
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
                 painter = painterResource(id = iconResId),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
+                contentDescription = title,
+                modifier = Modifier.size(48.dp)
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
