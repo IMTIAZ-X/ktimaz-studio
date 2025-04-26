@@ -61,35 +61,30 @@ fun MainScreen() {
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
-            // Cards / Sections
-            CardItem("Messages", Icons.Filled.Chat) {
+            // Cards
+            CardItem("Messages", painterResource(id = R.mipmap.ic_launcher))) {
                 // context.startActivity(Intent(context, MessageActivity::class.java))
             }
 
-            CardItem("V-Messages", Icons.Filled.Email) {
+            CardItem("V-Messages", painterResource(id = R.mipmap.ic_launcher))) {
                 // context.startActivity(Intent(context, VMessageActivity::class.java))
             }
 
-            CardItem("Screen Viewer", Icons.Filled.ScreenShare) {
+            CardItem("Screen Viewer", painterResource(id = R.mipmap.ic_launcher))) {
                 // context.startActivity(Intent(context, ScreenActivity::class.java))
             }
 
-           // CardItem("Scan", Icons.Filled.QrCodeScanner) {
-                // context.startActivity(Intent(context, ScanActivity::class.java))
-           // }
-
-            CardItem("Visit Website", Icons.Filled.Language) {
+            CardItem("Visit Website", painterResource(id = R.mipmap.ic_launcher))) {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://imtiaz-x.github.io/IMTIAZDeveloper/"))
                 context.startActivity(intent)
             }
 
-          //  CardItem("Video Player", Icons.Filled.PlayCircleFilled) {
+            CardItem("Video Player", painterResource(id = R.mipmap.ic_launcher))) {
                 // context.startActivity(Intent(context, PlayerActivity::class.java))
-          //  }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Extra Button
             Button(
                 onClick = {
                     // Add your action logic here
