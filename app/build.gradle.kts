@@ -5,18 +5,28 @@ plugins {
 
 android {
     namespace = "com.ktimazstudio"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.ktimazstudio"
         minSdk = 25
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+android {
+    signingConfigs {
+        create("release") {
+            storeFile file("App/Ktimazstudio.keystore")
+            storePassword "ktimazstudio123"
+            keyAlias "ktimazstudio"
+            keyPassword "ktimazstudio123"
         }
     }
 
@@ -28,10 +38,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig signingConfigs.getByName("release")
         }
         getByName("debug") {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
