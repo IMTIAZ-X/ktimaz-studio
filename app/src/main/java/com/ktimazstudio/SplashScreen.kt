@@ -29,31 +29,31 @@ class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SplashScreenContent()
+            SplashScreenV2()
         }
     }
 }
 
 @Composable
-fun SplashScreenContent() {
+fun SplashScreenV2() {
     val context = LocalContext.current
     var startAnimation by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         startAnimation = true
-        delay(3500)
+        delay(4000)
         context.startActivity(Intent(context, MainActivity::class.java))
         if (context is ComponentActivity) context.finish()
     }
 
     val scale by animateFloatAsState(
         targetValue = if (startAnimation) 1.2f else 0f,
-        animationSpec = tween(durationMillis = 1200)
+        animationSpec = tween(durationMillis = 1200, easing = EaseOutBounce)
     )
 
     val rotation by animateFloatAsState(
-        targetValue = if (startAnimation) 360f else 0f,
-        animationSpec = tween(durationMillis = 2000)
+        targetValue = if (startAnimation) 720f else 0f,
+        animationSpec = tween(durationMillis = 2200, easing = FastOutSlowInEasing)
     )
 
     Box(
@@ -68,22 +68,24 @@ fun SplashScreenContent() {
                 )
             )
     ) {
+        // Ripple Wave Effect
+        RippleWaveAnimation()
+
+        // Center Logo with blur behind
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 100.dp),
             contentAlignment = Alignment.Center
         ) {
-            // BLUR background circle
             Box(
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(220.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.15f))
-                    .blur(25.dp)
+                    .background(Color.White.copy(alpha = 0.12f))
+                    .blur(30.dp)
             )
 
-            // Main Logo
             Box(
                 modifier = Modifier
                     .size(150.dp)
@@ -101,7 +103,7 @@ fun SplashScreenContent() {
             }
         }
 
-        // Loading Dots Animation
+        // Loading Dots under logo
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -111,7 +113,7 @@ fun SplashScreenContent() {
             LoadingDots()
         }
 
-        // "Powered by KTiMAZ Studio" Text
+        // Powered By Text
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -142,7 +144,7 @@ fun LoadingDots() {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(3) { index ->
+        repeat(3) {
             AnimatedVisibility(
                 visible = visible,
                 modifier = Modifier.padding(horizontal = 2.dp)
@@ -156,5 +158,31 @@ fun LoadingDots() {
             }
             Spacer(modifier = Modifier.width(4.dp))
         }
+    }
+}
+
+@Composable
+fun RippleWaveAnimation() {
+    val infiniteTransition = rememberInfiniteTransition()
+    val rippleRadius by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 400f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 100.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(rippleRadius.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.08f))
+        )
     }
 }
