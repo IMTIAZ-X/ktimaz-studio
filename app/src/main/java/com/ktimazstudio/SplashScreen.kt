@@ -4,9 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,12 +19,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ktimazstudio.ui.theme.ktimaz
-import kotlinx.coroutines.delay
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.constraintlayout.compose.MotionLayout
 import androidx.constraintlayout.compose.MotionScene
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.delay
 
 class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -123,11 +120,19 @@ fun SplashScreenContent() {
                 .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center
         ) {
+            // 3D Effect: Add slight scale and rotate for 3D look
+            val scale by animateFloatAsState(
+                targetValue = if (startAnimation) 1.1f else 0f,
+                animationSpec = tween(1000)
+            )
+
             Image(
                 painter = painterResource(id = R.mipmap.ic_launcher),
                 contentDescription = "App Logo",
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(150.dp)
+                    .scale(scale)
+                    .rotate(15f)  // slight rotation for 3D effect
             )
         }
 
@@ -138,8 +143,8 @@ fun SplashScreenContent() {
         ) {
             Text(
                 text = "Powered by KTiMAZ Studio",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
             )
         }
