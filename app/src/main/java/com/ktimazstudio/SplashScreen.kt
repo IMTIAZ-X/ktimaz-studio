@@ -4,8 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -44,7 +42,7 @@ fun SplashScreenContent() {
 
     LaunchedEffect(Unit) {
         startAnimation = true
-        delay(3500)  // After animation delay, go to MainActivity
+        delay(3000) // 3 seconds splash then move
         context.startActivity(Intent(context, MainActivity::class.java))
         if (context is ComponentActivity) context.finish()
     }
@@ -62,10 +60,15 @@ fun SplashScreenContent() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Center animation
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 80.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Box(
                 modifier = Modifier
                     .size(150.dp)
@@ -81,20 +84,21 @@ fun SplashScreenContent() {
                     modifier = Modifier.size(120.dp)
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            AnimatedVisibility(
-                visible = startAnimation,
-                enter = fadeIn(animationSpec = tween(durationMillis = 1500))
-            ) {
-                Text(
-                    text = "Powered by KTiMAZ Studio",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+        // Text at bottom
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 24.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Text(
+                text = "Powered by KTiMAZ Studio",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+            )
         }
     }
 }
