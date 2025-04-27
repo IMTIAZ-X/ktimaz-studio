@@ -19,13 +19,13 @@ android {
             useSupportLibrary = true
         }
     }
-
+    
     signingConfigs {
         create("release") {
-            storeFile = "Ktimazstudio.keystore"
-            storePassword = "ktimazstudio123"
-            keyAlias = "ktimazstudio"
-            keyPassword = "ktimazstudio123"
+            storeFile = file(project.property("RELEASE_STORE_FILE") as String)
+            storePassword = project.property("RELEASE_STORE_PASSWORD") as String
+            keyAlias = project.property("RELEASE_KEY_ALIAS") as String
+            keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
         }
     }
 
@@ -42,10 +42,6 @@ android {
         getByName("debug") {
             isMinifyEnabled = false
             isShrinkResources = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
         }
     }
 
@@ -67,17 +63,15 @@ android {
     }
 
     packaging {
-        resources {
-            excludes += setOf(
-                "**/DebugProbesKt.bin",
-                "META-INF/LICENSE",
-                "META-INF/DEPENDENCIES",
-                "META-INF/*.kotlin_module",
-                "okhttp3/internal/publicsuffix/NOTICE",
-                "kotlin/**",
-                "/META-INF/{AL2.0,LGPL2.1}"
-            )
-        }
+        resources.excludes += setOf(
+            "**/DebugProbesKt.bin",
+            "META-INF/LICENSE",
+            "META-INF/DEPENDENCIES",
+            "META-INF/*.kotlin_module",
+            "okhttp3/internal/publicsuffix/NOTICE",
+            "kotlin/**",
+            "/META-INF/{AL2.0,LGPL2.1}"
+        )
     }
 }
 
