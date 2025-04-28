@@ -4,13 +4,13 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -21,7 +21,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.*
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -30,13 +33,13 @@ class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SplashScreenV4()
+            SplashScreenV5()
         }
     }
 }
 
 @Composable
-fun SplashScreenV4() {
+fun SplashScreenV5() {
     val context = LocalContext.current
     var startAnimation by remember { mutableStateOf(false) }
 
@@ -48,8 +51,9 @@ fun SplashScreenV4() {
     }
 
     val scale by animateFloatAsState(
-        targetValue = if (startAnimation) 1.1f else 0f,
-        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing)
+        targetValue = if (startAnimation) 1.05f else 0f,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "LogoScale"
     )
 
     Box(
@@ -58,19 +62,19 @@ fun SplashScreenV4() {
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.background
+                        Color(0xFFd8e6ff),
+                        Color(0xFFf0f4ff)
                     )
                 )
             )
     ) {
-        // Background Parallax Gradient
-        ParallaxGradientBackground()
+        // Light blur + parallax soft background
+        ParallaxBlurredBackground()
 
-        // Particles floating
+        // Floating Particles
         FloatingParticles()
 
-        // Center Logo with blur behind
+        // Center Logo
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -79,24 +83,24 @@ fun SplashScreenV4() {
         ) {
             Box(
                 modifier = Modifier
-                    .size(220.dp)
-                    .clip(CircleShape)
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(16.dp)) // Capsule polished shape
                     .background(Color.White.copy(alpha = 0.1f))
-                    .blur(30.dp)
+                    .blur(8.dp)
             )
 
             Box(
                 modifier = Modifier
-                    .size(150.dp)
+                    .size(140.dp)
                     .scale(scale)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = R.mipmap.ic_launcher),
                     contentDescription = "App Logo",
-                    modifier = Modifier.size(120.dp)
+                    modifier = Modifier.size(100.dp)
                 )
             }
         }
@@ -111,19 +115,14 @@ fun SplashScreenV4() {
             LoadingDots()
         }
 
-        // Powered By Text
+        // New Powered by Text FX
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 24.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            Text(
-                text = "Powered by KTiMAZ Studio",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
-            )
+            LegendaryTextFX()
         }
     }
 }
@@ -162,7 +161,7 @@ fun LoadingDots() {
 @Composable
 fun FloatingParticles() {
     val infiniteTransition = rememberInfiniteTransition(label = "Particles")
-    val particleList = remember { generateParticles(25) }
+    val particleList = remember { generateParticles(30) }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         particleList.forEachIndexed { index, particle ->
@@ -198,20 +197,20 @@ fun generateParticles(count: Int): List<Particle> {
         Particle(
             initialOffsetX = Random.nextFloat() * 1080f,
             initialOffsetY = Random.nextFloat() * 1920f,
-            deltaY = Random.nextFloat() * 300f + 200f,
-            radius = Random.nextFloat() * 6f + 2f,
-            color = Color.White.copy(alpha = Random.nextFloat() * 0.3f + 0.1f),
+            deltaY = Random.nextFloat() * 300f + 300f,
+            radius = Random.nextFloat() * 5f + 2f,
+            color = Color.White.copy(alpha = Random.nextFloat() * 0.4f + 0.1f),
             speed = Random.nextFloat() * 5000f + 3000f
         )
     }
 }
 
 @Composable
-fun ParallaxGradientBackground() {
-    val infiniteTransition = rememberInfiniteTransition(label = "ParallaxBackground")
+fun ParallaxBlurredBackground() {
+    val infiniteTransition = rememberInfiniteTransition(label = "Parallax")
     val offsetY by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 50f,
+        targetValue = 40f,
         animationSpec = infiniteRepeatable(
             animation = tween(6000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
@@ -225,10 +224,37 @@ fun ParallaxGradientBackground() {
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        Color.White.copy(alpha = 0.1f),
                         Color.Transparent
                     )
                 )
             )
+            .blur(8.dp)
+    )
+}
+
+@Composable
+fun LegendaryTextFX() {
+    val infiniteTransition = rememberInfiniteTransition(label = "TextFX")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "TextAlpha"
+    )
+
+    Text(
+        text = buildAnnotatedString {
+            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
+                append("Powered by ")
+            }
+            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)) {
+                append("KTiMAZ Studio")
+            }
+        },
+        fontSize = 14.sp,
+        modifier = Modifier.alpha(alpha)
     )
 }
