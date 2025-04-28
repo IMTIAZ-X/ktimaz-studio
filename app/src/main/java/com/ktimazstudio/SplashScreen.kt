@@ -10,6 +10,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -84,7 +85,7 @@ fun SplashScreenV5() {
             Box(
                 modifier = Modifier
                     .size(200.dp)
-                    .clip(RoundedCornerShape(16.dp)) // Capsule polished shape
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Color.White.copy(alpha = 0.1f))
                     .blur(8.dp)
             )
@@ -160,24 +161,36 @@ fun LoadingDots() {
 
 @Composable
 fun FloatingParticles() {
-    val infiniteTransition = rememberInfiniteTransition(label = "Particles")
-    val particleList = remember { generateParticles(30) }
+    val particleList = remember {
+        List(30) {
+            Particle(
+                initialOffsetX = Random.nextFloat() * 1080f,
+                initialOffsetY = Random.nextFloat() * 1920f,
+                deltaY = Random.nextFloat() * 400f + 200f,
+                radius = Random.nextFloat() * 4f + 2f,
+                color = Color.White.copy(alpha = Random.nextFloat() * 0.5f + 0.2f),
+                speed = Random.nextFloat() * 3000f + 2000f
+            )
+        }
+    }
+    val infiniteTransition = rememberInfiniteTransition(label = "ParticlesAnimation")
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         particleList.forEachIndexed { index, particle ->
-            val animatedOffsetY by infiniteTransition.animateFloat(
+            val offsetY by infiniteTransition.animateFloat(
                 initialValue = particle.initialOffsetY,
                 targetValue = particle.initialOffsetY + particle.deltaY,
                 animationSpec = infiniteRepeatable(
                     animation = tween(particle.speed.toInt(), easing = LinearEasing),
                     repeatMode = RepeatMode.Restart
-                ), label = "Particle$index"
+                ),
+                label = "Particle$index"
             )
 
             drawCircle(
                 color = particle.color,
                 radius = particle.radius,
-                center = Offset(particle.initialOffsetX, animatedOffsetY)
+                center = Offset(particle.initialOffsetX, offsetY)
             )
         }
     }
@@ -192,19 +205,6 @@ data class Particle(
     val speed: Float
 )
 
-fun generateParticles(count: Int): List<Particle> {
-    return List(count) {
-        Particle(
-            initialOffsetX = Random.nextFloat() * 1080f,
-            initialOffsetY = Random.nextFloat() * 1920f,
-            deltaY = Random.nextFloat() * 300f + 300f,
-            radius = Random.nextFloat() * 5f + 2f,
-            color = Color.White.copy(alpha = Random.nextFloat() * 0.4f + 0.1f),
-            speed = Random.nextFloat() * 5000f + 3000f
-        )
-    }
-}
-
 @Composable
 fun ParallaxBlurredBackground() {
     val infiniteTransition = rememberInfiniteTransition(label = "Parallax")
@@ -214,7 +214,8 @@ fun ParallaxBlurredBackground() {
         animationSpec = infiniteRepeatable(
             animation = tween(6000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
-        ), label = "ParallaxOffset"
+        ),
+        label = "ParallaxOffset"
     )
 
     Box(
@@ -235,14 +236,15 @@ fun ParallaxBlurredBackground() {
 
 @Composable
 fun LegendaryTextFX() {
-    val infiniteTransition = rememberInfiniteTransition(label = "TextFX")
+    val infiniteTransition = rememberInfiniteTransition(label = "TextAlphaPulse")
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.5f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(2000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
-        ), label = "TextAlpha"
+        ),
+        label = "AlphaPulse"
     )
 
     Text(
