@@ -46,7 +46,10 @@ fun MainScreen() {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xFFE0EAFC), Color(0xFFCFDEF3))
+                    listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
+                    )
                 )
             )
     ) {
@@ -55,15 +58,17 @@ fun MainScreen() {
                 TopAppBar(
                     title = {
                         Text(
-                            "KTiMAZ Dashboard",
-                            fontWeight = FontWeight.Bold
+                            text = "KTiMAZ Dashboard",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = { (context as? Activity)?.finish() }) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_back),
-                                contentDescription = "Back"
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     },
@@ -82,12 +87,6 @@ fun MainScreen() {
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Quick Access",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
                 CardGrid("Call", R.mipmap.ic_launcher, {}, "Message", R.mipmap.ic_launcher, {})
                 CardGrid("Nagad", R.mipmap.ic_launcher, {}, "IP Scan", R.mipmap.ic_launcher, {})
                 CardGrid("Movies", R.mipmap.ic_launcher, {}, "Player", R.mipmap.ic_launcher, {})
@@ -131,7 +130,7 @@ fun CardItem(title: String, icon: Painter, onClick: () -> Unit, modifier: Modifi
         modifier = modifier
             .aspectRatio(1f)
             .clip(MaterialTheme.shapes.extraLarge)
-            .blur(2.dp), // Light blur
+            .blur(2.dp),
         shape = MaterialTheme.shapes.extraLarge,
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(
