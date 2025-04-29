@@ -13,7 +13,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -38,45 +41,57 @@ class MainActivity : ComponentActivity() {
 fun MainScreen() {
     val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "KTiMAZ Dashboard",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { (context as? Activity)?.finish() }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_back),
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.smallTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFFE0EAFC), Color(0xFFCFDEF3))
                 )
             )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Quick Access",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            CardGrid("Call", R.mipmap.ic_launcher, {}, "Message", R.mipmap.ic_launcher, {})
-            CardGrid("Nagad", R.mipmap.ic_launcher, {}, "IP Scan", R.mipmap.ic_launcher, {})
-            CardGrid("Movies", R.mipmap.ic_launcher, {}, "Player", R.mipmap.ic_launcher, {})
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "KTiMAZ Dashboard",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { (context as? Activity)?.finish() }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_back),
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            },
+            containerColor = Color.Transparent
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Quick Access",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                CardGrid("Call", R.mipmap.ic_launcher, {}, "Message", R.mipmap.ic_launcher, {})
+                CardGrid("Nagad", R.mipmap.ic_launcher, {}, "IP Scan", R.mipmap.ic_launcher, {})
+                CardGrid("Movies", R.mipmap.ic_launcher, {}, "Player", R.mipmap.ic_launcher, {})
+            }
         }
     }
 }
@@ -113,11 +128,14 @@ fun CardGrid(
 fun CardItem(title: String, icon: Painter, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         onClick = onClick,
-        modifier = modifier.aspectRatio(1f),
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(MaterialTheme.shapes.extraLarge)
+            .blur(2.dp), // Light blur
         shape = MaterialTheme.shapes.extraLarge,
-        elevation = CardDefaults.cardElevation(8.dp),
+        elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = Color.White.copy(alpha = 0.2f)
         )
     ) {
         Box(
@@ -126,8 +144,8 @@ fun CardItem(title: String, icon: Painter, onClick: () -> Unit, modifier: Modifi
                 .background(
                     brush = Brush.linearGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
                         )
                     )
                 )
