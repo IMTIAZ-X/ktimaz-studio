@@ -47,8 +47,8 @@ fun MainScreen() {
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
                     )
                 )
             )
@@ -82,11 +82,14 @@ fun MainScreen() {
             Column(
                 modifier = Modifier
                     .padding(padding)
-                    .padding(0.dp)
+                    .padding(16.dp)
                     .verticalScroll(rememberScrollState())
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                CardGrid("Call", R.mipmap.ic_launcher, {}, "Message", R.mipmap.ic_launcher, {})
+                CardGrid("Nagad", R.mipmap.ic_launcher, {}, "IP Scan", R.mipmap.ic_launcher, {})
+                CardGrid("Movies", R.mipmap.ic_launcher, {}, "Player", R.mipmap.ic_launcher, {})
                 CardGrid("Call", R.mipmap.ic_launcher, {}, "Message", R.mipmap.ic_launcher, {})
                 CardGrid("Nagad", R.mipmap.ic_launcher, {}, "IP Scan", R.mipmap.ic_launcher, {})
                 CardGrid("Movies", R.mipmap.ic_launcher, {}, "Player", R.mipmap.ic_launcher, {})
