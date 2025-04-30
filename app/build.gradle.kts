@@ -8,18 +8,16 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.ktimazstudio"
+        applicationId = "com.ktimazstudio" // real app ID
         minSdk = 25
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
+        vectorDrawables.useSupportLibrary = true
     }
-    
+
     signingConfigs {
         create("release") {
             storeFile = file(project.property("RELEASE_STORE_FILE") as String)
@@ -42,32 +40,43 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_23
+        targetCompatibility = JavaVersion.VERSION_23
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlinOptions.jvmTarget = "23"
+
+    buildFeatures.compose = true
+
+    composeOptions.kotlinCompilerExtensionVersion = "1.5.11"
+
+    packaging.resources.excludes += setOf(
+        "kotlin-tooling-metadata.json",
+        "assets/dexopt/**",
+        "**/DebugProbesKt.bin",
+        "META-INF/LICENSE",
+        "META-INF/DEPENDENCIES",
+        "META-INF/*.kotlin_module",
+        "okhttp3/internal/publicsuffix/NOTICE",
+        "/META-INF/{AL2.0,LGPL2.1}"
+    )
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val buildInfoFile = File(variant.mergeAssetsProvider.get().outputDir, "hh.txt")
+            buildInfoFile.writeText("""
+                build by : your_name_or_site
+                mail : your_email
+            """.trimIndent())
+        }
     }
 
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
-    }
-
-    packaging {
-        resources.excludes += setOf(
-            "**/DebugProbesKt.bin",
-            "META-INF/LICENSE",
-            "META-INF/DEPENDENCIES",
-            "META-INF/*.kotlin_module",
-            "okhttp3/internal/publicsuffix/NOTICE",
-            "kotlin/**",
-            "/META-INF/{AL2.0,LGPL2.1}"
-        )
+    android.applicationVariants.all {
+        it.outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
+                "ktimazstudio_release_v${defaultConfig.versionName}.apk"
+        }
     }
 }
 
