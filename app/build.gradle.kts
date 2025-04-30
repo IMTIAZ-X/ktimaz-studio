@@ -8,12 +8,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.ktimazstudio" // real app ID
+        applicationId = "com.ktimazstudio"
         minSdk = 25
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -21,9 +20,13 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file(project.property("RELEASE_STORE_FILE") as String)
-            storePassword = project.property("RELEASE_STORE_PASSWORD") as String
+            storePassword = project.property("RELEASE_STORE_PASSWORD") as String)
             keyAlias = project.property("RELEASE_KEY_ALIAS") as String
             keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
         }
     }
 
@@ -40,40 +43,51 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_23
-        targetCompatibility = JavaVersion.VERSION_23
+        sourceCompatibility = JavaVersion.VERSION_24
+        targetCompatibility = JavaVersion.VERSION_24
     }
 
-    kotlinOptions.jvmTarget = "23"
+    kotlin {
+        jvmToolchain(24)
+    }
 
-    buildFeatures.compose = true
+    buildFeatures {
+        compose = true
+    }
 
-    composeOptions.kotlinCompilerExtensionVersion = "1.5.11"
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.11"
+    }
 
-    packaging.resources.excludes += setOf(
-        "kotlin-tooling-metadata.json",
-        "assets/dexopt/**",
-        "**/DebugProbesKt.bin",
-        "META-INF/LICENSE",
-        "META-INF/DEPENDENCIES",
-        "META-INF/*.kotlin_module",
-        "okhttp3/internal/publicsuffix/NOTICE",
-        "/META-INF/{AL2.0,LGPL2.1}"
-    )
-
-    applicationVariants.all {
-        val variant = this
-        variant.outputs.all {
-            val buildInfoFile = File(variant.mergeAssetsProvider.get().outputDir, "hh.txt")
-            buildInfoFile.writeText("""
-                build by : your_name_or_site
-                mail : your_email
-            """.trimIndent())
+    packaging {
+        resources {
+            excludes += setOf(
+                "kotlin-tooling-metadata.json",
+                "assets/dexopt/**",
+                "**/DebugProbesKt.bin",
+                "META-INF/LICENSE",
+                "META-INF/DEPENDENCIES",
+                "META-INF/*.kotlin_module",
+                "okhttp3/internal/publicsuffix/NOTICE",
+                "/META-INF/{AL2.0,LGPL2.1}"
+            )
         }
     }
 
-    android.applicationVariants.all {
-        it.outputs.all {
+    applicationVariants.all {
+        outputs.all {
+            val buildInfoFile = File(mergeAssetsProvider.get().outputDir, "hh.txt")
+            buildInfoFile.writeText(
+                """
+                build by : your_name_or_site
+                mail : your_email
+                """.trimIndent()
+            )
+        }
+    }
+
+    applicationVariants.all {
+        outputs.all {
             (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
                 "ktimazstudio_release_v${defaultConfig.versionName}.apk"
         }
