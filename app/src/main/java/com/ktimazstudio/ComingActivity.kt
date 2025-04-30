@@ -3,13 +3,9 @@ package com.ktimazstudio
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
 
 class ComingActivity : ComponentActivity() {
@@ -25,10 +21,9 @@ class ComingActivity : ComponentActivity() {
 
 @Composable
 fun ComingSoonScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Coming Soon...", fontSize = 24.sp)
-    }
+    Text(
+        text = "Coming Soon...",
+        style = MaterialTheme.typography.headlineLarge,
+        color = MaterialTheme.colorScheme.primary
+    )
 }
