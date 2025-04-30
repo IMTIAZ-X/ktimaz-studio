@@ -8,19 +8,17 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -28,11 +26,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
-import kotlinx.coroutines.delay
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Save crash logs
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                val logFile = File(getExternalFilesDir(null), "log.txt")
+                logFile.writeText("Crash in thread ${thread.name}:\n${throwable.stackTraceToString()}")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            finishAffinity()
+        }
+
         setContent {
             ktimaz {
                 MainScreen()
@@ -50,7 +60,10 @@ fun MainScreen() {
         topBar = {
             TopAppBar(
                 title = {
-                    Text("KTiMAZ Dashboard", fontWeight = FontWeight.Bold)
+                    Text(
+                        "KTiMAZ Dashboard",
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = { (context as? Activity)?.finish() }) {
@@ -65,30 +78,24 @@ fun MainScreen() {
                 )
             )
         }
-    ) { padding ->
+    ) { _ ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
+                .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
                 .verticalScroll(rememberScrollState())
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                "Quick Access",
+                text = "Quick Access",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onBackground
             )
-
-            val context = LocalContext.current
-
-            CardGrid(
-                "Call", R.mipmap.ic_launcher, {},
+            CardGrid("Call", R.mipmap.ic_launcher, {},
                 "Message", R.mipmap.ic_launcher, {
-                    context.startActivity(Intent(context, ComingActivity::class.java))
-                }
-            )
-
+                    val intent = Intent(context, ComingActivity::class.java)
+                    context.startActivity(intent)
+                })
             CardGrid("Nagad", R.mipmap.ic_launcher, {}, "IP Scan", R.mipmap.ic_launcher, {})
             CardGrid("Movies", R.mipmap.ic_launcher, {}, "Player", R.mipmap.ic_launcher, {})
         }
@@ -97,63 +104,64 @@ fun MainScreen() {
 
 @Composable
 fun CardGrid(
-    title1: String,
-    icon1: Int,
-    onClick1: () -> Unit,
-    title2: String,
-    icon2: Int,
-    onClick2: () -> Unit
+    title1: String, icon1: Int, onClick1: () -> Unit,
+    title2: String, icon2: Int, onClick2: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        CardItem(title1, painterResource(icon1), onClick1, Modifier.weight(1f))
-        CardItem(title2, painterResource(icon2), onClick2, Modifier.weight(1f))
+        CardItem(title1, painterResource(id = icon1), onClick1, Modifier.weight(1f))
+        CardItem(title2, painterResource(id = icon2), onClick2, Modifier.weight(1f))
     }
 }
 
 @Composable
 fun CardItem(title: String, icon: Painter, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition()
-    val animatedAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
+    val scale = remember { Animatable(1f) }
+
+    LaunchedEffect(Unit) {
+        scale.animateTo(1.05f, animationSpec = tween(400, easing = FastOutSlowInEasing))
+        scale.animateTo(1f, animationSpec = tween(400, easing = FastOutSlowInEasing))
+    }
 
     Card(
+        onClick = onClick,
         modifier = modifier
-            .aspectRatio(1f)
-            .blur(1.dp)
-            .alpha(animatedAlpha)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.15f))
+            .graphicsLayer(scaleX = scale.value, scaleY = scale.value)
+            .shadow(6.dp, shape = MaterialTheme.shapes.extraLarge)
+            .aspectRatio(1f),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.linearGradient(
+                    brush = Brush.linearGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
                         )
                     )
                 )
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Image(painter = icon, contentDescription = title, modifier = Modifier.size(48.dp))
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = icon,
+                    contentDescription = title,
+                    modifier = Modifier.size(48.dp)
+                )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    title,
+                    text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.primary
