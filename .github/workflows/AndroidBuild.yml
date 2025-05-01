@@ -34,10 +34,15 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
+      - name: Inject gradle.properties with AndroidX support
+        run: |
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Run Lint
+      - name: Run Lint (Debug and Release)
         run: ./gradlew lintReportDebug lintReportRelease
 
       - name: Upload Lint Reports
@@ -50,8 +55,10 @@ jobs:
       - name: Run Unit Tests
         run: ./gradlew testDebugUnitTest
 
-      - name: Enable Gradle Build Scan (TOS accepted)
-        run: echo "gradle.enterprise.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service\ngradle.enterprise.buildScan.termsOfServiceAgree=YES" > gradle.properties
+      - name: Enable Gradle Build Scan
+        run: |
+          echo "gradle.enterprise.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
+          echo "gradle.enterprise.buildScan.termsOfServiceAgree=YES" >> gradle.properties
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
