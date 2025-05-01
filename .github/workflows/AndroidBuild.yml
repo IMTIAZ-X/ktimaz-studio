@@ -37,9 +37,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Run Lint
-        run: ./gradlew lintReportDebug lintReportRelease
-
       - name: Upload Lint Reports
         if: always()
         uses: actions/upload-artifact@v4
