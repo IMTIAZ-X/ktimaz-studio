@@ -3,16 +3,13 @@ package com.ktimazstudio
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.os.Environment
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -22,23 +19,21 @@ import java.io.File
 class CrashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val log = intent.getStringExtra("log") ?: "No crash log"
-        saveCrashLog(log)
-        setContent {
-            CrashDialogScreen()
-        }
-    }
 
-    private fun saveCrashLog(log: String) {
-        val logDir = File(Environment.getExternalStorageDirectory(), "${getString(R.string.app_name)}/log")
-        if (!logDir.exists()) logDir.mkdirs()
-        val logFile = File(logDir, "crash_${System.currentTimeMillis()}.txt")
-        logFile.writeText(log)
+        val crashFilePath = intent.getStringExtra("log_path") ?: ""
+        val crashFile = File(crashFilePath)
+        val crashContent = if (crashFile.exists()) crashFile.readText() else "Crash log not found"
+
+        setContent {
+            MaterialTheme {
+                CrashDialogScreen(crashContent)
+            }
+        }
     }
 }
 
 @Composable
-fun CrashDialogScreen() {
+fun CrashDialogScreen(crashLog: String) {
     val context = LocalContext.current
 
     Surface(
@@ -77,7 +72,7 @@ fun CrashDialogScreen() {
                             onClick = {
                                 (context as? Activity)?.finishAffinity()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                         ) {
                             Text("Close")
                         }
