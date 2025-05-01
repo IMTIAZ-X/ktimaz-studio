@@ -21,6 +21,9 @@
         <activity
             android:name=".ComingActivity"
             android:exported="true"/>
+        <activity
+            android:name=".CrashActivity"
+            android:exported="true"/>
 
         <activity
             android:name=".SplashScreen"
