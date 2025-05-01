@@ -1,7 +1,6 @@
 package com.ktimazstudio
 
 import android.app.Activity
-import kotlin.system.exitProcess
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
@@ -36,6 +35,7 @@ import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.*
+import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
