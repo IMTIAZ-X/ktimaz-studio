@@ -1,6 +1,7 @@
 package com.ktimazstudio
 
 import android.app.Activity
+import kotlin.system.exitProcess
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
