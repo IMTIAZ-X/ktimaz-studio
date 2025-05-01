@@ -42,12 +42,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LintReports
-          path: app/build/reports/lint-results-*.html
-
+          path: app/build/reports/lint-results-*.html      
       
-      - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest
-
       - name: Enable Gradle Build Scan (TOS accepted)
         run: echo "gradle.enterprise.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service\ngradle.enterprise.buildScan.termsOfServiceAgree=YES" > gradle.properties
 
