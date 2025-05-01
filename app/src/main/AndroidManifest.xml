@@ -27,10 +27,6 @@
             android:name=".ComingActivity"
             android:exported="true"/>
         <activity
-            android:name=".CrashActivity"
-            android:exported="true"/>
-
-        <activity
             android:name=".SplashScreen"
             android:exported="true"> <!-- REQUIRED for Android 12+ -->
             <intent-filter>
