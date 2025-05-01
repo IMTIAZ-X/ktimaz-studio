@@ -33,18 +33,22 @@ android {
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
-            isShrinkResources = true            
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("release")
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 
@@ -57,19 +61,20 @@ android {
     }
 
     packaging {
-        resources {
-            excludes += setOf(
-                "kotlin-tooling-metadata.json",
-                "assets/dexopt/**",
-                "**/DebugProbesKt.bin",
-                "META-INF/LICENSE",
-                "META-INF/DEPENDENCIES",
-                "META-INF/*.kotlin_module",
-                "okhttp3/internal/publicsuffix/NOTICE",
-                "/META-INF/{AL2.0,LGPL2.1}"
-            )
-        }
+    resources {
+        excludes += setOf(
+            "assets/dexopt/**",
+            "kotlin/**",
+            "kotlin-tooling-metadata.json",
+            "META-INF/LICENSE",
+            "META-INF/DEPENDENCIES",
+            "META-INF/*.kotlin_module",
+            "**/DebugProbesKt.bin",
+            "okhttp3/internal/publicsuffix/NOTICE",
+            "/META-INF/{AL2.0,LGPL2.1}"
+        )
     }
+}
 
     applicationVariants.all {
         outputs.all {
