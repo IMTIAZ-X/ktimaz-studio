@@ -47,9 +47,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlin {
+    jvmToolchain(17)
+}
 
 
     buildFeatures {
@@ -71,18 +71,6 @@ android {
                 "META-INF/*.kotlin_module",
                 "okhttp3/internal/publicsuffix/NOTICE",
                 "/META-INF/{AL2.0,LGPL2.1}"
-            )
-        }
-    }
-
-    applicationVariants.all {
-        outputs.all {
-            val buildInfoFile = File(mergeAssetsProvider.get().outputDir.asFile, "hh.txt")
-            buildInfoFile.writeText(
-                """
-                build by : your_name_or_site
-                mail : your_email
-                """.trimIndent()
             )
         }
     }
