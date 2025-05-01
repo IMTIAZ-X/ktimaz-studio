@@ -20,7 +20,7 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file(project.property("RELEASE_STORE_FILE") as String)
-            storePassword = project.property("RELEASE_STORE_PASSWORD") as String)
+            storePassword = project.property("RELEASE_STORE_PASSWORD") as String
             keyAlias = project.property("RELEASE_KEY_ALIAS") as String
             keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
             enableV1Signing = true
@@ -77,7 +77,7 @@ android {
 
     applicationVariants.all {
         outputs.all {
-            val buildInfoFile = File(mergeAssetsProvider.get().outputDir, "hh.txt")
+            val buildInfoFile = File(mergeAssetsProvider.get().outputDir.asFile, "hh.txt")
             buildInfoFile.writeText(
                 """
                 build by : your_name_or_site
