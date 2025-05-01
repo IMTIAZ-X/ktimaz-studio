@@ -51,21 +51,28 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setGlobalExceptionHandler() {
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            val sw = StringWriter()
-            throwable.printStackTrace(PrintWriter(sw))
-            val crashLog = sw.toString()
+        Thread.setDefaultUncaughtExceptionHandler { _, throwable ->
+            val crashLog = StringWriter().also {
+                throwable.printStackTrace(PrintWriter(it))
+            }.toString()
+
             val logDir = File("/storage/emulated/0/${getString(R.string.app_name)}/log/")
             logDir.mkdirs()
-            val file = File(logDir, "crash_${System.currentTimeMillis()}.txt")
-            file.writeText(crashLog)
-            val intent = Intent(this, CrashActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            val crashFile = File(logDir, "crash_${System.currentTimeMillis()}.txt")
+            crashFile.writeText(crashLog)
+
+            val intent = Intent(this, CrashActivity::class.java).apply {
+                putExtra("log_path", crashFile.absolutePath)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
             startActivity(intent)
             android.os.Process.killProcess(android.os.Process.myPid())
             exitProcess(10)
         }
     }
+
 
     private fun detectCheatToolsAndVpn() {
         val cheatTools = listOf("frida", "radare2", "ghidra", "jadx", "apktool", "androbugs", "androguard")
