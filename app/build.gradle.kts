@@ -63,7 +63,6 @@ android {
     packaging {
     resources {
         excludes += setOf(
-            "assets/dexopt/**",
             "kotlin/**",
             "kotlin-tooling-metadata.json",
             "assets/dexopt/**",
