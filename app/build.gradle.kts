@@ -67,7 +67,7 @@ android {
             "kotlin-tooling-metadata.json",
             "assets/dexopt/**",
             "assets/dexopt/baseline.prof",
-            "assets/dexopt/baseline.profm"
+            "assets/dexopt/baseline.profm",
             "META-INF/LICENSE",
             "META-INF/DEPENDENCIES",
             "META-INF/*.kotlin_module",
