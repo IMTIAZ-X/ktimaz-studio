@@ -33,8 +33,6 @@ import java.io.BufferedReader
 import java.io.FileReader
 
 class MainActivity : ComponentActivity() {
-    private val snackbarHostState = SnackbarHostState()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -47,66 +45,53 @@ class MainActivity : ComponentActivity() {
         setContent {
             ktimaz {
                 val context = LocalContext.current
-                val scope = rememberCoroutineScope()
+                val snackbarHostState = remember { SnackbarHostState() }
 
                 LaunchedEffect(Unit) {
                     if (!isConnected(context)) {
-                        snackbarHostState.showSnackbar(
-                            message = "No Internet! Enabling Wi-Fi...",
-                            withDismissAction = true,
-                            duration = SnackbarDuration.Long
-                        )
+                        snackbarHostState.showSnackbar("No Internet! Enabling Wi-Fi...")
                         enableWifi(context)
                     }
                 }
 
                 Scaffold(
                     topBar = {
-                        TopAppBar(
+                        SmallTopAppBar(
                             title = {
                                 Text(
                                     text = stringResource(id = R.string.app_name),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color.Transparent,
-                                titleContentColor = MaterialTheme.colorScheme.onBackground
-                            ),
-                            modifier = Modifier.statusBarsPadding()
+                            }
                         )
                     },
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    content = { padding ->
-                        Box(modifier = Modifier.padding(padding)) {
-                            CardGrid { cardName ->
-                                context.startActivity(Intent(context, ComingActivity::class.java))
-                            }
-                        }
+                    snackbarHost = { SnackbarHost(snackbarHostState) }
+                ) { padding ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        CardGrid { context.startActivity(Intent(context, ComingActivity::class.java)) }
                     }
-                )
+                }
             }
         }
     }
 
     private fun isConnected(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        return cm.activeNetwork?.let { network ->
-            cm.getNetworkCapabilities(network)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        return cm.activeNetwork?.let {
+            cm.getNetworkCapabilities(it)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
         } ?: false
     }
 
     private fun enableWifi(context: Context) {
         val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        if (!wifiManager.isWifiEnabled) {
-            wifiManager.isWifiEnabled = true
-        }
+        if (!wifiManager.isWifiEnabled) wifiManager.isWifiEnabled = true
     }
 
     private fun detectVpn(): Boolean {
         return try {
             BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
-                lines.any { it.contains("0100007F:") } // loopback
+                lines.any { it.contains("0100007F:") }
             }
         } catch (e: Exception) {
             false
@@ -133,17 +118,13 @@ fun CardGrid(onCardClick: (String) -> Unit) {
         modifier = Modifier.fillMaxSize()
     ) {
         itemsIndexed(cards) { index, title ->
-            Card(
-                onClick = { onCardClick(title) },
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ),
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(160.dp)
+                    .clickable { onCardClick(title) }
             ) {
                 Column(
                     modifier = Modifier
