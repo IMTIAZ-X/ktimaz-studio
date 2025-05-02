@@ -11,15 +11,6 @@ import androidx.compose.ui.platform.LocalContext
 //     tertiary = Pink80
 // )
 
-val UltraSmoothColorScheme = lightColorScheme(
-    surfaceVariant = Color(0xFF1F1F1F),
-    background = Color(0xFF101010),
-    onBackground = Color.White,
-    primary = Color(0xFF00BCD4),
-    secondary = Color(0xFF03DAC6)
-)
-
-
 private val LightColorScheme = lightColorScheme(
     primary = Purple40,
     secondary = PurpleGrey40,
