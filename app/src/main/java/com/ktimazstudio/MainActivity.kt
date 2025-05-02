@@ -10,9 +10,8 @@ import android.os.Handler
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -30,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
-import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.FileReader
 
@@ -53,50 +51,40 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     if (!isConnected(context)) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "No Internet! Enabling Wi-Fi...",
-                                withDismissAction = true,
-                                duration = SnackbarDuration.Long
-                            )
-                        }
+                        snackbarHostState.showSnackbar(
+                            message = "No Internet! Enabling Wi-Fi...",
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Long
+                        )
                         enableWifi(context)
                     }
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Column {
-                            TopAppBar(
-                                title = {
-                                    Text(
-                                        text = stringResource(id = R.string.app_name),
-                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                                    )
-                                },
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = Color.Transparent,
-                                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                                ),
-                                modifier = Modifier.statusBarsPadding()
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            AnimatedCardGrid { cardName ->
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = stringResource(id = R.string.app_name),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                                titleContentColor = MaterialTheme.colorScheme.onBackground
+                            ),
+                            modifier = Modifier.statusBarsPadding()
+                        )
+                    },
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    content = { padding ->
+                        Box(modifier = Modifier.padding(padding)) {
+                            CardGrid { cardName ->
                                 context.startActivity(Intent(context, ComingActivity::class.java))
                             }
                         }
-
-                        SnackbarHost(
-                            hostState = snackbarHostState,
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
                     }
-                }
+                )
             }
         }
     }
@@ -118,7 +106,7 @@ class MainActivity : ComponentActivity() {
     private fun detectVpn(): Boolean {
         return try {
             BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
-                lines.any { it.contains("0100007F:") }
+                lines.any { it.contains("0100007F:") } // loopback
             }
         } catch (e: Exception) {
             false
@@ -133,7 +121,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
+fun CardGrid(onCardClick: (String) -> Unit) {
     val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI")
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher) }
 
@@ -141,39 +129,31 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
     ) {
         itemsIndexed(cards) { index, title ->
-            AnimatedVisibility(
-                visible = true,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(animationSpec = tween(500 + index * 100))
+            Card(
+                onClick = { onCardClick(title) },
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
             ) {
-                Card(
-                    onClick = { onCardClick(title) },
-                    shape = RoundedCornerShape(24.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp)
+                        .padding(16.dp)
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxSize(),
-                        verticalArrangement = Arrangement.SpaceEvenly,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = icons[index],
-                            contentDescription = title,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Text(title, fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                    }
+                    Image(painter = icons[index], contentDescription = title, modifier = Modifier.size(64.dp))
+                    Text(title, fontSize = 18.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
