@@ -73,6 +73,7 @@ android {
             "META-INF/*.kotlin_module",
             "**/DebugProbesKt.bin",
             "okhttp3/internal/publicsuffix/NOTICE",
+            "okhttp3/**",
             "/META-INF/{AL2.0,LGPL2.1}"
         )
     }
@@ -104,15 +105,4 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
-
-
-    // Coil for image loading
-    implementation("io.coil-kt:coil-compose:2.5.0")
-
-    // Navigation
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-
-    // Optional animation libraries
-    implementation("androidx.compose.animation:animation:1.6.5")
 }
