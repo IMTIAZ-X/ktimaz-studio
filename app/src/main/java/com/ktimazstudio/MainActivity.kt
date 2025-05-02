@@ -1,42 +1,36 @@
 package com.ktimazstudio
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
-import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.SnackbarDefaults
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.*
-import androidx.compose.ui.res.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
-import androidx.core.app.ActivityCompat
-import coil.compose.rememberAsyncImagePainter
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
-import kotlinx.coroutines.*
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.FileReader
 
@@ -59,39 +53,49 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     if (!isConnected(context)) {
-                        snackbarHostState.showSnackbar(
-                            message = "No Internet! Enabling Wi-Fi...",
-                            withDismissAction = true,
-                            duration = SnackbarDuration.Long
-                        )
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "No Internet! Enabling Wi-Fi...",
+                                withDismissAction = true,
+                                duration = SnackbarDuration.Long
+                            )
+                        }
                         enableWifi(context)
                     }
                 }
 
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Column {
-                        TopAppBar(
-                            title = {
-                                Text(
-                                    text = stringResource(id = R.string.app_name),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                                )
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color.Transparent,
-                                titleContentColor = MaterialTheme.colorScheme.onBackground
-                            ),
-                            modifier = Modifier.statusBarsPadding()
-                        )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column {
+                            TopAppBar(
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.app_name),
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color.Transparent,
+                                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                                ),
+                                modifier = Modifier.statusBarsPadding()
+                            )
 
-                        Spacer(Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                        AnimatedCardGrid { cardName ->
-                            context.startActivity(Intent(context, ComingActivity::class.java))
+                            AnimatedCardGrid { cardName ->
+                                context.startActivity(Intent(context, ComingActivity::class.java))
+                            }
                         }
-                    }
 
-                    SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+                        SnackbarHost(
+                            hostState = snackbarHostState,
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
+                    }
                 }
             }
         }
@@ -114,7 +118,7 @@ class MainActivity : ComponentActivity() {
     private fun detectVpn(): Boolean {
         return try {
             BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
-                lines.any { it.contains("0100007F:") } // loopback
+                lines.any { it.contains("0100007F:") }
             }
         } catch (e: Exception) {
             false
@@ -128,7 +132,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
     val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI")
@@ -143,7 +146,7 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
         itemsIndexed(cards) { index, title ->
             AnimatedVisibility(
                 visible = true,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(animationSpec = tween(500 + index * 100)),
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(animationSpec = tween(500 + index * 100))
             ) {
                 Card(
                     onClick = { onCardClick(title) },
@@ -164,7 +167,11 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
                         verticalArrangement = Arrangement.SpaceEvenly,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Image(painter = icons[index], contentDescription = title, modifier = Modifier.size(64.dp))
+                        Image(
+                            painter = icons[index],
+                            contentDescription = title,
+                            modifier = Modifier.size(64.dp)
+                        )
                         Text(title, fontSize = 18.sp, fontWeight = FontWeight.Medium)
                     }
                 }
