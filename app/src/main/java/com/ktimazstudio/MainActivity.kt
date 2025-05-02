@@ -1,183 +1,176 @@
-package com.ktimazstudio
+@file:Suppress("DEPRECATION")
 
+package com.yourpackage.app
+
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.SnackbarDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.ktimazstudio.ui.theme.ktimaz
-import kotlin.system.exitProcess
+import androidx.compose.ui.unit.*
+import androidx.core.app.ActivityCompat
+import coil.compose.rememberAsyncImagePainter
+import com.yourpackage.app.ui.theme.AppTheme
+import kotlinx.coroutines.*
+import java.io.BufferedReader
+import java.io.FileReader
 
 class MainActivity : ComponentActivity() {
+    private val snackbarHostState = SnackbarHostState()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        detectToolsAndVpn()
+
+        if (detectVpn() || detectKnownTools()) {
+            Toast.makeText(this, "Security tool or VPN detected. Closing...", Toast.LENGTH_LONG).show()
+            Handler().postDelayed({ finishAffinity() }, 5000)
+            return
+        }
 
         setContent {
-            ktimaz {
-                MainScreen()
+            AppTheme {
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+
+                LaunchedEffect(Unit) {
+                    if (!isConnected(context)) {
+                        snackbarHostState.showSnackbar(
+                            message = "No Internet! Enabling Wi-Fi...",
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Long
+                        )
+                        enableWifi(context)
+                    }
+                }
+
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    Column {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = stringResource(id = R.string.app_name),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                                titleContentColor = MaterialTheme.colorScheme.onBackground
+                            ),
+                            modifier = Modifier.statusBarsPadding()
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        AnimatedCardGrid { cardName ->
+                            context.startActivity(Intent(context, ComingActivity::class.java))
+                        }
+                    }
+
+                    SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+                }
             }
         }
     }
 
-    private fun detectToolsAndVpn() {
-        val suspiciousPackages = listOf("frida", "radare2", "ghidra", "jadx", "apktool", "androbugs", "androguard")
-        val pm = packageManager
-        for (pkg in suspiciousPackages) {
-            try {
-                pm.getPackageInfo(pkg, 0)
-                showToastAndExit("Unauthorized tool detected: $pkg")
-                return
-            } catch (_: Exception) {}
-        }
+    private fun isConnected(context: Context): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return cm.activeNetwork?.let { network ->
+            cm.getNetworkCapabilities(network)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        } ?: false
+    }
 
-        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (cm.allNetworks.any { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true }) {
-            showToastAndExit("VPN detected. App will close.")
+    private fun enableWifi(context: Context) {
+        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        if (!wifiManager.isWifiEnabled) {
+            wifiManager.isWifiEnabled = true
         }
     }
 
-    private fun showToastAndExit(msg: String) {
-        Handler(Looper.getMainLooper()).post {
-            Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-        }
-        Handler(Looper.getMainLooper()).postDelayed({
-            finishAffinity()
-            exitProcess(0)
-        }, 5000)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MainScreen() {
-    val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(Unit) {
-        if (!isConnected(context)) {
-            snackbarHostState.showSnackbar("No Internet. Turning on Wi-Fi...")
-            enableWiFi(context)
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(id = R.string.app_name),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
-                colors = TopAppBarDefaults.smallTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            )
-        },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            FeatureRow("Call", R.mipmap.ic_launcher, {}, "Message", R.mipmap.ic_launcher) {
-                context.startActivity(Intent(context, ComingActivity::class.java))
+    private fun detectVpn(): Boolean {
+        return try {
+            BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
+                lines.any { it.contains("0100007F:") } // loopback
             }
-            FeatureRow("Nagad", R.mipmap.ic_launcher, {}, "IP Scan", R.mipmap.ic_launcher, {})
-            FeatureRow("Movies", R.mipmap.ic_launcher, {}, "Player", R.mipmap.ic_launcher, {})
+        } catch (e: Exception) {
+            false
         }
+    }
+
+    private fun detectKnownTools(): Boolean {
+        val tools = listOf("frida", "radare2", "ghidra", "apktool", "androg", "xposed", "substrate")
+        val processList = Runtime.getRuntime().exec("ps").inputStream.bufferedReader().readText()
+        return tools.any { processList.contains(it, ignoreCase = true) }
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun FeatureRow(
-    title1: String, icon1: Int, onClick1: () -> Unit,
-    title2: String, icon2: Int, onClick2: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
+fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
+    val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI")
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher) }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        FeatureCard(title1, painterResource(icon1), onClick1, Modifier.weight(1f))
-        FeatureCard(title2, painterResource(icon2), onClick2, Modifier.weight(1f))
-    }
-}
-
-@Composable
-fun FeatureCard(title: String, icon: Painter, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.aspectRatio(1f),
-        shape = MaterialTheme.shapes.extraLarge,
-        elevation = CardDefaults.cardElevation(6.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                        )
-                    )
-                )
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Image(
-                painter = icon,
-                contentDescription = title,
-                modifier = Modifier.size(48.dp),
-                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(text = title, color = MaterialTheme.colorScheme.onSurface)
+        itemsIndexed(cards) { index, title ->
+            AnimatedVisibility(
+                visible = true,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(animationSpec = tween(500 + index * 100)),
+            ) {
+                Card(
+                    onClick = { onCardClick(title) },
+                    shape = RoundedCornerShape(24.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.SpaceEvenly,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(painter = icons[index], contentDescription = title, modifier = Modifier.size(64.dp))
+                        Text(title, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
         }
-    }
-}
-
-fun isConnected(context: Context): Boolean {
-    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    val network = cm.activeNetwork ?: return false
-    val capabilities = cm.getNetworkCapabilities(network) ?: return false
-    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-}
-
-fun enableWiFi(context: Context) {
-    val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-    if (!wifiManager.isWifiEnabled) {
-        wifiManager.isWifiEnabled = true
     }
 }
