@@ -1,6 +1,4 @@
-@file:Suppress("DEPRECATION")
-
-package com.yourpackage.app
+package com.ktimazstudio
 
 import android.Manifest
 import android.content.Context
@@ -37,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.core.app.ActivityCompat
 import coil.compose.rememberAsyncImagePainter
-import com.yourpackage.app.ui.theme.AppTheme
+import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.FileReader
@@ -55,7 +53,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            AppTheme {
+            ktimaz {
                 val context = LocalContext.current
                 val scope = rememberCoroutineScope()
 
