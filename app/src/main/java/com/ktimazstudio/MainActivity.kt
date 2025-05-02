@@ -32,6 +32,7 @@ import com.ktimazstudio.ui.theme.ktimaz
 import java.io.BufferedReader
 import java.io.FileReader
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,7 +70,11 @@ class MainActivity : ComponentActivity() {
                     snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { padding ->
                     Box(modifier = Modifier.padding(padding)) {
-                        CardGrid { context.startActivity(Intent(context, ComingActivity::class.java)) }
+                        CardGrid { title ->
+                            if (title == "Message") {
+                                context.startActivity(Intent(context, ComingActivity::class.java))
+                            }
+                        }
                     }
                 }
             }
@@ -107,7 +112,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CardGrid(onCardClick: (String) -> Unit) {
-    val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI")
+    val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI", "Message")
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher) }
 
     LazyVerticalGrid(
