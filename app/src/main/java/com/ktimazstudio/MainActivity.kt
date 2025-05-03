@@ -10,27 +10,29 @@ import android.os.Handler
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ktimazstudio.ui.theme.ktimaz
+import com.ktimazstudio.ui.theme.AppTheme
 import java.io.BufferedReader
 import java.io.FileReader
-import androidx.compose.animation.core.tween
-import androidx.compose.material3.ExperimentalMaterial3Api
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -44,7 +46,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ktimaz {
+            AppTheme {
                 val context = LocalContext.current
                 val snackbarHostState = remember { SnackbarHostState() }
 
@@ -61,7 +63,7 @@ class MainActivity : ComponentActivity() {
                             title = {
                                 Text(
                                     text = stringResource(id = R.string.app_name),
-                                    fontSize = 20.sp,
+                                    fontSize = 22.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -70,8 +72,12 @@ class MainActivity : ComponentActivity() {
                     },
                     snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { padding ->
-                    AnimatedCardGrid(Modifier.padding(padding)) {
-                        context.startActivity(Intent(context, ComingActivity::class.java))
+                    Box(modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize()) {
+                        AnimatedCardGrid {
+                            context.startActivity(Intent(context, ComingActivity::class.java))
+                        }
                     }
                 }
             }
@@ -107,60 +113,48 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: () -> Unit) {
+fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
     val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI")
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = Modifier.fillMaxSize()
     ) {
-        cards.chunked(2).forEachIndexed { rowIndex, rowItems ->
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(animationSpec = tween(500)) + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+        itemsIndexed(cards) { index, title ->
+            val scale = rememberInfiniteTransition()
+                .animateFloat(
+                    initialValue = 0.98f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1200, easing = EaseInOut),
+                        repeatMode = RepeatMode.Reverse
+                    )
+                )
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .graphicsLayer(scaleX = scale.value, scaleY = scale.value)
+                    .shadow(6.dp, RoundedCornerShape(20.dp))
+                    .clickable { onCardClick(title) }
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    rowItems.forEach { title ->
-                        Surface(
-                            shape = RoundedCornerShape(24.dp),
-                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-                            tonalElevation = 4.dp,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(140.dp)
-                                .clickable { onCardClick() }
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
-                                            )
-                                        )
-                                    )
-                            ) {
-                                Text(
-                                    text = title,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-                    }
-                    if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f)) // Fill 2nd cell if odd
+                    Image(painter = icons[index], contentDescription = title, modifier = Modifier.size(60.dp))
+                    Text(title, fontSize = 18.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
