@@ -21,16 +21,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ktimazstudio.ui.theme.UltraSmoothColorScheme
 import com.ktimazstudio.ui.theme.ktimaz
 import java.io.BufferedReader
 import java.io.FileReader
@@ -46,7 +43,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ktimaz(colorScheme = UltraSmoothColorScheme) {
+            ktimaz {
                 val context = LocalContext.current
                 val snackbarHostState = remember { SnackbarHostState() }
 
@@ -64,19 +61,16 @@ class MainActivity : ComponentActivity() {
                                 Text(
                                     text = stringResource(id = R.string.app_name),
                                     fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    fontWeight = FontWeight.Bold
                                 )
-                            },
-                            colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Transparent)
+                            }
                         )
                     },
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    containerColor = Color.Transparent
+                    snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { padding ->
                     Box(modifier = Modifier.padding(padding)) {
                         CardGrid { title ->
-                            if (title == "Message") startActivity(Intent(this@MainActivity, ComingActivity::class.java))
+                            context.startActivity(Intent(context, ComingActivity::class.java))
                         }
                     }
                 }
@@ -115,8 +109,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CardGrid(onCardClick: (String) -> Unit) {
-    val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI", "Message")
-    val icons = List(cards.size) { R.mipmap.ic_launcher }
+    val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI")
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher) }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -126,41 +120,24 @@ fun CardGrid(onCardClick: (String) -> Unit) {
         modifier = Modifier.fillMaxSize()
     ) {
         itemsIndexed(cards) { index, title ->
-            var scale by remember { mutableStateOf(1f) }
-
             Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shadowElevation = 6.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(160.dp)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        shadowElevation = 12f
-                    }
-                    .clickable {
-                        scale = 0.96f
-                        Handler().postDelayed({
-                            scale = 1f
-                            onCardClick(title)
-                        }, 120)
-                    },
-                shape = RoundedCornerShape(24.dp),
-                color = Color.White.copy(alpha = 0.05f)
+                    .clickable { onCardClick(title) }
             ) {
                 Column(
                     modifier = Modifier
                         .padding(16.dp)
                         .fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.SpaceEvenly,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Image(
-                        painter = painterResource(id = icons[index]),
-                        contentDescription = title,
-                        modifier = Modifier.size(64.dp).alpha(0.9f)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Image(painter = icons[index], contentDescription = title, modifier = Modifier.size(64.dp))
+                    Text(title, fontSize = 18.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
