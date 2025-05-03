@@ -10,20 +10,18 @@ import android.os.Handler
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,17 +59,16 @@ class MainActivity : ComponentActivity() {
                                 Text(
                                     text = stringResource(id = R.string.app_name),
                                     fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         )
                     },
                     snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { padding ->
-                    Box(modifier = Modifier.padding(padding)) {
-                        CardGrid { title ->
-                            context.startActivity(Intent(context, ComingActivity::class.java))
-                        }
+                    AnimatedCardGrid(Modifier.padding(padding)) {
+                        context.startActivity(Intent(context, ComingActivity::class.java))
                     }
                 }
             }
@@ -107,37 +104,60 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun CardGrid(onCardClick: (String) -> Unit) {
+fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: () -> Unit) {
     val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI")
-    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher) }
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        itemsIndexed(cards) { index, title ->
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shadowElevation = 6.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clickable { onCardClick(title) }
+        cards.chunked(2).forEachIndexed { rowIndex, rowItems ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(500)) + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
             ) {
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxSize(),
-                    verticalArrangement = Arrangement.SpaceEvenly,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Image(painter = icons[index], contentDescription = title, modifier = Modifier.size(64.dp))
-                    Text(title, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                    rowItems.forEach { title ->
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                            tonalElevation = 4.dp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(140.dp)
+                                .clickable { onCardClick() }
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                                            )
+                                        )
+                                    )
+                            ) {
+                                Text(
+                                    text = title,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                    if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f)) // Fill 2nd cell if odd
                 }
             }
         }
