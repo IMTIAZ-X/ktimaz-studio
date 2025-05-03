@@ -29,7 +29,10 @@ import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
 import java.io.BufferedReader
 import java.io.FileReader
+import androidx.compose.animation.core.tween
+import androidx.compose.material3.ExperimentalMaterial3Api
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
