@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -51,7 +50,7 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     if (!isConnected(context)) {
-                        snackbarHostState.showSnackbar("No Internet! Enabling Wi-Fi...")
+                        snackbarHostState.showSnackbar("No Internet! Enabling Wi-Fi…")
                         enableWifi(context)
                     }
                 }
@@ -66,18 +65,25 @@ class MainActivity : ComponentActivity() {
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                            }
+                            },
+                            colors = TopAppBarDefaults.smallTopAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                titleContentColor = MaterialTheme.colorScheme.onSurface
+                            )
                         )
                     },
                     snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { padding ->
                     Box(
-                        modifier = Modifier
+                        Modifier
                             .padding(padding)
                             .fillMaxSize()
                     ) {
-                        AnimatedCardGrid {
-                            context.startActivity(Intent(context, ComingActivity::class.java))
+                        AnimatedCardGrid { title ->
+                            context.startActivity(
+                                Intent(context, ComingActivity::class.java)
+                                    .putExtra("CARD_TITLE", title)
+                            )
                         }
                     }
                 }
@@ -87,69 +93,77 @@ class MainActivity : ComponentActivity() {
 
     private fun isConnected(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        return cm.activeNetwork?.let {
-            cm.getNetworkCapabilities(it)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-        } ?: false
+        return cm.activeNetwork
+            ?.let { cm.getNetworkCapabilities(it)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) }
+            ?: false
     }
 
     private fun enableWifi(context: Context) {
-        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        if (!wifiManager.isWifiEnabled) wifiManager.isWifiEnabled = true
+        val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        if (!wm.isWifiEnabled) wm.isWifiEnabled = true
     }
 
-    private fun detectVpn(): Boolean {
-        return try {
-            BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
-                lines.any { it.contains("0100007F:") }
-            }
-        } catch (e: Exception) {
-            false
+    private fun detectVpn(): Boolean = try {
+        BufferedReader(FileReader("/proc/net/tcp")).useLines { seq ->
+            seq.any { it.contains("0100007F:") }
         }
+    } catch (_: Exception) {
+        false
     }
 }
 
 @Composable
 fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
-    val cards = listOf("Test", "Image", "Movie", "Video", "Note", "Web", "Scan", "Design", "Music", "AI")
+    val cards = listOf("Test","Image","Movie","Video","Note","Web","Scan","Design","Music","AI")
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher) }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         itemsIndexed(cards) { index, title ->
-            val scale = rememberInfiniteTransition()
-                .animateFloat(
-                    initialValue = 0.98f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1200, easing = EaseInOut),
-                        repeatMode = RepeatMode.Reverse
-                    )
+            val scale by rememberInfiniteTransition().animateFloat(
+                initialValue = 0.95f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    tween(800, easing = EaseInOut),
+                    RepeatMode.Reverse
                 )
+            )
 
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+            Card(
+                onClick = { onCardClick(title) },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                 modifier = Modifier
+                    .graphicsLayer(scaleX = scale, scaleY = scale)
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .graphicsLayer(scaleX = scale.value, scaleY = scale.value)
-                    .shadow(6.dp, RoundedCornerShape(20.dp))
-                    .clickable { onCardClick(title) }
+                    .height(160.dp)
             ) {
                 Column(
-                    modifier = Modifier
+                    Modifier
                         .fillMaxSize()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly,
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Image(painter = icons[index], contentDescription = title, modifier = Modifier.size(60.dp))
-                    Text(title, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                    Image(
+                        painter = icons[index],
+                        contentDescription = title,
+                        modifier = Modifier.size(56.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }
