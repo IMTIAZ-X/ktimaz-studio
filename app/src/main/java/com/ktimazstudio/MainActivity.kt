@@ -14,9 +14,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -39,8 +38,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (detectVpn() || detectKnownTools()) {
-            Toast.makeText(this, "Security tool or VPN detected. Closing...", Toast.LENGTH_LONG).show()
+        if (detectVpn()) {
+            Toast.makeText(this, "VPN detected. Closing...", Toast.LENGTH_LONG).show()
             Handler().postDelayed({ finishAffinity() }, 5000)
             return
         }
@@ -72,9 +71,11 @@ class MainActivity : ComponentActivity() {
                     },
                     snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { padding ->
-                    Box(modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .padding(padding)
+                            .fillMaxSize()
+                    ) {
                         AnimatedCardGrid {
                             context.startActivity(Intent(context, ComingActivity::class.java))
                         }
@@ -104,12 +105,6 @@ class MainActivity : ComponentActivity() {
         } catch (e: Exception) {
             false
         }
-    }
-
-    private fun detectKnownTools(): Boolean {
-        val tools = listOf("frida", "radare2", "ghidra", "apktool", "androg", "xposed", "substrate")
-        val processList = Runtime.getRuntime().exec("ps").inputStream.bufferedReader().readText()
-        return tools.any { processList.contains(it, ignoreCase = true) }
     }
 }
 
