@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
 import java.io.BufferedReader
 import java.io.FileReader
+import androidx.compose.material3.SmallTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
