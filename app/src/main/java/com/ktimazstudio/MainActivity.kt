@@ -20,7 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.graphicsLayer
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
                                     context.startActivity(Intent(context, SettingsActivity::class.java))
                                 }) {
                                     Icon(
-                                        painter = painterResource(id = R.drawable.arrow_back_ios_24),
+                                        painter = painterResource(id = R.drawable.settings),
                                         contentDescription = "Settings",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
