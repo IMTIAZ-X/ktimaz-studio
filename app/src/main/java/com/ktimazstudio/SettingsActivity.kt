@@ -3,19 +3,21 @@ package com.ktimazstudio
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.material3.icons.Icons
-import androidx.compose.material3.icons.filled.ArrowBack
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
 
+@OptIn(ExperimentalMaterial3Api::class)
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,14 +27,14 @@ class SettingsActivity : ComponentActivity() {
                     topBar = {
                         TopAppBar(
                             title = {
-                                Text(
-                                    text = "Settings",
-                                    fontSize = 20.sp
-                                )
+                                Text(text = "Settings", fontSize = 20.sp)
                             },
                             navigationIcon = {
                                 IconButton(onClick = { onBackPressedDispatcher.onBackPressed() }) {
-                                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                                    Image(
+                                        painter = painterResource(id = R.drawable.arrow_back_ios_24),
+                                        contentDescription = "Back"
+                                    )
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
@@ -48,7 +50,7 @@ class SettingsActivity : ComponentActivity() {
                             .padding(padding)
                             .background(
                                 brush = Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF232526), Color(0xFF414345))
+                                    listOf(Color(0xFF1D2B64), Color(0xFFF8CDDA))
                                 )
                             )
                     ) {
@@ -73,30 +75,30 @@ fun SettingsContent() {
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
-        SettingSwitch(title = "Enable Dark Mode", checked = false) { enabled ->
-            // TODO: handle switch
-        }
-        SettingSwitch(title = "Notifications", checked = true) { enabled ->
-            // TODO: handle switch
-        }
+
+        SettingSwitch("Enable Dark Mode")
+        SettingSwitch("Enable Notifications")
+        SettingSwitch("Auto Updates")
+        SettingSwitch("Experimental Features")
+        SettingSwitch("Blur Effect")
+        SettingSwitch("Custom Notifications")
     }
 }
 
 @Composable
-fun SettingSwitch(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+fun SettingSwitch(title: String, defaultState: Boolean = false) {
+    var checked by remember { mutableStateOf(defaultState) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Text(text = title, style = MaterialTheme.typography.bodyLarge)
         Switch(
             checked = checked,
-            onCheckedChange = onCheckedChange,
+            onCheckedChange = { checked = it },
             colors = SwitchDefaults.colors(
                 checkedThumbColor = MaterialTheme.colorScheme.primary
             )
