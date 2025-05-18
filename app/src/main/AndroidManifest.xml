@@ -28,6 +28,9 @@
             android:name=".ComingActivity"
             android:exported="true"/>
         <activity
+            android:name=".SettingsActivity"
+            android:exported="true"/>
+        <activity
             android:name=".SplashScreen"
             android:exported="true"> <!-- REQUIRED for Android 12+ -->
             <intent-filter>
