@@ -97,8 +97,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    implementation("androidx.compose.material:material-icons-core:1.8.1") // Or your Compose version
-    implementation("androidx.compose.material:material-icons-extended:1.8.1") // Or your Compose version
+    implementation("androidx.compose.material:material-icons-core:1.7.8") // Or your Compose version
+    implementation("androidx.compose.material:material-icons-extended:1.7.8") // Or your Compose version
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
