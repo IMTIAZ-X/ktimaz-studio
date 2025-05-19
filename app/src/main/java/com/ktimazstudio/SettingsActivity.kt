@@ -1,12 +1,13 @@
 package com.ktimazstudio
 
+// General Compose imports
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.DrawableRes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication // Added for LocalIndication.current
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,12 +15,30 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale // Added for Modifier.scale()
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.ktimazstudio.ui.theme.ktimaz // Your app's theme
+import kotlinx.coroutines.delay
+
+// Material Icons - IMPORTANT: Ensure you have the 'androidx.compose.material:material-icons-extended'
+// dependency in your app's build.gradle file for many of these icons.
+// e.g., implementation("androidx.compose.material:material-icons-extended:1.6.7") // Use your BOM version
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Build // This was not explicitly used in getInitialSettings, but good to have if planned
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
@@ -31,19 +50,7 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.SettingsApplications
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import com.ktimazstudio.ui.theme.ktimaz // Your app's theme
-import kotlinx.coroutines.delay
+
 
 // --- Data Models for Settings (ViewModel Layer) ---
 
@@ -52,7 +59,7 @@ sealed class SettingModel(
     open val title: String,
     open val icon: ImageVector,
     open val description: String? = null,
-    open val enabled: Boolean = true // Most settings are enabled by default
+    open val enabled: Boolean = true
 ) {
     data class Switch(
         override val key: String,
@@ -61,7 +68,7 @@ sealed class SettingModel(
         override val description: String? = null,
         override val enabled: Boolean = true,
         val isChecked: Boolean,
-        val revealsKey: String? = null // Key of sub-setting to reveal
+        val revealsKey: String? = null
     ) : SettingModel(key, title, icon, description, enabled)
 
     data class Action(
@@ -83,15 +90,14 @@ sealed class SettingModel(
         val selectedOption: String
     ) : SettingModel(key, title, icon, description, enabled)
 
-    // Represents a sub-setting that's only visible if its parent is enabled
     data class SubSwitch(
         override val key: String,
         override val title: String,
-        override val icon: ImageVector, // Usually smaller or indented
+        override val icon: ImageVector,
         override val description: String? = null,
         val isChecked: Boolean,
-        val parentKey: String // Key of the parent Switch setting
-    ) : SettingModel(key, title, icon, description, true) // Enabled state dictated by parent visibility
+        val parentKey: String
+    ) : SettingModel(key, title, icon, description, true)
 }
 
 enum class ActionType {
@@ -108,7 +114,7 @@ fun getInitialSettings(): List<SettingModel> {
     return listOf(
         SettingModel.Switch("dark_mode", "Dark Mode", Icons.Filled.DarkMode, "Enable a dark theme for the app.", isChecked = false, revealsKey = "custom_dark_theme_color"),
         SettingModel.SubSwitch("custom_dark_theme_color", "Use Custom Accent", Icons.Filled.ColorLens, "Apply a custom accent color in dark mode.", isChecked = false, parentKey = "dark_mode"),
-        SettingModel.Switch("notifications", "Enable Notifications", Icons.Filled.Notifications, "Receive alerts and updates.", isChecked = true, revealsKey = "notification_sound"),
+        SettingModel.Switch("notifications", "Enable Notifications", Icons.Filled.Notifications, "Receive alerts and updates.", isChecked = true, revealsKey = "notification_vibration"), // Corrected revealsKey
         SettingModel.SubSwitch("notification_vibration", "Vibrate for Notifications", Icons.Filled.Vibration, isChecked = true, parentKey = "notifications"),
         SettingModel.Picker("app_theme", "App Theme", Icons.Filled.SettingsApplications, "Choose the primary color theme.", options = listOf("System Default", "Blue", "Green", "Purple"), selectedOption = "System Default"),
         SettingModel.Action("reset_prefs", "Reset Preferences", Icons.Filled.Restore, "Revert all settings to their default values.", actionType = ActionType.RESET_PREFERENCES),
@@ -116,7 +122,7 @@ fun getInitialSettings(): List<SettingModel> {
         SettingModel.Action("privacy_policy", "Privacy Policy", Icons.Filled.Shield, actionType = ActionType.PRIVACY_POLICY),
         SettingModel.Action("terms_of_service", "Terms of Service", Icons.Filled.Policy, actionType = ActionType.TERMS_OF_SERVICE),
         SettingModel.Action("about_app", "About App", Icons.Filled.Info, actionType = ActionType.ABOUT_APP),
-        SettingModel.Action("logout", "Log Out", Icons.AutoMirrored.Filled.Logout, actionType = ActionType.LOG_OUT, enabled = true) // Example, might be disabled if not logged in
+        SettingModel.Action("logout", "Log Out", Icons.AutoMirrored.Filled.Logout, actionType = ActionType.LOG_OUT, enabled = true)
     )
 }
 
@@ -125,8 +131,7 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ktimaz { // Your app's theme
-                // --- ViewModel Interaction (Simulated) ---
+            ktimaz {
                 var settingsList by remember { mutableStateOf(getInitialSettings()) }
                 var showResetDialog by remember { mutableStateOf(false) }
                 var showThemePickerDialog by remember { mutableStateOf(false) }
@@ -143,8 +148,6 @@ class SettingsActivity : ComponentActivity() {
                     when (settingToUpdate) {
                         is SettingModel.Switch -> {
                             updateSetting(settingToUpdate.copy(isChecked = newCheckedState))
-                            // If this switch reveals a sub-setting, and it's now unchecked,
-                            // potentially reset or hide the sub-setting if needed (logic can be more complex)
                             if (settingToUpdate.revealsKey != null && !newCheckedState) {
                                 val subSetting = settingsList.find { it.key == settingToUpdate.revealsKey && it is SettingModel.SubSwitch } as? SettingModel.SubSwitch
                                 subSetting?.let { updateSetting(it.copy(isChecked = false)) }
@@ -167,12 +170,10 @@ class SettingsActivity : ComponentActivity() {
                         ActionType.RESET_PREFERENCES -> showResetDialog = true
                         ActionType.VIEW_PROFILE -> { /* Navigate to profile */ }
                         ActionType.LOG_OUT -> { /* Perform logout */ }
-                        // Handle other actions
                         else -> { /* Log or placeholder for other actions */ }
                     }
                 }
 
-                // --- UI ---
                 Scaffold(
                     topBar = {
                         TopAppBar(
@@ -183,11 +184,11 @@ class SettingsActivity : ComponentActivity() {
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp) // Subtle elevation color
+                                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
                             )
                         )
                     },
-                    containerColor = MaterialTheme.colorScheme.background // Use theme's background
+                    containerColor = MaterialTheme.colorScheme.background
                 ) { paddingValues ->
                     SettingsScreenContent(
                         modifier = Modifier.padding(paddingValues),
@@ -207,7 +208,7 @@ class SettingsActivity : ComponentActivity() {
                             confirmButtonText = "Reset",
                             dismissButtonText = "Cancel",
                             onConfirm = {
-                                settingsList = getInitialSettings() // Reset to defaults
+                                settingsList = getInitialSettings()
                                 showResetDialog = false
                             },
                             onDismiss = { showResetDialog = false }
@@ -248,39 +249,38 @@ fun SettingsScreenContent(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        // Example of grouping (can be more sophisticated with dedicated group headers)
         item { SettingsGroupHeader("General") }
         val generalSettings = settings.filter {
-            it.key == "dark_mode" || it.key == "notifications" || it.key == "app_theme" || (it is SettingModel.SubSwitch && (it.parentKey == "dark_mode" || it.parentKey == "notifications"))
+            it.key == "dark_mode" || it.key == "notifications" || it.key == "app_theme" ||
+            (it is SettingModel.SubSwitch && (it.parentKey == "dark_mode" || it.parentKey == "notifications"))
         }
         itemsIndexed(generalSettings, key = { _, item -> item.key }) { index, setting ->
             AnimatedSettingItem(index = index) {
                 SettingItem(setting, onSwitchChanged, onActionClicked, onPickerClicked, settings)
             }
-            // Show sub-settings conditionally
             if (setting is SettingModel.Switch && setting.isChecked && setting.revealsKey != null) {
                 val subSetting = settings.find { it.key == setting.revealsKey && it is SettingModel.SubSwitch }
                 subSetting?.let {
                     AnimatedVisibility(
-                        visible = true, // Parent switch is checked
+                        visible = true,
                         enter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 150)) + expandVertically(animationSpec = tween(durationMillis = 400)),
                         exit = fadeOut(animationSpec = tween(durationMillis = 200)) + shrinkVertically(animationSpec = tween(durationMillis = 300))
                     ) {
-                        Box(modifier = Modifier.padding(start = 24.dp)) { // Indent sub-setting
+                        Box(modifier = Modifier.padding(start = 24.dp)) {
                              SettingItem(it, onSwitchChanged, onActionClicked, onPickerClicked, settings)
                         }
                     }
                 }
             }
-             if (index < generalSettings.size -1 || (setting is SettingModel.Switch && setting.isChecked && setting.revealsKey != null) ) {
-                // Only add divider if it's not the last item or if a sub-item might be shown
-             } else {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-             }
+            // Simplified divider logic for clarity, you might want to refine this
+            if (index < generalSettings.size - 1 || (setting is SettingModel.Switch && setting.isChecked && setting.revealsKey != null && generalSettings.getOrNull(index+1)?.key != setting.revealsKey)) {
+                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            }
         }
 
         item { SettingsGroupHeader("Account & Information") }
-        val accountSettings = settings.filterNot { it in generalSettings || it is SettingModel.SubSwitch } // Crude filtering for demo
+        // Crude filtering for demo; ensure SubSwitch items are not duplicated if their parents are also in this group
+        val accountSettings = settings.filterNot { it in generalSettings || (it is SettingModel.SubSwitch && it.parentKey in generalSettings.map { gs -> gs.key }) }
         itemsIndexed(accountSettings, key = { _, item -> item.key }) { index, setting ->
             AnimatedSettingItem(index = index) {
                 SettingItem(setting, onSwitchChanged, onActionClicked, onPickerClicked, settings)
@@ -296,7 +296,7 @@ fun SettingsScreenContent(
 fun AnimatedSettingItem(index: Int, content: @Composable () -> Unit) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay( (index * 50L).coerceAtMost(300L) ) // Staggered delay, max 300ms
+        delay( (index * 50L).coerceAtMost(300L) )
         visible = true
     }
     AnimatedVisibility(
@@ -317,23 +317,23 @@ fun SettingItem(
     onSwitchChanged: (key: String, isChecked: Boolean) -> Unit,
     onActionClicked: (actionType: ActionType, key: String) -> Unit,
     onPickerClicked: (setting: SettingModel.Picker) -> Unit,
-    allSettings: List<SettingModel> // Used for sub-setting logic
+    allSettings: List<SettingModel>
 ) {
     val itemModifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp) // Consistent padding
+        .padding(horizontal = 16.dp, vertical = 8.dp)
 
     val interactionSource = remember { MutableInteractionSource() }
 
-    // Determine if the setting is enabled (e.g., a sub-setting whose parent is disabled)
     val isEffectivelyEnabled = when (setting) {
         is SettingModel.SubSwitch -> {
             val parent = allSettings.find { it.key == setting.parentKey } as? SettingModel.Switch
-            parent?.isChecked ?: false // Enabled if parent is checked
+            (parent?.isChecked ?: false) && setting.enabled // Sub-setting also respects its own enabled flag
         }
         else -> setting.enabled
     }
-    val contentAlpha = if (isEffectivelyEnabled) 1f else ContentAlpha.disabled
+    val currentContentAlpha = if (isEffectivelyEnabled) LocalContentColor.current.alpha else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f).alpha
+
 
     Row(
         modifier = itemModifier
@@ -348,41 +348,40 @@ fun SettingItem(
                     }
                 },
                 interactionSource = interactionSource,
-                indication = LocalIndication.current // Default ripple
+                indication = LocalIndication.current
             )
-            .padding(vertical = 8.dp), // Inner padding for content
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = setting.icon,
             contentDescription = null,
-            modifier = Modifier.size(24.dp).padding(end = if (setting is SettingModel.SubSwitch) 8.dp else 16.dp), // Smaller end padding for sub-switch icon
-            tint = if (isEffectivelyEnabled) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.disabled)
+            modifier = Modifier.size(24.dp).padding(end = if (setting is SettingModel.SubSwitch) 8.dp else 16.dp),
+            tint = if (isEffectivelyEnabled) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha)
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = setting.title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.disabled)
+                color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha)
             )
             setting.description?.let {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.disabled)
+                    color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha)
                 )
             }
         }
         Spacer(Modifier.width(16.dp))
         when (setting) {
             is SettingModel.Switch -> Switch(checked = setting.isChecked, onCheckedChange = { onSwitchChanged(setting.key, it) }, enabled = isEffectivelyEnabled)
-            is SettingModel.SubSwitch -> Switch(checked = setting.isChecked, onCheckedChange = { onSwitchChanged(setting.key, it) }, enabled = isEffectivelyEnabled, modifier = Modifier.scale(0.9f)) // Smaller switch
-            is SettingModel.Picker -> Text(setting.selectedOption, style = MaterialTheme.typography.bodyMedium, color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = ContentAlpha.disabled))
-            is SettingModel.Action -> { /* Icon or chevron could go here if needed */ }
+            is SettingModel.SubSwitch -> Switch(checked = setting.isChecked, onCheckedChange = { onSwitchChanged(setting.key, it) }, enabled = isEffectivelyEnabled, modifier = Modifier.scale(0.9f))
+            is SettingModel.Picker -> Text(setting.selectedOption, style = MaterialTheme.typography.bodyMedium, color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha))
+            is SettingModel.Action -> { /* Icon or chevron for actions can be added here */ }
         }
     }
 }
-
 
 @Composable
 fun SettingsGroupHeader(title: String) {
@@ -464,7 +463,6 @@ fun OptionsPickerDialog(
     }
 }
 
-// ContentAlpha.disabled equivalent for Material 3 (often part of component colors or manual alpha)
-object ContentAlpha {
-    val disabled: Float @Composable get() = LocalContentColor.current.copy(alpha = 0.38f).alpha // General disabled alpha
-}
+// Note: Replaced direct ContentAlpha.disabled with MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+// as ContentAlpha is more of a Material 2 concept. Material 3 handles this via component color roles.
+// The alpha value 0.38f is a common disabled alpha.
