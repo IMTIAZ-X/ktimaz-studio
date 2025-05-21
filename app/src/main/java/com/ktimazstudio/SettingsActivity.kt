@@ -31,31 +31,34 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+// Lifecycle KTX for viewModelScope
+import androidx.lifecycle.ViewModel // Ensure this is the one
+import androidx.lifecycle.viewModelScope // Added for viewModelScope
+
 // Material Icons (ensure 'androidx.compose.material:material-icons-extended' dependency)
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight // Added for Action items
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.automirrored.filled.Notes // Example for dynamic description
-import androidx.compose.material.icons.filled.* // Includes common icons like AccountCircle, Notifications, Info, etc.
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.filled.*
+
 
 // --- 1. Persistence Layer (Conceptual: Repository & Data Models) ---
 
-// Represents different types of settings data to be persisted
 sealed class SettingValue {
     data class Bool(val value: Boolean) : SettingValue()
     data class Str(val value: String) : SettingValue()
     data class Flt(val value: Float) : SettingValue()
 }
 
-// Interface for our settings data source (e.g., DataStore)
 interface SettingsRepository {
     fun getSettingsFlow(): Flow<Map<String, SettingValue>>
     suspend fun updateSetting(key: String, value: SettingValue)
 }
 
-// Mock implementation for demonstration
 class MockSettingsRepository : SettingsRepository {
     private val initialMockData = mutableMapOf(
         "dark_mode" to SettingValue.Bool(false),
@@ -63,31 +66,28 @@ class MockSettingsRepository : SettingsRepository {
         "notifications" to SettingValue.Bool(true),
         "notification_vibration" to SettingValue.Bool(true),
         "app_theme" to SettingValue.Str("System Default"),
-        "text_size_scale" to SettingValue.Flt(1.0f), // New slider setting
-        "advanced_enabled" to SettingValue.Bool(false), // Enables a group of settings
-        "experimental_feature_x" to SettingValue.Bool(false) // Dependent on 'advanced_enabled'
-        // ... add initial defaults for all settings
+        "text_size_scale" to SettingValue.Flt(1.0f),
+        "advanced_enabled" to SettingValue.Bool(false),
+        "experimental_feature_x" to SettingValue.Bool(false)
     )
-    private val settingsFlow = MutableStateFlow(initialMockData.toMap()) // Expose as immutable map
+    private val settingsFlow = MutableStateFlow(initialMockData.toMap())
 
     override fun getSettingsFlow(): Flow<Map<String, SettingValue>> = settingsFlow.asStateFlow()
 
     override suspend fun updateSetting(key: String, value: SettingValue) {
         initialMockData[key] = value
-        settingsFlow.value = initialMockData.toMap() // Emit new state
-        // In a real app: dataStore.edit { preferences -> preferences[dataStoreKey(key)] = ... }
+        settingsFlow.value = initialMockData.toMap()
         println("MockSettingsRepository: Updated $key to $value")
     }
 }
 
 
 // --- 2. ViewModel Layer ---
-class SettingsViewModel(private val repository: SettingsRepository) : androidx.lifecycle.ViewModel() {
+// Make sure SettingsViewModel inherits from androidx.lifecycle.ViewModel
+class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
-    // This defines the structure and default visual properties of settings items
-    // The actual values (isChecked, selectedOption, sliderValue) come from _uiState.settingsValues
     val settingDefinitions: List<SettingModel> = createSettingDefinitions()
 
     init {
@@ -95,13 +95,12 @@ class SettingsViewModel(private val repository: SettingsRepository) : androidx.l
     }
 
     private fun loadSettings() {
-        viewModelScope.launch {
-            repository.getSettingsFlow().collect { persistedValues ->
+        viewModelScope.launch { // Coroutine launched here
+            repository.getSettingsFlow().collect { persistedValues -> // collect is a suspend function
                 _uiState.update { currentState ->
                     currentState.copy(
                         settingsValues = persistedValues,
                         isLoading = false,
-                        // Update derived states if necessary
                         isAdvancedSectionEnabled = (persistedValues["advanced_enabled"] as? SettingValue.Bool)?.value ?: false
                     )
                 }
@@ -110,18 +109,23 @@ class SettingsViewModel(private val repository: SettingsRepository) : androidx.l
     }
 
     fun updateBooleanSetting(key: String, value: Boolean) {
-        viewModelScope.launch { repository.updateSetting(key, SettingValue.Bool(value)) }
+        viewModelScope.launch { // Coroutine launched here
+            repository.updateSetting(key, SettingValue.Bool(value)) // updateSetting is a suspend function
+        }
     }
 
     fun updateStringSetting(key: String, value: String) {
-        viewModelScope.launch { repository.updateSetting(key, SettingValue.Str(value)) }
+        viewModelScope.launch { // Coroutine launched here
+            repository.updateSetting(key, SettingValue.Str(value)) // updateSetting is a suspend function
+        }
     }
 
     fun updateFloatSetting(key: String, value: Float) {
-        viewModelScope.launch { repository.updateSetting(key, SettingValue.Flt(value)) }
+        viewModelScope.launch { // Coroutine launched here
+            repository.updateSetting(key, SettingValue.Flt(value)) // updateSetting is a suspend function
+        }
     }
 
-    // Example of more complex logic derived from settings
     fun getDynamicDescriptionForKey(key: String): String? {
         return if (key == "app_theme") {
             val currentTheme = (_uiState.value.settingsValues["app_theme"] as? SettingValue.Str)?.value
@@ -136,25 +140,24 @@ data class SettingsUiState(
     val settingsValues: Map<String, SettingValue> = emptyMap(),
     val isLoading: Boolean = true,
     val showResetDialog: Boolean = false,
-    val showThemePickerDialog: String? = null, // Holds key of picker if dialog is shown
-    val isAdvancedSectionEnabled: Boolean = false // Example derived state
+    val showThemePickerDialog: String? = null,
+    val isAdvancedSectionEnabled: Boolean = false
 )
 
 // --- 3. UI Layer (Activity, Composables, Setting Models) ---
 
-// UI Models for settings (define structure, icons, titles, etc.)
 sealed class SettingModel(
     open val key: String,
     open val title: String,
     open val icon: ImageVector,
-    open val category: String, // For grouping
-    open val dynamicDescriptionKey: String? = null // Key for ViewModel to provide dynamic description
+    open val category: String,
+    open val dynamicDescriptionKey: String? = null
 ) {
     data class Switch(
         override val key: String, override val title: String, override val icon: ImageVector, override val category: String,
         val summaryOff: String? = null, val summaryOn: String? = null,
-        val revealsKeys: List<String>? = null, // Keys of sub-settings to reveal
-        val enablesKeys: List<String>? = null,  // Keys of settings this one enables/disables
+        val revealsKeys: List<String>? = null,
+        val enablesKeys: List<String>? = null,
         override val dynamicDescriptionKey: String? = null
     ) : SettingModel(key, title, icon, category, dynamicDescriptionKey)
 
@@ -171,35 +174,27 @@ sealed class SettingModel(
         override val dynamicDescriptionKey: String? = null
     ) : SettingModel(key, title, icon, category, dynamicDescriptionKey)
 
-    data class Slider( // New setting type
+    data class Slider(
         override val key: String, override val title: String, override val icon: ImageVector, override val category: String,
         val valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-        val steps: Int = 0, // 0 for continuous
+        val steps: Int = 0,
         val valueLabelFormat: (Float) -> String = { "%.1f".format(it) },
         override val dynamicDescriptionKey: String? = null
     ) : SettingModel(key, title, icon, category, dynamicDescriptionKey)
-
-    // SubSwitch might not be needed if revealsKeys logic is robust
 }
 
 enum class ActionType { RESET_PREFERENCES, VIEW_PROFILE, LOG_OUT, PRIVACY_POLICY, ABOUT_APP }
 
-// Centralized definition of all settings structure
 fun createSettingDefinitions(): List<SettingModel> {
     return listOf(
-        // General Category
         SettingModel.Switch("dark_mode", "Dark Mode", Icons.Filled.BrightnessMedium, "General", summaryOff = "Light theme active", summaryOn = "Dark theme active", revealsKeys = listOf("custom_dark_theme_color")),
         SettingModel.Switch("custom_dark_theme_color", "Use Custom Accent", Icons.Filled.ColorLens, "General", summaryOn = "Using custom accent in dark mode", summaryOff = "Using default accent in dark mode"),
         SettingModel.Switch("notifications", "Enable Notifications", Icons.Filled.Notifications, "General", summaryOn = "You will receive alerts", summaryOff = "Notifications are off", revealsKeys = listOf("notification_vibration")),
         SettingModel.Switch("notification_vibration", "Vibrate for Notifications", Icons.Filled.Vibration, "General", summaryOn = "Haptic feedback enabled", summaryOff = "Haptic feedback disabled"),
         SettingModel.Picker("app_theme", "App Theme", Icons.Filled.Palette, "General", options = listOf("System Default", "Blue", "Green", "Purple"), dynamicDescriptionKey = "app_theme"),
         SettingModel.Slider("text_size_scale", "Text Size", Icons.Filled.FormatSize, "General", valueRange = 0.8f..1.5f, steps = 6, valueLabelFormat = { "${(it * 100).toInt()}%" }),
-
-        // Advanced Category
         SettingModel.Switch("advanced_enabled", "Enable Advanced Settings", Icons.Filled.Tune, "Advanced", summaryOn = "Advanced options unlocked", summaryOff = "Advanced options locked", enablesKeys = listOf("experimental_feature_x")),
         SettingModel.Switch("experimental_feature_x", "Experimental Feature X", Icons.Filled.Science, "Advanced", summaryOn = "Feature X is active (beta)", summaryOff = "Feature X is inactive"),
-
-        // Information Category
         SettingModel.Action("reset_prefs", "Reset All Settings", Icons.Filled.RestartAlt, "Information", ActionType.RESET_PREFERENCES, summary = "Revert to factory defaults"),
         SettingModel.Action("about_app", "About App", Icons.Filled.Info, "Information", ActionType.ABOUT_APP),
         SettingModel.Action("privacy_policy", "Privacy Policy", Icons.AutoMirrored.Filled.Article, "Information", ActionType.PRIVACY_POLICY)
@@ -209,20 +204,17 @@ fun createSettingDefinitions(): List<SettingModel> {
 @OptIn(ExperimentalMaterial3Api::class)
 class SettingsActivity : ComponentActivity() {
 
-    // In a real app, use Hilt or manual DI for ViewModel
     private val viewModel: SettingsViewModel by lazy {
-        SettingsViewModel(MockSettingsRepository()) // Replace with actual repository
+        SettingsViewModel(MockSettingsRepository())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ktimaz { // Your app's theme
+            ktimaz {
                 val uiState by viewModel.uiState.collectAsState()
-
                 var localShowResetDialog by remember { mutableStateOf(false) }
                 var localShowPickerKey by remember { mutableStateOf<String?>(null) }
-
 
                 Scaffold(
                     topBar = {
@@ -255,8 +247,7 @@ class SettingsActivity : ComponentActivity() {
                             onActionClicked = { actionType, _ ->
                                 when (actionType) {
                                     ActionType.RESET_PREFERENCES -> localShowResetDialog = true
-                                    // Handle other actions (e.g., navigation)
-                                    else -> { /* TODO */ }
+                                    else -> { /* TODO: Handle other actions */ }
                                 }
                             },
                             onPickerClicked = { key -> localShowPickerKey = key },
@@ -272,9 +263,9 @@ class SettingsActivity : ComponentActivity() {
                             confirmButtonText = "Reset",
                             dismissButtonText = "Cancel",
                             onConfirm = {
-                                createSettingDefinitions().forEach { setting -> // Reset based on definitions
+                                createSettingDefinitions().forEach { setting ->
                                     when(setting) {
-                                        is SettingModel.Switch -> viewModel.updateBooleanSetting(setting.key, (viewModel.uiState.value.settingsValues[setting.key] as? SettingValue.Bool)?.value ?: false) // or a true default
+                                        is SettingModel.Switch -> viewModel.updateBooleanSetting(setting.key, (viewModel.uiState.value.settingsValues[setting.key] as? SettingValue.Bool)?.value ?: false)
                                         is SettingModel.Picker -> viewModel.updateStringSetting(setting.key, setting.options.firstOrNull() ?: "")
                                         is SettingModel.Slider -> viewModel.updateFloatSetting(setting.key, setting.valueRange.start)
                                         else -> {}
@@ -308,13 +299,10 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
-// --- Expressive Material 3 Themed Composables ---
-
-val Material3EaseOutExpo = CubicBezierEasing(0.0f, 0.0f, 0.0f, 1.0f) // Approximation of an expressive curve
+val Material3EaseOutExpo = CubicBezierEasing(0.0f, 0.0f, 0.0f, 1.0f)
 val Material3FadeThroughEnter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 90, easing = LinearOutSlowInEasing)) +
         scaleIn(animationSpec = tween(durationMillis = 300, delayMillis = 90, easing = LinearOutSlowInEasing), initialScale = 0.92f)
 val Material3FadeThroughExit = fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutLinearInEasing))
-
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -322,7 +310,7 @@ fun SettingsScreenContent(
     modifier: Modifier = Modifier,
     settingDefinitions: List<SettingModel>,
     settingsValues: Map<String, SettingValue>,
-    isAdvancedSectionEnabled: Boolean, // Example of passing derived state
+    isAdvancedSectionEnabled: Boolean,
     onSwitchChanged: (key: String, isChecked: Boolean) -> Unit,
     onSliderChanged: (key: String, value: Float) -> Unit,
     onActionClicked: (actionType: ActionType, key: String) -> Unit,
@@ -340,12 +328,10 @@ fun SettingsScreenContent(
                 SettingsGroupHeader(category)
             }
             itemsIndexed(settingsInCategory, key = { _, item -> item.key }) { index, settingDefinition ->
-                // Determine effective enabled state for the setting item
                 val isEffectivelyEnabled = when (settingDefinition.key) {
-                    "experimental_feature_x" -> isAdvancedSectionEnabled // This item depends on the "advanced_enabled" switch
-                    else -> true // Default to true, can add more complex logic
+                    "experimental_feature_x" -> isAdvancedSectionEnabled
+                    else -> true
                 }
-                // Determine if the setting itself is a child that should be revealed
                 val isRevealedChild = settingDefinitions.any { parent ->
                     parent is SettingModel.Switch &&
                     parent.revealsKeys?.contains(settingDefinition.key) == true &&
@@ -353,11 +339,11 @@ fun SettingsScreenContent(
                 }
 
                 AnimatedVisibility(
-                    visible = !isRevealedChild, // Hide if it's a child of a turned-off switch
+                    visible = !isRevealedChild,
                     enter = fadeIn(tween(300, easing = LinearOutSlowInEasing)) + expandVertically(tween(400, easing = Material3EaseOutExpo)),
                     exit = fadeOut(tween(200, easing = FastOutLinearInEasing)) + shrinkVertically(tween(300, easing = FastOutLinearInEasing)),
                 ) {
-                     AnimatedSettingItem(indexInList = index) { // Pass unique index for stagger
+                     AnimatedSettingItem(indexInList = index) {
                         SettingItem(
                             settingDefinition = settingDefinition,
                             settingsValues = settingsValues,
@@ -386,14 +372,14 @@ fun SettingsScreenContent(
 fun AnimatedSettingItem(indexInList: Int, content: @Composable () -> Unit) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay((indexInList * 60L).coerceAtMost(350L)) // Staggered delay for expressive entrance
+        delay((indexInList * 60L).coerceAtMost(350L))
         visible = true
     }
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)) +
                 slideInVertically(
-                    initialOffsetY = { it / 6 }, // Slight slide from bottom
+                    initialOffsetY = { it / 6 },
                     animationSpec = tween(durationMillis = 500, easing = Material3EaseOutExpo)
                 ),
         exit = fadeOut(animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing))
@@ -415,13 +401,9 @@ fun SettingItem(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val currentContentAlpha = if (isEffectivelyEnabled) LocalContentColor.current.alpha else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f).alpha
-
-    // Get current values from the state
     val currentBoolValue = (settingsValues[settingDefinition.key] as? SettingValue.Bool)?.value
     val currentStringValue = (settingsValues[settingDefinition.key] as? SettingValue.Str)?.value
     val currentFloatValue = (settingsValues[settingDefinition.key] as? SettingValue.Flt)?.value
-
-    // Determine summary text
     var summaryText: String? = null
     if (settingDefinition is SettingModel.Switch) {
         summaryText = if (currentBoolValue == true) settingDefinition.summaryOn else settingDefinition.summaryOff
@@ -431,7 +413,6 @@ fun SettingItem(
     settingDefinition.dynamicDescriptionKey?.let {
         summaryText = getDynamicDescription(it) ?: summaryText
     }
-
 
     Column(
         modifier = Modifier
@@ -443,26 +424,26 @@ fun SettingItem(
                         is SettingModel.Switch -> currentBoolValue?.let { onSwitchChanged(settingDefinition.key, !it) }
                         is SettingModel.Action -> onActionClicked(settingDefinition.actionType, settingDefinition.key)
                         is SettingModel.Picker -> onPickerClicked(settingDefinition.key)
-                        is SettingModel.Slider -> { /* Click on slider row might do nothing, or open a detailed view */ }
+                        is SettingModel.Slider -> { /* Click handled by slider itself */ }
                     }
                 },
                 interactionSource = interactionSource,
-                indication = LocalIndication.current // Material 3 ripple
+                indication = LocalIndication.current
             )
-            .padding(horizontal = 20.dp, vertical = 16.dp) // Slightly more padding for an expressive feel
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = settingDefinition.icon,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp), // Consistent icon size
+                modifier = Modifier.size(24.dp),
                 tint = if (isEffectivelyEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha)
             )
             Spacer(Modifier.width(20.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = settingDefinition.title,
-                    style = MaterialTheme.typography.titleMedium, // Expressive typography
+                    style = MaterialTheme.typography.titleMedium,
                     color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha)
                 )
                 AnimatedContent(
@@ -484,12 +465,12 @@ fun SettingItem(
                     }
                 }
             }
-            Spacer(Modifier.width(16.dp)) // Space before the trailing widget
+            Spacer(Modifier.width(16.dp))
 
             when (settingDefinition) {
                 is SettingModel.Switch -> currentBoolValue?.let {
                     Switch(checked = it, onCheckedChange = { checkVal -> onSwitchChanged(settingDefinition.key, checkVal) }, enabled = isEffectivelyEnabled,
-                           thumbContent = if (it) { { Icon(Icons.Filled.Done, null, modifier = Modifier.size(SwitchDefaults.IconSize)) } } else null) // Expressive Switch
+                           thumbContent = if (it) { { Icon(Icons.Filled.Done, null, modifier = Modifier.size(SwitchDefaults.IconSize)) } } else null)
                 }
                 is SettingModel.Picker -> currentStringValue?.let {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -497,15 +478,14 @@ fun SettingItem(
                         Icon(Icons.Filled.ArrowDropDown, contentDescription = "Open picker", tint = if (isEffectivelyEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha))
                     }
                 }
-                // Action items usually don't have a trailing widget unless it's a chevron for navigation
-                is SettingModel.Action -> if (settingDefinition.actionType != ActionType.RESET_PREFERENCES) { // Reset is full width text
+                is SettingModel.Action -> if (settingDefinition.actionType != ActionType.RESET_PREFERENCES) {
+                    // Use Icons.AutoMirrored.Filled.KeyboardArrowRight for RTL support
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Perform action", tint = if (isEffectivelyEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha))
                 }
-                else -> {} // Slider is handled below the main row
+                else -> {}
             }
         }
 
-        // Slider specific UI, placed below the main info row for better layout
         if (settingDefinition is SettingModel.Slider && currentFloatValue != null) {
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -516,7 +496,7 @@ fun SettingItem(
                     steps = settingDefinition.steps,
                     enabled = isEffectivelyEnabled,
                     modifier = Modifier.weight(1f),
-                    colors = SliderDefaults.colors( // Expressive M3 Slider colors
+                    colors = SliderDefaults.colors(
                         thumbColor = MaterialTheme.colorScheme.primary,
                         activeTrackColor = MaterialTheme.colorScheme.primary,
                         inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -529,7 +509,7 @@ fun SettingItem(
                     style = MaterialTheme.typography.labelMedium,
                     color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = currentContentAlpha),
                     textAlign = TextAlign.End,
-                    modifier = Modifier.width(50.dp) // Fixed width for value label
+                    modifier = Modifier.width(50.dp)
                 )
             }
         }
@@ -539,12 +519,12 @@ fun SettingItem(
 @Composable
 fun SettingsGroupHeader(title: String) {
     Text(
-        text = title.uppercase(), // Expressive styling for headers
-        style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 0.8.sp), // M3 expressive typography
+        text = title.uppercase(),
+        style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 0.8.sp),
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 24.dp) // Increased padding
+            .padding(horizontal = 20.dp, vertical = 24.dp)
     )
 }
 
@@ -561,13 +541,13 @@ fun ConfirmationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-        title = { Text(title, style = MaterialTheme.typography.headlineSmall) }, // M3 Dialog styling
+        title = { Text(title, style = MaterialTheme.typography.headlineSmall) },
         text = { Text(text, style = MaterialTheme.typography.bodyMedium) },
         confirmButton = {
-            Button(onClick = onConfirm) { Text(confirmButtonText) } // M3 Button
+            Button(onClick = onConfirm) { Text(confirmButtonText) }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text(dismissButtonText) } // M3 OutlinedButton
+            OutlinedButton(onClick = onDismiss) { Text(dismissButtonText) }
         }
     )
 }
@@ -581,18 +561,18 @@ fun OptionsPickerDialog(
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
-        Surface( // M3 Surface for Dialog
-            shape = MaterialTheme.shapes.extraLarge, // Expressive shape
-            color = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp), // Dialog elevation
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp),
             tonalElevation = 6.dp
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 20.dp)) // M3 Dialog styling
+                Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 20.dp))
                 options.forEach { option ->
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.medium) // Expressive clip
+                            .clip(MaterialTheme.shapes.medium)
                             .clickable { onOptionSelected(option) }
                             .padding(vertical = 14.dp, horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -601,9 +581,9 @@ fun OptionsPickerDialog(
                             imageVector = if (option == selectedOption) Icons.Filled.RadioButtonChecked else Icons.Filled.RadioButtonUnchecked,
                             contentDescription = null,
                             tint = if (option == selectedOption) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(end = 16.dp).size(24.dp) // Consistent icon size
+                            modifier = Modifier.padding(end = 16.dp).size(24.dp)
                         )
-                        Text(option, style = MaterialTheme.typography.bodyLarge)
+                        Text(option, style = MaterialTheme. typography.bodyLarge)
                     }
                 }
                 Spacer(Modifier.height(24.dp))
