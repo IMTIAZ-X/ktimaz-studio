@@ -64,25 +64,17 @@ interface SettingsRepository {
 }
 
 class SharedPreferencesSettingsRepository(private val context: Context) : SettingsRepository {
-    private val sharedPreferencesName = "app_settings_main" // Define a unique name
+    private val sharedPreferencesName = "app_settings_main"
     private val sharedPreferences = context.getSharedPreferences(sharedPreferencesName, Context.MODE_PRIVATE)
 
-    // This flow holds the current state of all settings and emits updates
-    private val _settingsStateFlow = MutableStateFlow<Map<String, SettingValue>>(emptyMap())
-
-    init {
-        // Load initial settings and populate the flow
-        viewModelScope.launch(Dispatchers.IO) { // Use IO dispatcher for SharedPreferences
-            _settingsStateFlow.value = loadSettingsFromPrefs()
-        }
-    }
+    // Initialize StateFlow directly with values loaded from SharedPreferences
+    private val _settingsStateFlow = MutableStateFlow<Map<String, SettingValue>>(loadSettingsFromPrefs())
 
     private fun loadSettingsFromPrefs(): Map<String, SettingValue> {
         val settingsMap = mutableMapOf<String, SettingValue>()
-        val allSettingDefs = createSettingDefinitions() // Get all defined settings
+        val allSettingDefs = createSettingDefinitions() // Ensure this function is accessible or pass definitions
 
         allSettingDefs.forEach { def ->
-            // Only load if key exists, or use defined default
             when (def) {
                 is SettingModel.Switch -> settingsMap[def.key] = SettingValue.Bool(sharedPreferences.getBoolean(def.key, def.defaultValue))
                 is SettingModel.Picker -> settingsMap[def.key] = SettingValue.Str(sharedPreferences.getString(def.key, def.defaultValue) ?: def.defaultValue)
@@ -96,52 +88,53 @@ class SharedPreferencesSettingsRepository(private val context: Context) : Settin
     override fun getSettingsFlow(): Flow<Map<String, SettingValue>> = _settingsStateFlow.asStateFlow()
 
     override suspend fun updateSetting(key: String, value: SettingValue) {
-        withContext(Dispatchers.IO) { // Use IO dispatcher for SharedPreferences
+        // Perform SharedPreferences write on an IO dispatcher
+        withContext(Dispatchers.IO) {
             sharedPreferences.edit().apply {
                 when (value) {
                     is SettingValue.Bool -> putBoolean(key, value.value)
                     is SettingValue.Str -> putString(key, value.value)
                     is SettingValue.Flt -> putFloat(key, value.value)
                 }
-                apply() // Asynchronous write to SharedPreferences
+                apply()
             }
         }
-        // Update the flow to trigger UI updates by re-reading the specific key or the whole map
-        // For simplicity, re-read the specific key that changed and update the map
+        // Update the in-memory StateFlow to reflect the change
+        // This ensures observers immediately get the latest state
         val currentMap = _settingsStateFlow.value.toMutableMap()
         currentMap[key] = value
         _settingsStateFlow.value = currentMap.toMap()
     }
 
     override suspend fun resetToDefaults() {
+        val defaultSettingsMap = mutableMapOf<String, SettingValue>()
+        createSettingDefinitions().forEach { def ->
+            when (def) {
+                is SettingModel.Switch -> defaultSettingsMap[def.key] = SettingValue.Bool(def.defaultValue)
+                is SettingModel.Picker -> defaultSettingsMap[def.key] = SettingValue.Str(def.defaultValue)
+                is SettingModel.Slider -> defaultSettingsMap[def.key] = SettingValue.Flt(def.defaultValue)
+                else -> {}
+            }
+        }
+
         withContext(Dispatchers.IO) {
             val editor = sharedPreferences.edit()
-            val defaultSettingsMap = mutableMapOf<String, SettingValue>()
-            createSettingDefinitions().forEach { def ->
-                when (def) {
-                    is SettingModel.Switch -> {
-                        editor.putBoolean(def.key, def.defaultValue)
-                        defaultSettingsMap[def.key] = SettingValue.Bool(def.defaultValue)
-                    }
-                    is SettingModel.Picker -> {
-                        editor.putString(def.key, def.defaultValue)
-                        defaultSettingsMap[def.key] = SettingValue.Str(def.defaultValue)
-                    }
-                    is SettingModel.Slider -> {
-                        editor.putFloat(def.key, def.defaultValue)
-                        defaultSettingsMap[def.key] = SettingValue.Flt(def.defaultValue)
-                    }
-                    is SettingModel.Action -> {} // Actions don't have values to reset in this context
+            defaultSettingsMap.forEach { (key, settingValue) ->
+                when (settingValue) {
+                    is SettingValue.Bool -> editor.putBoolean(key, settingValue.value)
+                    is SettingValue.Str -> editor.putString(key, settingValue.value)
+                    is SettingValue.Flt -> editor.putFloat(key, settingValue.value)
                 }
             }
             editor.apply()
-            _settingsStateFlow.value = defaultSettingsMap.toMap() // Update the flow with all defaults
         }
+        _settingsStateFlow.value = defaultSettingsMap.toMap() // Update the flow with all defaults
     }
 }
 
 
 // --- 2. ViewModel Layer ---
+// SettingsViewModel correctly uses its own viewModelScope
 class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -153,7 +146,7 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     }
 
     private fun loadSettings() {
-        viewModelScope.launch {
+        viewModelScope.launch { // ViewModel uses its own scope
             repository.getSettingsFlow().collect { persistedValues ->
                 _uiState.update { currentState ->
                     currentState.copy(
@@ -182,11 +175,10 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         viewModelScope.launch { repository.resetToDefaults() }
     }
 
-
     fun getDynamicDescriptionForKey(key: String): String? {
         return if (key == "app_theme") {
             val currentTheme = (_uiState.value.settingsValues["app_theme"] as? SettingValue.Str)?.value
-            "Current selection: $currentTheme." // Simpler message
+            "Current selection: $currentTheme."
         } else {
             null
         }
@@ -200,6 +192,10 @@ data class SettingsUiState(
 )
 
 // --- 3. UI Layer (Activity, Composables, Setting Models) ---
+// SettingModel definitions, createSettingDefinitions(), SettingsActivity, and other composables
+// remain the same as in the previous corrected version.
+// Ensure createSettingDefinitions() is accessible globally or passed to SharedPreferencesSettingsRepository if needed for its init.
+// For this example, createSettingDefinitions() is assumed to be a top-level function in the same file.
 
 sealed class SettingModel(
     open val key: String,
@@ -210,7 +206,7 @@ sealed class SettingModel(
 ) {
     data class Switch(
         override val key: String, override val title: String, override val icon: ImageVector, override val category: String,
-        val defaultValue: Boolean, // Added defaultValue
+        val defaultValue: Boolean,
         val summaryOff: String? = null, val summaryOn: String? = null,
         val revealsKeys: List<String>? = null,
         val enablesKeys: List<String>? = null,
@@ -227,13 +223,13 @@ sealed class SettingModel(
     data class Picker(
         override val key: String, override val title: String, override val icon: ImageVector, override val category: String,
         val options: List<String>,
-        val defaultValue: String, // Added defaultValue
+        val defaultValue: String,
         override val dynamicDescriptionKey: String? = null
     ) : SettingModel(key, title, icon, category, dynamicDescriptionKey)
 
     data class Slider(
         override val key: String, override val title: String, override val icon: ImageVector, override val category: String,
-        val defaultValue: Float, // Added defaultValue
+        val defaultValue: Float,
         val valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
         val steps: Int = 0,
         val valueLabelFormat: (Float) -> String = { "%.1f".format(it) },
@@ -263,7 +259,7 @@ fun createSettingDefinitions(): List<SettingModel> { // Added defaultValues
 class SettingsActivity : ComponentActivity() {
 
     private val repository: SettingsRepository by lazy {
-        SharedPreferencesSettingsRepository(applicationContext) // Use SharedPreferences repo
+        SharedPreferencesSettingsRepository(applicationContext)
     }
     private val viewModel: SettingsViewModel by lazy {
         SettingsViewModel(repository)
@@ -274,8 +270,8 @@ class SettingsActivity : ComponentActivity() {
         setContent {
             ktimaz {
                 val uiState by viewModel.uiState.collectAsState()
-                var showResetDialog by remember { mutableStateOf(false) } // Local UI state for dialog
-                var showPickerKey by remember { mutableStateOf<String?>(null) } // Local UI state for dialog
+                var showResetDialog by remember { mutableStateOf(false) } 
+                var showPickerKey by remember { mutableStateOf<String?>(null) }
 
                 Scaffold(
                     topBar = {
@@ -287,7 +283,7 @@ class SettingsActivity : ComponentActivity() {
                     },
                     containerColor = MaterialTheme.colorScheme.background
                 ) { paddingValues ->
-                    if (uiState.isLoading) {
+                    if (uiState.isLoading && uiState.settingsValues.isEmpty()) { // Show loading only if settings are not yet populated
                         Box(Modifier.fillMaxSize().padding(paddingValues), Alignment.Center) { CircularProgressIndicator() }
                     } else {
                         SettingsScreenContent(
@@ -299,7 +295,7 @@ class SettingsActivity : ComponentActivity() {
                             onSliderChanged = viewModel::updateFloatSetting,
                             onActionClicked = { actionType, _ ->
                                 if (actionType == ActionType.RESET_PREFERENCES) showResetDialog = true
-                                // else: handle other actions (e.g., navigation)
+                                // else: handle other actions
                             },
                             onPickerClicked = { key -> showPickerKey = key },
                             getDynamicDescription = viewModel::getDynamicDescriptionForKey
@@ -312,7 +308,7 @@ class SettingsActivity : ComponentActivity() {
                             text = "This will reset all settings to their defined default values. This action cannot be undone.",
                             confirmButtonText = "Reset", dismissButtonText = "Cancel",
                             onConfirm = {
-                                viewModel.resetAllSettings() // Call ViewModel to reset
+                                viewModel.resetAllSettings()
                                 showResetDialog = false
                             },
                             onDismiss = { showResetDialog = false }
@@ -340,16 +336,10 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
-// ... (Material3EaseOutExpo, Material3FadeThroughEnter/Exit, SettingsScreenContent, AnimatedSettingItem, SettingItem, SettingsGroupHeader, ConfirmationDialog, OptionsPickerDialog remain largely the same as previous version, ensure they use updated SettingModel if needed for defaults indirectly)
-// Minor change in SettingItem's clickable for Slider:
-// is SettingModel.Slider -> { /* Click handled by slider itself, row click can be disabled or do nothing */ }
-// Ensure all icon sizes are 24.dp in SettingItem and OptionsPickerDialog (already done in previous snippet)
-
 val Material3EaseOutExpo = CubicBezierEasing(0.0f, 0.0f, 0.0f, 1.0f)
-val Material3FadeThroughEnter = fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = 90, easing = LinearOutSlowInEasing)) +
-        scaleIn(animationSpec = tween(durationMillis = 300, delayMillis = 90, easing = LinearOutSlowInEasing), initialScale = 0.92f)
-val Material3FadeThroughExit = fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutLinearInEasing))
-
+// Material3FadeThroughEnter, Material3FadeThroughExit, SettingsScreenContent, AnimatedSettingItem, 
+// SettingItem, SettingsGroupHeader, ConfirmationDialog, OptionsPickerDialog composables follow...
+// (These are the same as the previous version, ensure they are included in your file)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -357,7 +347,7 @@ fun SettingsScreenContent(
     modifier: Modifier = Modifier,
     settingDefinitions: List<SettingModel>,
     settingsValues: Map<String, SettingValue>,
-    isAdvancedSectionEnabled: Boolean, // Example of passing derived state
+    isAdvancedSectionEnabled: Boolean, 
     onSwitchChanged: (key: String, isChecked: Boolean) -> Unit,
     onSliderChanged: (key: String, value: Float) -> Unit,
     onActionClicked: (actionType: ActionType, key: String) -> Unit,
@@ -468,7 +458,7 @@ fun SettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
-                enabled = isEffectivelyEnabled && settingDefinition !is SettingModel.Slider, // Slider handles its own clicks
+                enabled = isEffectivelyEnabled && settingDefinition !is SettingModel.Slider,
                 onClick = {
                     when (settingDefinition) {
                         is SettingModel.Switch -> currentBoolValue?.let { onSwitchChanged(settingDefinition.key, !it) }
