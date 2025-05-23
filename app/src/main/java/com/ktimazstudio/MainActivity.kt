@@ -1,16 +1,3 @@
-)
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 package com.ktimazstudio
 
 import android.content.Context
