@@ -5,8 +5,8 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
-import android.os.Bundle
 import android.provider.Settings
+import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,7 +15,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,7 +32,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -37,7 +41,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.delay
@@ -49,7 +52,6 @@ import java.io.FileReader
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         if (detectVpn()) {
             Toast.makeText(this, "VPN detected. Closing app for security...", Toast.LENGTH_LONG).show()
@@ -86,6 +88,7 @@ class MainActivity : ComponentActivity() {
                                     text = stringResource(id = R.string.app_name),
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.1.sp,
                                     color = Color.White
                                 )
                             },
@@ -120,12 +123,13 @@ class MainActivity : ComponentActivity() {
                             )
                     ) {
                         AnimatedCardGrid { title ->
-                            val intent = if (title == "System Config") {
-                                Intent(context, SettingsActivity::class.java)
+                            if (title == "System Config") {
+                                context.startActivity(Intent(context, SettingsActivity::class.java))
                             } else {
-                                Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title)
+                                context.startActivity(
+                                    Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title)
+                                )
                             }
-                            context.startActivity(intent)
                         }
                     }
                 }
@@ -138,7 +142,7 @@ class MainActivity : ComponentActivity() {
         val activeNetwork = cm.activeNetwork ?: return false
         val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+               capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     private fun openWifiSettings(context: Context) {
@@ -154,7 +158,9 @@ class MainActivity : ComponentActivity() {
 
     private fun detectVpn(): Boolean = try {
         BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
-            lines.any { it.contains("0100007F:") || it.contains("00000000:10E1") }
+            lines.any { line ->
+                line.contains("0100007F:") || line.contains("00000000:10E1")
+            }
         }
     } catch (_: Exception) {
         false
@@ -167,52 +173,54 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        columns = GridCells.Adaptive(minSize = 150.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
-                delay(index * 80L)
+                delay(index * 100L + 100L)
                 itemVisible = true
             }
 
             AnimatedVisibility(
                 visible = itemVisible,
-                enter = fadeIn(animationSpec = tween(400)) +
-                        slideInVertically(initialOffsetY = { it / 4 }, animationSpec = tween(500)),
-                exit = fadeOut(animationSpec = tween(300)) +
-                       slideOutVertically(targetOffsetY = { it / 4 }, animationSpec = tween(300))
+                enter = fadeIn(animationSpec = tween(durationMillis = 400)) +
+                        slideInVertically(
+                            initialOffsetY = { fullHeight -> fullHeight / 3 },
+                            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
+                        ),
+                exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
+                       slideOutVertically(
+                           targetOffsetY = { fullHeight -> fullHeight / 3 },
+                           animationSpec = tween(durationMillis = 300)
+                       )
             ) {
-                val infiniteTransition = rememberInfiniteTransition()
+                val infiniteTransition = rememberInfiniteTransition(label = "card_breathing_transition_$title")
                 val scale by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 1.02f,
+                    initialValue = 0.98f,
+                    targetValue = 1f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(1800, easing = FastOutSlowInEasing),
+                        animation = tween(1200, easing = FastOutSlowInEasing),
                         repeatMode = RepeatMode.Reverse
-                    )
+                    ),
+                    label = "card_scale_animation_$title"
                 )
 
                 Card(
                     onClick = { onCardClick(title) },
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.1f)
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
                     ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF1F1C2C), Color(0xFF928DAB))
-                            )
-                        )
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(170.dp)
                 ) {
                     Column(
                         Modifier
@@ -230,8 +238,8 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
