@@ -17,6 +17,19 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+fun String.runCommand(): String? =
+    try {
+        ProcessBuilder(*split(" ").toTypedArray())
+            .redirectErrorStream(true)
+            .start()
+            .inputStream
+            .bufferedReader()
+            .readText()
+    } catch (e: Exception) {
+        null
+    }
+
+
     signingConfigs {
         create("release") {  
             storeFile = file(project.property("RELEASE_STORE_FILE") as String)
@@ -39,6 +52,9 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+val shortCommitHash = "git rev-parse --short HEAD".runCommand()?.trim() ?: "dev"
+            versionName = "V3.0-Beta-$shortCommitHash"
+        
         }
     }
 
