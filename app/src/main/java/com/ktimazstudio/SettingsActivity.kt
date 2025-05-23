@@ -9,6 +9,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background // <<< ADDED IMPORT
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -20,7 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha // <<< FIXED: Added import for Modifier.alpha
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,7 +50,6 @@ import androidx.compose.material.icons.filled.*
 
 
 // --- 1. Persistence Layer (SharedPreferences) ---
-// (SettingValue, SettingsRepository, SharedPreferencesSettingsRepository as previously defined)
 sealed class SettingValue {
     data class Bool(val value: Boolean) : SettingValue()
     data class Str(val value: String) : SettingValue()
@@ -63,7 +63,7 @@ interface SettingsRepository {
 }
 
 class SharedPreferencesSettingsRepository(private val context: Context) : SettingsRepository {
-    private val sharedPreferencesName = "app_settings_main_v2"
+    private val sharedPreferencesName = "app_settings_futuristic_v1"
     private val sharedPreferences = context.getSharedPreferences(sharedPreferencesName, Context.MODE_PRIVATE)
 
     private val _settingsStateFlow = MutableStateFlow<Map<String, SettingValue>>(loadSettingsFromPrefs())
@@ -111,7 +111,6 @@ class SharedPreferencesSettingsRepository(private val context: Context) : Settin
                 else -> {}
             }
         }
-
         withContext(Dispatchers.IO) {
             val editor = sharedPreferences.edit()
             defaultSettingsMap.forEach { (key, settingValue) ->
@@ -128,7 +127,6 @@ class SharedPreferencesSettingsRepository(private val context: Context) : Settin
 }
 
 // --- 2. ViewModel Layer ---
-// (SettingsViewModel, SettingsUiState as previously defined)
 class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -170,11 +168,11 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     }
 
     fun getDynamicDescriptionForKey(key: String): String? {
-        return if (key == "app_theme") {
-            val currentTheme = (_uiState.value.settingsValues["app_theme"] as? SettingValue.Str)?.value
-            "Current: $currentTheme"
-        } else {
-            null
+        val currentTheme = (_uiState.value.settingsValues["app_theme"] as? SettingValue.Str)?.value ?: "Unknown"
+        return when (key) {
+            "app_theme" -> "Current: $currentTheme. Visual refresh may be needed."
+            "dynamic_color_enabled" -> if ((_uiState.value.settingsValues[key] as? SettingValue.Bool)?.value == true) "Colors adapt to your wallpaper." else "Using default app palette."
+            else -> null
         }
     }
 }
@@ -186,8 +184,6 @@ data class SettingsUiState(
 )
 
 // --- 3. UI Layer (Activity, Composables, Setting Models) ---
-// (SettingModel, ActionType, createSettingDefinitions as previously defined)
-
 sealed class SettingModel(
     open val key: String,
     open val title: String,
@@ -228,33 +224,29 @@ sealed class SettingModel(
     ) : SettingModel(key, title, icon, category, dynamicDescriptionKey)
 }
 
-enum class ActionType { RESET_PREFERENCES, VIEW_PROFILE, LOG_OUT, PRIVACY_POLICY, ABOUT_APP }
+enum class ActionType { RESET_PREFERENCES, ABOUT_APP, PRIVACY_POLICY }
 
 fun createSettingDefinitions(): List<SettingModel> {
     return listOf(
-        SettingModel.Switch("dark_mode", "Dark Mode", Icons.Filled.BrightnessMedium, "Appearance", defaultValue = false, summaryOff = "Light theme", summaryOn = "Dark theme", revealsKeys = listOf("custom_dark_theme_color")),
-        SettingModel.Switch("custom_dark_theme_color", "Use Custom Accent", Icons.Filled.ColorLens, "Appearance", defaultValue = false, summaryOn = "Custom accent active", summaryOff = "Default accent"),
-        SettingModel.Picker("app_theme", "App Theme", Icons.Filled.Palette, "Appearance", options = listOf("System Default", "Ocean Blue", "Forest Green", "Sunset Purple"), defaultValue = "System Default", dynamicDescriptionKey = "app_theme"),
-        SettingModel.Slider("text_size_scale", "Text Size", Icons.Filled.FormatSize, "Appearance", defaultValue = 1.0f, valueRange = 0.8f..1.5f, steps = 6, valueLabelFormat = { "${(it * 100).toInt()}%" }),
-        SettingModel.Switch("notifications", "Enable Notifications", Icons.Filled.Notifications, "Notifications", defaultValue = true, summaryOn = "Alerts are on", summaryOff = "Alerts are off", revealsKeys = listOf("notification_vibration")),
-        SettingModel.Switch("notification_vibration", "Vibrate for Notifications", Icons.Filled.Vibration, "Notifications", defaultValue = true, summaryOn = "Haptics enabled", summaryOff = "Haptics disabled"),
-        SettingModel.Switch("advanced_enabled", "Enable Advanced Options", Icons.Filled.Tune, "Advanced", defaultValue = false, summaryOn = "Unlocked", summaryOff = "Locked", enablesKeys = listOf("experimental_feature_x")),
-        SettingModel.Switch("experimental_feature_x", "Quantum Entanglement Sync", Icons.Filled.Science, "Advanced", defaultValue = false, summaryOn = "Q-Sync active (highly experimental!)", summaryOff = "Q-Sync inactive"),
-        SettingModel.Action("reset_prefs", "Reset All Settings", Icons.Filled.RestartAlt, "System", ActionType.RESET_PREFERENCES, summary = "Revert to application defaults"),
-        SettingModel.Action("about_app", "About App", Icons.Filled.Info, "System", ActionType.ABOUT_APP),
-        SettingModel.Action("privacy_policy", "Privacy Policy", Icons.AutoMirrored.Filled.Article, "System", ActionType.PRIVACY_POLICY)
+        SettingModel.Switch("dark_mode", "Dark Mode", Icons.Filled.BrightnessAuto, "Appearance", defaultValue = false, summaryOff = "System or light theme", summaryOn = "Dark theme active", revealsKeys = listOf("dynamic_color_enabled")),
+        SettingModel.Switch("dynamic_color_enabled", "Enable Dynamic Color", Icons.Filled.ColorLens, "Appearance", defaultValue = true, dynamicDescriptionKey = "dynamic_color_enabled"),
+        SettingModel.Picker("app_theme", "App Theme Accent", Icons.Filled.Palette, "Appearance", options = listOf("System Default", "Oceanic Teal", "Forest Emerald", "Sunset Coral"), defaultValue = "System Default", dynamicDescriptionKey = "app_theme"),
+        SettingModel.Slider("text_size_scale", "Interface Text Scale", Icons.Filled.TextFields, "Appearance", defaultValue = 1.0f, valueRange = 0.8f..1.6f, steps = 7, valueLabelFormat = { "${(it * 100).toInt()}%" }),
+        SettingModel.Switch("notifications", "Master Notifications", Icons.Filled.NotificationsActive, "Notifications", defaultValue = true, summaryOn = "Alerts are on", summaryOff = "All notifications are off", revealsKeys = listOf("notification_vibration")),
+        SettingModel.Switch("notification_vibration", "Vibration & Haptics", Icons.Filled.Vibration, "Notifications", defaultValue = true, summaryOn = "Tactile feedback enabled", summaryOff = "Tactile feedback disabled"),
+        SettingModel.Switch("advanced_enabled", "Enable Developer Options", Icons.Filled.BuildCircle, "Advanced", defaultValue = false, summaryOn = "Proceed with caution", summaryOff = "Standard mode", enablesKeys = listOf("experimental_feature_x")),
+        SettingModel.Switch("experimental_feature_x", "Chrono-Shift Interface", Icons.Filled.HourglassTop, "Advanced", defaultValue = false, summaryOn = "Temporal UI active (beta)", summaryOff = "Standard UI timeline"),
+        SettingModel.Action("reset_prefs", "Reset All Settings", Icons.Filled.RestartAlt, "System", ActionType.RESET_PREFERENCES, summary = "Restore factory settings for this app"),
+        SettingModel.Action("about_app", "About This Application", Icons.Filled.Info, "System", ActionType.ABOUT_APP), // <<< FIXED: Changed from InfoOutline
+        SettingModel.Action("privacy_policy", "Privacy & Data Policy", Icons.AutoMirrored.Filled.Article, "System", ActionType.PRIVACY_POLICY)
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 class SettingsActivity : ComponentActivity() {
 
-    private val repository: SettingsRepository by lazy {
-        SharedPreferencesSettingsRepository(applicationContext)
-    }
-    private val viewModel: SettingsViewModel by lazy {
-        SettingsViewModel(repository)
-    }
+    private val repository: SettingsRepository by lazy { SharedPreferencesSettingsRepository(applicationContext) }
+    private val viewModel: SettingsViewModel by lazy { SettingsViewModel(repository) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -263,19 +255,20 @@ class SettingsActivity : ComponentActivity() {
                 val uiState by viewModel.uiState.collectAsState()
                 var showResetDialog by remember { mutableStateOf(false) }
                 var showPickerKey by remember { mutableStateOf<String?>(null) }
+                var showAboutDialog by remember { mutableStateOf(false) }
 
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Settings ✨", fontWeight = FontWeight.Medium) },
+                            title = { Text("Configuration Core", fontWeight = FontWeight.Normal, style = MaterialTheme.typography.titleLarge) },
                             navigationIcon = { IconButton(onClick = { onBackPressedDispatcher.onBackPressed() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
-                            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp))
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp))
                         )
                     },
                     containerColor = MaterialTheme.colorScheme.background
                 ) { paddingValues ->
                     if (uiState.isLoading && uiState.settingsValues.isEmpty()) {
-                        Box(Modifier.fillMaxSize().padding(paddingValues), Alignment.Center) { CircularProgressIndicator() }
+                        Box(Modifier.fillMaxSize().padding(paddingValues), Alignment.Center) { CircularProgressIndicator(strokeWidth = 2.dp) }
                     } else {
                         SettingsScreenContent(
                             modifier = Modifier.padding(paddingValues),
@@ -285,7 +278,11 @@ class SettingsActivity : ComponentActivity() {
                             onSwitchChanged = viewModel::updateBooleanSetting,
                             onSliderChanged = viewModel::updateFloatSetting,
                             onActionClicked = { actionType, _ ->
-                                if (actionType == ActionType.RESET_PREFERENCES) showResetDialog = true
+                                when (actionType) {
+                                    ActionType.RESET_PREFERENCES -> showResetDialog = true
+                                    ActionType.ABOUT_APP -> showAboutDialog = true
+                                    else -> { /* Handle other actions */ }
+                                }
                             },
                             onPickerClicked = { key -> showPickerKey = key },
                             getDynamicDescription = viewModel::getDynamicDescriptionForKey
@@ -294,14 +291,29 @@ class SettingsActivity : ComponentActivity() {
 
                     if (showResetDialog) {
                         ConfirmationDialog(
-                            icon = Icons.Filled.RestartAlt, title = "Reset Preferences?",
-                            text = "All settings will revert to their original defaults. This action cannot be undone.",
-                            confirmButtonText = "Reset Now", dismissButtonText = "Cancel",
-                            onConfirm = {
-                                viewModel.resetAllSettings()
-                                showResetDialog = false
-                            },
+                            icon = Icons.Filled.WarningAmber, title = "Confirm System Reset",
+                            text = "All application configurations will be reset to their initial state. This operation is irreversible.",
+                            confirmButtonText = "Proceed Reset", dismissButtonText = "Cancel",
+                            onConfirm = { viewModel.resetAllSettings(); showResetDialog = false },
                             onDismiss = { showResetDialog = false }
+                        )
+                    }
+
+                    if (showAboutDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showAboutDialog = false },
+                            icon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                            title = { Text("Ktimaz Studio Interface") },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Version: ${java.time.Year.now().value}.alpha.${java.time.LocalDate.now().dayOfYear}", style = MaterialTheme.typography.bodyMedium)
+                                    Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
+                                    Text("© ${java.time.Year.now().value} Ktimaz Design Labs.", style = MaterialTheme.typography.bodySmall)
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("\"Pioneering tomorrow's experiences, today.\"", style = MaterialTheme.typography.labelMedium, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                                }
+                            },
+                            confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Acknowledge") } }
                         )
                     }
 
@@ -312,10 +324,7 @@ class SettingsActivity : ComponentActivity() {
                             OptionsPickerDialog(
                                 title = "Select ${pickerSetting.title}", options = pickerSetting.options,
                                 selectedOption = currentValue,
-                                onOptionSelected = { selected ->
-                                    viewModel.updateStringSetting(pickerKey, selected)
-                                    showPickerKey = null
-                                },
+                                onOptionSelected = { selected -> viewModel.updateStringSetting(pickerKey, selected); showPickerKey = null },
                                 onDismiss = { showPickerKey = null }
                             )
                         }
@@ -326,7 +335,7 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
-val Material3EaseOutExpo = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
+val Material3EaseOutQuint = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -345,25 +354,34 @@ fun SettingsScreenContent(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 32.dp, top = 8.dp)
+        contentPadding = PaddingValues(bottom = 32.dp, top = 12.dp)
     ) {
         groupedSettings.forEach { (category, settingsInCategory) ->
-            item(key = "header_$category") { SettingsGroupHeader(category) }
-            itemsIndexed(settingsInCategory, key = { _, item -> item.key }) { index, settingDefinition ->
+            item(key = "header_$category", contentType = "header") {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(tween(400, easing = LinearOutSlowInEasing)) + slideInVertically(tween(500, easing = Material3EaseOutQuint)) { -it / 3 }
+                ) {
+                    SettingsGroupHeader(category)
+                }
+            }
+            itemsIndexed(settingsInCategory, key = { _, item -> item.key }, contentType = { _, item -> item::class.simpleName ?: "" }) { index, settingDefinition ->
                 val isEffectivelyEnabled = when (settingDefinition.key) {
-                    "experimental_feature_x" -> isAdvancedSectionEnabled
+                    "experimental_feature_x" -> isAdvancedSectionEnabled && (settingsValues["advanced_enabled"] as? SettingValue.Bool)?.value == true
+                    "dynamic_color_enabled" -> (settingsValues["dark_mode"] as? SettingValue.Bool)?.value == true
+                    "notification_vibration" -> (settingsValues["notifications"] as? SettingValue.Bool)?.value == true
                     else -> true
                 }
-                val isHiddenChild = settingDefinitions.any { parentDef ->
+                val isHiddenByParent = settingDefinitions.any { parentDef ->
                     parentDef is SettingModel.Switch &&
                     parentDef.revealsKeys?.contains(settingDefinition.key) == true &&
                     (settingsValues[parentDef.key] as? SettingValue.Bool)?.value == false
                 }
 
                 AnimatedVisibility(
-                    visible = !isHiddenChild,
-                    enter = fadeIn(tween(350, easing = LinearOutSlowInEasing)) + expandVertically(tween(450, easing = Material3EaseOutExpo)),
-                    exit = fadeOut(tween(250, easing = FastOutLinearInEasing)) + shrinkVertically(tween(350, easing = FastOutLinearInEasing)),
+                    visible = !isHiddenByParent,
+                    enter = fadeIn(tween(400, delayMillis = 50, easing = LinearOutSlowInEasing)) + expandVertically(tween(500, delayMillis = 50, easing = Material3EaseOutQuint)),
+                    exit = fadeOut(tween(300, easing = FastOutLinearInEasing)) + shrinkVertically(tween(400, easing = FastOutLinearInEasing)),
                 ) {
                      AnimatedSettingItem(indexInList = index) {
                         SettingItem(
@@ -378,19 +396,17 @@ fun SettingsScreenContent(
                         )
                     }
                 }
-                if (index < settingsInCategory.size - 1 && !isHiddenChild) {
-                    val nextItemIsAlsoHidden = (index + 1 < settingsInCategory.size) && settingDefinitions.any { parentDef ->
+                val nextIndex = index + 1
+                val isNextItemHiddenByParent = if (nextIndex < settingsInCategory.size) {
+                    settingDefinitions.any { parentDef ->
                         parentDef is SettingModel.Switch &&
-                        parentDef.revealsKeys?.contains(settingsInCategory[index + 1].key) == true &&
+                        parentDef.revealsKeys?.contains(settingsInCategory[nextIndex].key) == true &&
                         (settingsValues[parentDef.key] as? SettingValue.Bool)?.value == false
                     }
-                    if(!nextItemIsAlsoHidden) {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                            thickness = 0.5.dp,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-                        )
-                    }
+                } else { true }
+
+                if (index < settingsInCategory.size - 1 && !isHiddenByParent && !isNextItemHiddenByParent) {
+                     Spacer(modifier = Modifier.height(0.5.dp).fillMaxWidth().background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)).padding(horizontal = 20.dp) ) // <<< FIXED Modifier.background
                 }
             }
         }
@@ -401,17 +417,17 @@ fun SettingsScreenContent(
 fun AnimatedSettingItem(indexInList: Int, content: @Composable () -> Unit) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay((indexInList * 70L).coerceAtMost(400L))
+        delay((indexInList * 80L).coerceAtMost(450L))
         visible = true
     }
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(animationSpec = tween(durationMillis = 450, easing = LinearOutSlowInEasing)) +
+        enter = fadeIn(animationSpec = tween(durationMillis = 500, easing = LinearOutSlowInEasing)) +
                 slideInVertically(
-                    initialOffsetY = { it / 5 },
-                    animationSpec = tween(durationMillis = 550, easing = Material3EaseOutExpo)
+                    initialOffsetY = { it / 4 },
+                    animationSpec = tween(durationMillis = 600, easing = Material3EaseOutQuint)
                 ),
-        exit = fadeOut(animationSpec = tween(durationMillis = 250, easing = FastOutLinearInEasing))
+        exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = FastOutLinearInEasing))
     ) {
         content()
     }
@@ -435,22 +451,27 @@ fun SettingItem(
     val currentStringValue = (settingsValues[settingDefinition.key] as? SettingValue.Str)?.value
     val currentFloatValue = (settingsValues[settingDefinition.key] as? SettingValue.Flt)?.value
 
-    var summaryText: String? = null
+    var summaryTextToDisplay: String? = null
     if (settingDefinition is SettingModel.Switch) {
-        summaryText = if (currentBoolValue == true) settingDefinition.summaryOn else settingDefinition.summaryOff
+        summaryTextToDisplay = if (currentBoolValue == true) settingDefinition.summaryOn else settingDefinition.summaryOff
     } else if (settingDefinition is SettingModel.Action) {
-        summaryText = settingDefinition.summary
+        summaryTextToDisplay = settingDefinition.summary
     }
-    settingDefinition.dynamicDescriptionKey?.let {
-        summaryText = getDynamicDescription(it) ?: summaryText
+    settingDefinition.dynamicDescriptionKey?.let { dynamicKey ->
+        val dynamicDesc = getDynamicDescription(dynamicKey)
+        summaryTextToDisplay = dynamicDesc ?: summaryTextToDisplay
+    }
+    if (summaryTextToDisplay == null) {
+        if (settingDefinition is SettingModel.Picker && currentStringValue != null) summaryTextToDisplay = "Selected: $currentStringValue"
+        else if (settingDefinition is SettingModel.Slider && currentFloatValue != null) summaryTextToDisplay = "Value: ${settingDefinition.valueLabelFormat(currentFloatValue)}"
     }
 
-    val itemAlpha = if (isEffectivelyEnabled) 1f else 0.5f
+    val itemAlpha = if (isEffectivelyEnabled) 1f else 0.45f
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(itemAlpha) // Apply alpha here
+            .alpha(itemAlpha)
             .clickable(
                 enabled = isEffectivelyEnabled && settingDefinition !is SettingModel.Slider,
                 onClick = {
@@ -465,42 +486,42 @@ fun SettingItem(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current
             )
-            .padding(horizontal = 20.dp, vertical = 18.dp)
+            .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = settingDefinition.icon,
                 contentDescription = settingDefinition.title,
                 modifier = Modifier.size(24.dp),
-                tint = if (isEffectivelyEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                tint = if (isEffectivelyEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
-            Spacer(Modifier.width(20.dp))
+            Spacer(Modifier.width(22.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = settingDefinition.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal),
                     color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 AnimatedContent(
-                    targetState = summaryText,
+                    targetState = summaryTextToDisplay,
                     transitionSpec = {
-                        (fadeIn(animationSpec = tween(220, delayMillis = 120, easing = LinearOutSlowInEasing)) +
-                         slideInVertically(animationSpec = tween(330, easing = Material3EaseOutExpo)) { it / 2} ).togetherWith(
-                            fadeOut(animationSpec = tween(180, easing = FastOutLinearInEasing))
+                        (fadeIn(animationSpec = tween(250, delayMillis = 150, easing = LinearOutSlowInEasing)) +
+                         slideInVertically(animationSpec = tween(350, easing = Material3EaseOutQuint)) { it / 2} ).togetherWith(
+                            fadeOut(animationSpec = tween(200, easing = FastOutLinearInEasing))
                         )
                     }, label = "summaryAnimation"
                 ) { text ->
                     if (!text.isNullOrEmpty()) {
                         Text(
                             text = text,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 3.dp)
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isEffectivelyEnabled) 0.9f else 0.6f),
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }
             }
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(18.dp))
 
             when (settingDefinition) {
                 is SettingModel.Switch -> {
@@ -512,17 +533,27 @@ fun SettingItem(
                             onSwitchChanged(settingDefinition.key, newCheckedState)
                         },
                         enabled = isEffectivelyEnabled,
-                        thumbContent = if (checkedValue) { { Icon(Icons.Filled.Done, "Enabled", modifier = Modifier.size(SwitchDefaults.IconSize)) } } else null
+                        thumbContent = if (checkedValue) { { Icon(Icons.Filled.Check, "Enabled", modifier = Modifier.size(SwitchDefaults.IconSize)) } } else null,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledCheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f), // <<< FIXED ContentAlpha
+                            disabledCheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                            disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f), // <<< FIXED ContentAlpha
+                            disabledUncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                        )
                     )
                 }
                 is SettingModel.Picker -> currentStringValue?.let {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
-                        Icon(Icons.Filled.ArrowDropDown, "Open picker", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(IntrinsicSize.Min)) {
+                        Text(it, style = MaterialTheme.typography.labelLarge, color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Filled.ArrowRight, "Open picker", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp))
                     }
                 }
                 is SettingModel.Action -> if (settingDefinition.actionType != ActionType.RESET_PREFERENCES) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Perform action", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Details", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 else -> {}
             }
@@ -530,8 +561,14 @@ fun SettingItem(
 
         if (settingDefinition is SettingModel.Slider) {
             val sliderValue = currentFloatValue ?: settingDefinition.defaultValue
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
+                 Text(
+                    text = settingDefinition.valueLabelFormat(settingDefinition.valueRange.start),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if(isEffectivelyEnabled) 0.7f else 0.4f),
+                    modifier = Modifier.padding(end = 8.dp)
+                )
                 Slider(
                     value = sliderValue,
                     onValueChange = { newValue -> onSliderChanged(settingDefinition.key, newValue) },
@@ -543,17 +580,23 @@ fun SettingItem(
                     colors = SliderDefaults.colors(
                         thumbColor = MaterialTheme.colorScheme.primary,
                         activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        disabledThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        inactiveTrackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        activeTickColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                        inactiveTickColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                     )
                 )
-                Spacer(Modifier.width(18.dp))
+                 Text(
+                    text = settingDefinition.valueLabelFormat(settingDefinition.valueRange.endInclusive),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if(isEffectivelyEnabled) 0.7f else 0.4f),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
                 Text(
                     text = settingDefinition.valueLabelFormat(sliderValue),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     color = if (isEffectivelyEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End,
-                    modifier = Modifier.width(55.dp)
+                    modifier = Modifier.width(60.dp).padding(start = 10.dp)
                 )
             }
         }
@@ -564,11 +607,11 @@ fun SettingItem(
 fun SettingsGroupHeader(title: String) {
     Text(
         text = title.uppercase(),
-        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp),
-        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp),
+        color = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 12.dp)
+            .padding(start = 22.dp, end = 22.dp, top = 30.dp, bottom = 14.dp)
     )
 }
 
@@ -580,10 +623,10 @@ fun ConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(icon, null, tint = MaterialTheme.colorScheme.secondary) },
+        icon = { Icon(icon, null, tint = MaterialTheme.colorScheme.error) },
         title = { Text(title, style = MaterialTheme.typography.headlineSmall) },
-        text = { Text(text, style = MaterialTheme.typography.bodyMedium) },
-        confirmButton = { Button(onClick = onConfirm) { Text(confirmButtonText) } },
+        text = { Text(text, style = MaterialTheme.typography.bodyMedium, lineHeight = 20.sp) },
+        confirmButton = { Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(confirmButtonText) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(dismissButtonText) } }
     )
 }
@@ -596,44 +639,43 @@ fun OptionsPickerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp),
-            tonalElevation = 6.dp
+            color = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
+            tonalElevation = 8.dp,
+            shadowElevation = 8.dp
         ) {
             Column {
                 Text(
-                    title, style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp)
+                    title, style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 16.dp)
                 )
-                LazyColumn(modifier = Modifier.padding(horizontal = 12.dp)) {
-                    items( // Corrected LazyColumn items call
+                LazyColumn(modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth()) {
+                    items(
                         items = options,
-                        key = { it } // Use the option string itself as a key
-                    ) { option: String -> // Explicitly type 'option'
+                        key = { it }
+                    ) { option: String ->
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .clip(MaterialTheme.shapes.medium)
+                                .clip(MaterialTheme.shapes.large)
                                 .clickable { onOptionSelected(option) }
-                                .padding(vertical = 14.dp, horizontal = 12.dp),
+                                .padding(vertical = 16.dp, horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = if (option == selectedOption) Icons.Filled.RadioButtonChecked else Icons.Filled.RadioButtonUnchecked,
-                                contentDescription = if (option == selectedOption) "$option selected" else "$option not selected",
+                                if (option == selectedOption) Icons.Filled.CheckCircleOutline else Icons.Filled.RadioButtonUnchecked,
+                                null,
                                 tint = if (option == selectedOption) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(end = 16.dp).size(24.dp)
+                                modifier = Modifier.padding(end = 18.dp).size(24.dp)
                             )
                             Text(option, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 16.dp, top = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel") // This should now compile fine
-                    }
+                    TextButton(onClick = onDismiss) { Text("Dismiss", fontWeight = FontWeight.SemiBold) }
                 }
             }
         }
