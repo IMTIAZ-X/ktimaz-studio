@@ -100,6 +100,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-core:1.7.8") // Or your Compose version
     implementation("androidx.compose.material:material-icons-extended:1.7.8") // Or your Compose version
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0") // Or your Compose BOM aligned version
+   implementation("androidx.compose.animation:animation")
+   implementation("androidx.compose.animation:animation-core") // This library contains AnticipateOvershootInterpolator
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
