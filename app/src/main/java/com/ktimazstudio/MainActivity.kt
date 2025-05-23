@@ -14,7 +14,19 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
+// Animation function imports <<< ADDED
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+// Core animation imports (for interpolators and tween) <<< ADDED
+import androidx.compose.animation.core.AnticipateOvershootInterpolator // <<< ADDED
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
@@ -47,7 +59,6 @@ class MainActivity : ComponentActivity() {
 
         if (detectVpn()) {
             Toast.makeText(this, "VPN detected. Closing app for security...", Toast.LENGTH_LONG).show()
-            // Replace deprecated Handler with lifecycleScope coroutine
             lifecycleScope.launch {
                 delay(5000)
                 finishAffinity()
@@ -59,14 +70,14 @@ class MainActivity : ComponentActivity() {
             ktimaz {
                 val context = LocalContext.current
                 val snackbarHostState = remember { SnackbarHostState() }
-                val scope = rememberCoroutineScope() // For launching coroutines from Composables
+                // val scope = rememberCoroutineScope() // Not strictly needed here anymore
 
                 LaunchedEffect(Unit) {
                     if (!isConnected(context)) {
                         val result = snackbarHostState.showSnackbar(
                             message = "No Internet Connection!",
                             actionLabel = "Wi-Fi Settings",
-                            duration = SnackbarDuration.Indefinite // Keep it until dismissed or action taken
+                            duration = SnackbarDuration.Indefinite
                         )
                         if (result == SnackbarResult.ActionPerformed) {
                             openWifiSettings(context)
@@ -76,13 +87,13 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     topBar = {
-                        TopAppBar( // Replaced SmallTopAppBar
+                        TopAppBar(
                             title = {
                                 Text(
                                     text = stringResource(id = R.string.app_name),
-                                    fontSize = 24.sp, // Slightly larger for a "futuristic" feel
+                                    fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.1.sp // Added letter spacing
+                                    letterSpacing = 1.1.sp
                                 )
                             },
                             actions = {
@@ -90,30 +101,28 @@ class MainActivity : ComponentActivity() {
                                     context.startActivity(Intent(context, SettingsActivity::class.java))
                                 }) {
                                     Icon(
-                                        imageVector = Icons.Filled.Settings, // Using Material Icon
+                                        imageVector = Icons.Filled.Settings,
                                         contentDescription = "Settings",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             },
-                            colors = TopAppBarDefaults.topAppBarColors( // Replaced smallTopAppBarColors
-                                containerColor = Color.Transparent // Bar is transparent
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent
                             ),
-                            modifier = Modifier.statusBarsPadding() // Ensure content is not under status bar
+                            modifier = Modifier.statusBarsPadding()
                         )
                     },
                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                    containerColor = MaterialTheme.colorScheme.background // Explicitly set background
+                    containerColor = MaterialTheme.colorScheme.background
                 ) { paddingValues ->
                     Box(
                         modifier = Modifier
-                            .padding(paddingValues) // Apply padding from Scaffold
+                            .padding(paddingValues)
                             .fillMaxSize()
                     ) {
                         AnimatedCardGrid { title ->
-                            // For Settings card, it's handled by TopAppBar action.
-                            // If you also want the card to work:
-                            if (title == "Settings") {
+                            if (title == "System Config") { // Updated card title for settings
                                 context.startActivity(Intent(context, SettingsActivity::class.java))
                             } else {
                                 context.startActivity(
@@ -132,76 +141,69 @@ class MainActivity : ComponentActivity() {
         val activeNetwork = cm.activeNetwork ?: return false
         val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-               capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) // Check for actual internet
+               capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
-    // Updated to prompt user to change Wi-Fi settings
     private fun openWifiSettings(context: Context) {
         Toast.makeText(context, "Please enable Wi-Fi or connect to a network.", Toast.LENGTH_LONG).show()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // For Android Q and above, use the Settings Panel for a better in-app experience
             val panelIntent = Intent(Settings.Panel.ACTION_WIFI)
             context.startActivity(panelIntent)
         } else {
-            // For older versions, open the general Wi-Fi settings page
-            @Suppress("DEPRECATION") // Needed for startActivity for older OS
+            @Suppress("DEPRECATION")
             context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
         }
     }
 
     private fun detectVpn(): Boolean = try {
-        // This method has limitations and might not work reliably on all Android versions/devices
-        // due to file system access restrictions.
         BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
             lines.any { line ->
-                // Check for common VPN-related local addresses/ports, this is a heuristic
-                line.contains("0100007F:") || line.contains("00000000:10E1") // 127.0.0.1 or common VPN service ports (e.g., 4321)
+                line.contains("0100007F:") || line.contains("00000000:10E1")
             }
         }
     } catch (_: Exception) {
-        false // If file access fails, assume no VPN or unable to detect
+        false
     }
 }
 
 @Composable
 fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
-    val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config") // More "futuristic" names
-    // Assuming R.mipmap.ic_launcher is a generic placeholder.
-    // For a real app, you'd have unique icons for each card.
-    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Example: using round launcher icon
+    val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 150.dp), // Adaptive columns for responsiveness
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp), // Increased padding
-        verticalArrangement = Arrangement.spacedBy(20.dp), // Increased spacing
+        columns = GridCells.Adaptive(minSize = 150.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
-            // Entrance Animation for each card
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
-                delay(index * 100L + 100L) // Staggered delay, plus initial delay
+                delay(index * 100L + 100L)
                 itemVisible = true
             }
 
             AnimatedVisibility(
                 visible = itemVisible,
-                enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)) +
-                        slideInVertically(
-                            initialOffsetY = { it / 3 },
-                            animationSpec = tween(durationMillis = 500, easing = AnticipateOvershootInterpolator())
+                enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)) + // fadeIn is now resolved
+                        slideInVertically( // slideInVertically is now resolved
+                            initialOffsetY = { fullHeight -> fullHeight / 3 }, // 'it' is implicitly fullHeight
+                            animationSpec = tween(durationMillis = 500, easing = AnticipateOvershootInterpolator()) // AnticipateOvershootInterpolator is now resolved
                         ),
-                exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
-                       slideOutVertically(targetOffsetY = { it / 3 }, animationSpec = tween(durationMillis = 300))
+                exit = fadeOut(animationSpec = tween(durationMillis = 300)) + // fadeOut is now resolved
+                       slideOutVertically( // slideOutVertically is now resolved
+                           targetOffsetY = { fullHeight -> fullHeight / 3 }, // 'it' is implicitly fullHeight
+                           animationSpec = tween(durationMillis = 300)
+                       )
             ) {
-                // Breathing Animation (applied to the Card content or the Card itself)
                 val infiniteTransition = rememberInfiniteTransition(label = "card_breathing_transition_$title")
                 val scale by infiniteTransition.animateFloat(
                     initialValue = 0.98f,
                     targetValue = 1f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(1200, easing = FastOutSlowInEasing), // Slower, more subtle breath
+                        animation = tween(1200, easing = FastOutSlowInEasing),
                         repeatMode = RepeatMode.Reverse
                     ),
                     label = "card_scale_animation_$title"
@@ -209,33 +211,32 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
 
                 Card(
                     onClick = { onCardClick(title) },
-                    shape = RoundedCornerShape(20.dp), // More rounded for modern feel
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        // Slightly less transparent for better readability, or use surfaceVariant
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
                     modifier = Modifier
-                        .graphicsLayer(scaleX = scale, scaleY = scale) // Apply breathing scale here
+                        .graphicsLayer(scaleX = scale, scaleY = scale)
                         .fillMaxWidth()
-                        .height(170.dp) // Slightly taller cards
+                        .height(170.dp)
                 ) {
                     Column(
                         Modifier
                             .fillMaxSize()
-                            .padding(16.dp), // Increased padding inside card
+                            .padding(16.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            painter = icons[index % icons.size], // Use modulo if icons list is shorter
+                            painter = icons[index % icons.size],
                             contentDescription = title,
-                            modifier = Modifier.size(64.dp) // Larger icon
+                            modifier = Modifier.size(64.dp)
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleSmall, // Use M3 typography
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
