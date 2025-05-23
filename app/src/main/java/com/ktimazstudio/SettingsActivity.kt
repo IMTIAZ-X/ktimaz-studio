@@ -299,7 +299,8 @@ class SettingsActivity : ComponentActivity() {
                         )
                     }
 
-
+                    @Composable
+fun AboutDialog(showDialog: Boolean, onDismissRequest: () -> Unit) {
     if (showDialog) {
         AlertDialog(
             onDismissRequest = onDismissRequest,
@@ -331,7 +332,7 @@ class SettingsActivity : ComponentActivity() {
             }
         )
     }
-
+}
 
                     showPickerKey?.let { pickerKey ->
                         val pickerSetting = viewModel.settingDefinitions.find { it.key == pickerKey && it is SettingModel.Picker } as? SettingModel.Picker
