@@ -15,6 +15,8 @@ fun String.runCommand(): String? =
         null
     }
 
+val shortCommitHash = "git rev-parse --short HEAD".runCommand()?.trim() ?: "dev"
+
 android {
     namespace = "com.ktimazstudio"
     compileSdk = 35
@@ -24,7 +26,7 @@ android {
         minSdk = 25
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0" // This will be overridden in release
+        versionName = "V3.0-Beta-$shortCommitHash"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -51,11 +53,12 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+        }
+    }
 
-            val shortCommitHash = "git rev-parse --short HEAD".runCommand()?.trim() ?: "dev"
-            versionName = "V3.0-Beta-$shortCommitHash"
-
-            packaging.resources.excludes += setOf(
+    packaging {
+        resources {
+            excludes += setOf(
                 "kotlin/**",
                 "kotlin-tooling-metadata.json",
                 "assets/dexopt/**",
@@ -91,13 +94,11 @@ android {
 
     applicationVariants.all {
         outputs.all {
-            val buildType = this@all.buildType.name
-            val fileName = if (buildType == "release") {
-                "ktimazstudio_release_v${versionName}.apk"
-            } else {
-                "ktimazstudio_debug.apk"
-            }
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = fileName
+            val variant = this@all
+            val buildTypeName = variant.buildType.name
+            val version = variant.versionName
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "ktimazstudio_${buildTypeName}_v${version}.apk"
         }
     }
 }
