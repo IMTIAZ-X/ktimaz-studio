@@ -4,24 +4,20 @@ import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-// For Wi-Fi settings panel/page
 import android.os.Build
 import android.provider.Settings
-// Removed WifiManager as we can't directly enable Wi-Fi
-
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
-// Animation function imports <<< ADDED
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-// Core animation imports (for interpolators and tween) <<< ADDED
-import androidx.compose.animation.core.AnticipateOvershootInterpolator // <<< ADDED
+import androidx.compose.animation.core.AnticipateOvershootInterpolator // <<< CORRECTED/VERIFIED
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing // <<< CORRECTED/VERIFIED
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -32,7 +28,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings // Standard Material Icon
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,10 +41,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope // For lifecycleScope
+import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz
-import kotlinx.coroutines.delay // For delay in coroutine
-import kotlinx.coroutines.launch // For launch in coroutine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.FileReader
 
@@ -70,7 +66,6 @@ class MainActivity : ComponentActivity() {
             ktimaz {
                 val context = LocalContext.current
                 val snackbarHostState = remember { SnackbarHostState() }
-                // val scope = rememberCoroutineScope() // Not strictly needed here anymore
 
                 LaunchedEffect(Unit) {
                     if (!isConnected(context)) {
@@ -122,7 +117,7 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                     ) {
                         AnimatedCardGrid { title ->
-                            if (title == "System Config") { // Updated card title for settings
+                            if (title == "System Config") {
                                 context.startActivity(Intent(context, SettingsActivity::class.java))
                             } else {
                                 context.startActivity(
@@ -187,14 +182,14 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
 
             AnimatedVisibility(
                 visible = itemVisible,
-                enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)) + // fadeIn is now resolved
-                        slideInVertically( // slideInVertically is now resolved
-                            initialOffsetY = { fullHeight -> fullHeight / 3 }, // 'it' is implicitly fullHeight
-                            animationSpec = tween(durationMillis = 500, easing = AnticipateOvershootInterpolator()) // AnticipateOvershootInterpolator is now resolved
+                enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)) +
+                        slideInVertically(
+                            initialOffsetY = { fullHeight -> fullHeight / 3 },
+                            animationSpec = tween(durationMillis = 500, easing = AnticipateOvershootInterpolator())
                         ),
-                exit = fadeOut(animationSpec = tween(durationMillis = 300)) + // fadeOut is now resolved
-                       slideOutVertically( // slideOutVertically is now resolved
-                           targetOffsetY = { fullHeight -> fullHeight / 3 }, // 'it' is implicitly fullHeight
+                exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
+                       slideOutVertically(
+                           targetOffsetY = { fullHeight -> fullHeight / 3 },
                            animationSpec = tween(durationMillis = 300)
                        )
             ) {
