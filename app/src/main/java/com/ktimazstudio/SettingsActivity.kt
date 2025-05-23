@@ -260,7 +260,7 @@ class SettingsActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Configuration Core", fontWeight = FontWeight.Normal, style = MaterialTheme.typography.titleLarge) },
+                            title = { Text("Setting", fontWeight = FontWeight.Normal, style = MaterialTheme.typography.titleLarge) },
                             navigationIcon = { IconButton(onClick = { onBackPressedDispatcher.onBackPressed() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp))
                         )
@@ -297,25 +297,42 @@ class SettingsActivity : ComponentActivity() {
                             onConfirm = { viewModel.resetAllSettings(); showResetDialog = false },
                             onDismiss = { showResetDialog = false }
                         )
-                    }
+                    
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text("Ktimaz Studio Interface")
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Version: 3.0", style = MaterialTheme.typography.bodyMedium)
+                    Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
+                    Text("©2024 Rightly Now all Control by Ktimaz Studio.", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "\"Pioneering tomorrow's experiences, today.\"",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Acknowledge")
+                }
+            }
+        )
+    }
 
-                    if (showAboutDialog) {
-                        AlertDialog(
-                            onDismissRequest = { showAboutDialog = false },
-                            icon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                            title = { Text("Ktimaz Studio Interface") },
-                            text = {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Version: ${java.time.Year.now().value}.alpha.${java.time.LocalDate.now().dayOfYear}", style = MaterialTheme.typography.bodyMedium)
-                                    Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
-                                    Text("© ${java.time.Year.now().value} Ktimaz Design Labs.", style = MaterialTheme.typography.bodySmall)
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("\"Pioneering tomorrow's experiences, today.\"", style = MaterialTheme.typography.labelMedium, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
-                                }
-                            },
-                            confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Acknowledge") } }
-                        )
-                    }
+
 
                     showPickerKey?.let { pickerKey ->
                         val pickerSetting = viewModel.settingDefinitions.find { it.key == pickerKey && it is SettingModel.Picker } as? SettingModel.Picker
