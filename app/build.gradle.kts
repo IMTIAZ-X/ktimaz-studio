@@ -3,6 +3,18 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
+fun String.runCommand(): String? =
+    try {
+        ProcessBuilder(*split(" ").toTypedArray())
+            .redirectErrorStream(true)
+            .start()
+            .inputStream
+            .bufferedReader()
+            .readText()
+    } catch (e: Exception) {
+        null
+    }
+
 android {
     namespace = "com.ktimazstudio"
     compileSdk = 35
@@ -12,13 +24,13 @@ android {
         minSdk = 25
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0" // This will be overridden in release
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
 
     signingConfigs {
-        create("release") {  
+        create("release") {
             storeFile = file(project.property("RELEASE_STORE_FILE") as String)
             storePassword = project.property("RELEASE_STORE_PASSWORD") as String
             keyAlias = project.property("RELEASE_KEY_ALIAS") as String
@@ -39,6 +51,24 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+
+            val shortCommitHash = "git rev-parse --short HEAD".runCommand()?.trim() ?: "dev"
+            versionName = "V3.0-Beta-$shortCommitHash"
+
+            packaging.resources.excludes += setOf(
+                "kotlin/**",
+                "kotlin-tooling-metadata.json",
+                "assets/dexopt/**",
+                "assets/dexopt/baseline.prof",
+                "assets/dexopt/baseline.profm",
+                "META-INF/LICENSE",
+                "META-INF/DEPENDENCIES",
+                "META-INF/*.kotlin_module",
+                "**/DebugProbesKt.bin",
+                "okhttp3/internal/publicsuffix/NOTICE",
+                "okhttp3/**",
+                "/META-INF/{AL2.0,LGPL2.1}"
+            )
         }
     }
 
@@ -48,9 +78,8 @@ android {
     }
 
     kotlin {
-    jvmToolchain(21)
-}
-
+        jvmToolchain(21)
+    }
 
     buildFeatures {
         compose = true
@@ -60,29 +89,15 @@ android {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
 
-    packaging {
-    resources {
-        excludes += setOf(
-            "kotlin/**",
-            "kotlin-tooling-metadata.json",
-            "assets/dexopt/**",
-            "assets/dexopt/baseline.prof",
-            "assets/dexopt/baseline.profm",
-            "META-INF/LICENSE",
-            "META-INF/DEPENDENCIES",
-            "META-INF/*.kotlin_module",
-            "**/DebugProbesKt.bin",
-            "okhttp3/internal/publicsuffix/NOTICE",
-            "okhttp3/**",
-            "/META-INF/{AL2.0,LGPL2.1}"
-        )
-    }
-}
-
     applicationVariants.all {
         outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "ktimazstudio_release_v${defaultConfig.versionName}.apk"
+            val buildType = this@all.buildType.name
+            val fileName = if (buildType == "release") {
+                "ktimazstudio_release_v${versionName}.apk"
+            } else {
+                "ktimazstudio_debug.apk"
+            }
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = fileName
         }
     }
 }
@@ -97,11 +112,11 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    implementation("androidx.compose.material:material-icons-core:1.7.8") // Or your Compose version
-    implementation("androidx.compose.material:material-icons-extended:1.7.8") // Or your Compose version
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0") // Or your Compose BOM aligned version
-   implementation("androidx.compose.animation:animation")
-   implementation("androidx.compose.animation:animation-core") // This library contains AnticipateOvershootInterpolator
+    implementation("androidx.compose.material:material-icons-core:1.7.8")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
+    implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.animation:animation-core")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
