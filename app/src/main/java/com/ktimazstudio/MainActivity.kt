@@ -5,31 +5,17 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
-import android.provider.Settings
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn // General animation functions
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-
-// Core animation imports (easing functions, interpolators, transitions, etc.)
-import androidx.compose.animation.core.Animatable // Example of another core import
-import androidx.compose.animation.core.AnimationVector1D // Example
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.TweenSpec // Example
-import androidx.compose.animation.core.VectorConverter // Example
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.AnticipateOvershootInterpolator // <<< THIS IS THE KEY IMPORT
-
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
@@ -49,11 +35,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
-import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
+import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.FileReader
+import android.view.animation.AnticipateOvershootInterpolator // Fix: use Android SDK interpolator
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -70,7 +57,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ktimaz { // Your app's theme
+            ktimaz {
                 val context = LocalContext.current
                 val snackbarHostState = remember { SnackbarHostState() }
 
@@ -92,7 +79,7 @@ class MainActivity : ComponentActivity() {
                         TopAppBar(
                             title = {
                                 Text(
-                                    text = stringResource(id = R.string.app_name), // Ensure R.string.app_name exists
+                                    text = stringResource(id = R.string.app_name),
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 1.1.sp
@@ -100,7 +87,7 @@ class MainActivity : ComponentActivity() {
                             },
                             actions = {
                                 IconButton(onClick = {
-                                    context.startActivity(Intent(context, SettingsActivity::class.java)) // Ensure SettingsActivity exists
+                                    context.startActivity(Intent(context, SettingsActivity::class.java))
                                 }) {
                                     Icon(
                                         imageVector = Icons.Filled.Settings,
@@ -124,10 +111,9 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                     ) {
                         AnimatedCardGrid { title ->
-                            if (title == "System Config") { // Check if this title matches your settings card
+                            if (title == "System Config") {
                                 context.startActivity(Intent(context, SettingsActivity::class.java))
                             } else {
-                                // Ensure ComingActivity exists
                                 context.startActivity(
                                     Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title)
                                 )
@@ -172,7 +158,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
-    // Ensure R.mipmap.ic_launcher_round exists
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
 
     LazyVerticalGrid(
@@ -194,8 +179,9 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
                 enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)) +
                         slideInVertically(
                             initialOffsetY = { fullHeight -> fullHeight / 3 },
-                            // Line 188 in previous error logs
-                            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
+                            animationSpec = tween(durationMillis = 500, easing = Easing {
+                                AnticipateOvershootInterpolator().getInterpolation(it)
+                            })
                         ),
                 exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
                        slideOutVertically(
