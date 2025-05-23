@@ -5,8 +5,8 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
-import android.os.Bundle
 import android.provider.Settings
+import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,8 +15,18 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +36,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -40,7 +52,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.FileReader
-import android.view.animation.AnticipateOvershootInterpolator // Fix: use Android SDK interpolator
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -81,8 +92,9 @@ class MainActivity : ComponentActivity() {
                                 Text(
                                     text = stringResource(id = R.string.app_name),
                                     fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.1.sp
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 1.5.sp,
+                                    color = Color.White
                                 )
                             },
                             actions = {
@@ -92,14 +104,19 @@ class MainActivity : ComponentActivity() {
                                     Icon(
                                         imageVector = Icons.Filled.Settings,
                                         contentDescription = "Settings",
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = Color.White
                                     )
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color.Transparent
+                                containerColor = Color.Transparent,
+                                scrolledContainerColor = Color.Transparent
                             ),
-                            modifier = Modifier.statusBarsPadding()
+                            modifier = Modifier
+                                .statusBarsPadding()
+                                .background(Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Transparent)
+                                ))
                         )
                     },
                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -109,6 +126,11 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .padding(paddingValues)
                             .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
+                                )
+                            )
                     ) {
                         AnimatedCardGrid { title ->
                             if (title == "System Config") {
@@ -179,9 +201,7 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
                 enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)) +
                         slideInVertically(
                             initialOffsetY = { fullHeight -> fullHeight / 3 },
-                            animationSpec = tween(durationMillis = 500, easing = Easing {
-                                AnticipateOvershootInterpolator().getInterpolation(it)
-                            })
+                            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
                         ),
                 exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
                        slideOutVertically(
@@ -202,15 +222,16 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
 
                 Card(
                     onClick = { onCardClick(title) },
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                        containerColor = Color.White.copy(alpha = 0.05f)
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp, pressedElevation = 14.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
                         .fillMaxWidth()
-                        .height(170.dp)
+                        .height(180.dp)
+                        .blur(2.dp)
                 ) {
                     Column(
                         Modifier
@@ -222,14 +243,14 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
                         Image(
                             painter = icons[index % icons.size],
                             contentDescription = title,
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(72.dp)
                         )
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(14.dp))
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }
