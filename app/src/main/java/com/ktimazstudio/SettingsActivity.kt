@@ -237,7 +237,7 @@ fun createSettingDefinitions(): List<SettingModel> {
         SettingModel.Switch("advanced_enabled", "Enable Developer Options", Icons.Filled.BuildCircle, "Advanced", defaultValue = false, summaryOn = "Proceed with caution", summaryOff = "Standard mode", enablesKeys = listOf("experimental_feature_x")),
         SettingModel.Switch("experimental_feature_x", "Chrono-Shift Interface", Icons.Filled.HourglassTop, "Advanced", defaultValue = false, summaryOn = "Temporal UI active (beta)", summaryOff = "Standard UI timeline"),
         SettingModel.Action("reset_prefs", "Reset All Settings", Icons.Filled.RestartAlt, "System", ActionType.RESET_PREFERENCES, summary = "Restore factory settings for this app"),
-        SettingModel.Action("about_app", "About This Application", Icons.Filled.Info, "System", ActionType.ABOUT_APP), // <<< FIXED: Changed from InfoOutline
+        SettingModel.Action("about_app", "About", Icons.Filled.Info, "System", ActionType.ABOUT_APP), // <<< FIXED: Changed from InfoOutline
         SettingModel.Action("privacy_policy", "Privacy & Data Policy", Icons.AutoMirrored.Filled.Article, "System", ActionType.PRIVACY_POLICY)
     )
 }
@@ -299,40 +299,23 @@ class SettingsActivity : ComponentActivity() {
                         )
                     }
 
-                    @Composable
-fun AboutDialog(showDialog: Boolean, onDismissRequest: () -> Unit) {
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissRequest,
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            title = { Text("Ktimaz Studio Interface") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Version: 3.0", style = MaterialTheme.typography.bodyMedium)
-                    Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
-                    Text("©2024 Rightly Now all Control by Ktimaz Studio.", style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "\"Pioneering tomorrow's experiences, today.\"",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = onDismissRequest) {
-                    Text("Acknowledge")
-                }
-            }
-        )
-    }
-}
+                    if (showAboutDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showAboutDialog = false },
+                            icon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                            title = { Text("Ktimaz Studio Interface") },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Version: ${java.time.Year.now().value}.alpha.${java.time.LocalDate.now().dayOfYear}", style = MaterialTheme.typography.bodyMedium)
+                                    Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
+                                    Text("© ${java.time.Year.now().value} Ktimaz Design Labs.", style = MaterialTheme.typography.bodySmall)
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("\"Pioneering tomorrow's experiences, today.\"", style = MaterialTheme.typography.labelMedium, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                                }
+                            },
+                            confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Acknowledge") } }
+                        )
+                    }
 
                     showPickerKey?.let { pickerKey ->
                         val pickerSetting = viewModel.settingDefinitions.find { it.key == pickerKey && it is SettingModel.Picker } as? SettingModel.Picker
