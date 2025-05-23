@@ -1,3 +1,16 @@
+)
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 package com.ktimazstudio
 
 import android.content.Context
@@ -10,21 +23,8 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -85,61 +85,51 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Scaffold(
-                    topBar = {
-                        TopAppBar(
-                            title = {
-                                Text(
-                                    text = stringResource(id = R.string.app_name),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    letterSpacing = 1.5.sp,
-                                    color = Color.White
-                                )
-                            },
-                            actions = {
-                                IconButton(onClick = {
-                                    context.startActivity(Intent(context, SettingsActivity::class.java))
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Settings,
-                                        contentDescription = "Settings",
-                                        tint = Color.White
-                                    )
-                                }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color.Transparent,
-                                scrolledContainerColor = Color.Transparent
-                            ),
-                            modifier = Modifier
-                                .statusBarsPadding()
-                                .background(Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color.Transparent)
-                                ))
-                        )
-                    },
-                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                    containerColor = MaterialTheme.colorScheme.background
-                ) { paddingValues ->
-                    Box(
-                        modifier = Modifier
-                            .padding(paddingValues)
-                            .fillMaxSize()
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
-                                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
                             )
-                    ) {
-                        AnimatedCardGrid { title ->
-                            if (title == "System Config") {
-                                context.startActivity(Intent(context, SettingsActivity::class.java))
+                        )
+                ) {
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = {
+                                    Text(
+                                        text = stringResource(id = R.string.app_name),
+                                        fontSize = 26.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                },
+                                actions = {
+                                    IconButton(onClick = {
+                                        context.startActivity(Intent(context, SettingsActivity::class.java))
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Settings,
+                                            contentDescription = "Settings",
+                                            tint = Color.White
+                                        )
+                                    }
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                                modifier = Modifier.statusBarsPadding()
+                            )
+                        },
+                        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                        containerColor = Color.Transparent
+                    ) { paddingValues ->
+                        AnimatedCardGrid(modifier = Modifier.padding(paddingValues)) { title ->
+                            val intent = if (title == "System Config") {
+                                Intent(context, SettingsActivity::class.java)
                             } else {
-                                context.startActivity(
-                                    Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title)
-                                )
+                                Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title)
                             }
+                            context.startActivity(intent)
                         }
                     }
                 }
@@ -158,8 +148,7 @@ class MainActivity : ComponentActivity() {
     private fun openWifiSettings(context: Context) {
         Toast.makeText(context, "Please enable Wi-Fi or connect to a network.", Toast.LENGTH_LONG).show()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val panelIntent = Intent(Settings.Panel.ACTION_WIFI)
-            context.startActivity(panelIntent)
+            context.startActivity(Intent(Settings.Panel.ACTION_WIFI))
         } else {
             @Suppress("DEPRECATION")
             context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
@@ -168,9 +157,7 @@ class MainActivity : ComponentActivity() {
 
     private fun detectVpn(): Boolean = try {
         BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
-            lines.any { line ->
-                line.contains("0100007F:") || line.contains("00000000:10E1")
-            }
+            lines.any { it.contains("0100007F:") || it.contains("00000000:10E1") }
         }
     } catch (_: Exception) {
         false
@@ -178,18 +165,18 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
+fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 150.dp),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize()
     ) {
-        itemsIndexed(cards, key = { _, title -> title }) { index, title ->
+        itemsIndexed(cards) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
                 delay(index * 100L + 100L)
@@ -198,40 +185,34 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
 
             AnimatedVisibility(
                 visible = itemVisible,
-                enter = fadeIn(animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)) +
+                enter = fadeIn(animationSpec = tween(400, easing = LinearOutSlowInEasing)) +
                         slideInVertically(
-                            initialOffsetY = { fullHeight -> fullHeight / 3 },
-                            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
+                            initialOffsetY = { it / 3 },
+                            animationSpec = tween(600, easing = FastOutSlowInEasing)
                         ),
-                exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
-                       slideOutVertically(
-                           targetOffsetY = { fullHeight -> fullHeight / 3 },
-                           animationSpec = tween(durationMillis = 300)
-                       )
+                exit = fadeOut(animationSpec = tween(300)) +
+                        slideOutVertically(targetOffsetY = { it / 3 }, animationSpec = tween(300))
             ) {
-                val infiniteTransition = rememberInfiniteTransition(label = "card_breathing_transition_$title")
+                val infiniteTransition = rememberInfiniteTransition()
                 val scale by infiniteTransition.animateFloat(
                     initialValue = 0.98f,
                     targetValue = 1f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(1200, easing = FastOutSlowInEasing),
+                        animation = tween(1400, easing = FastOutSlowInEasing),
                         repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "card_scale_animation_$title"
+                    )
                 )
 
                 Card(
                     onClick = { onCardClick(title) },
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.05f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp, pressedElevation = 14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
+                        .blur(4.dp)
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .blur(2.dp)
+                        .height(170.dp)
                 ) {
                     Column(
                         Modifier
@@ -243,9 +224,9 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
                         Image(
                             painter = icons[index % icons.size],
                             contentDescription = title,
-                            modifier = Modifier.size(72.dp)
+                            modifier = Modifier.size(60.dp)
                         )
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(12.dp))
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium,
