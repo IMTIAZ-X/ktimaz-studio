@@ -3,20 +3,6 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
-fun String.runCommand(): String? =
-    try {
-        ProcessBuilder(*split(" ").toTypedArray())
-            .redirectErrorStream(true)
-            .start()
-            .inputStream
-            .bufferedReader()
-            .readText()
-    } catch (e: Exception) {
-        null
-    }
-
-val shortCommitHash = "git rev-parse --short HEAD".runCommand()?.trim() ?: "dev"
-
 android {
     namespace = "com.ktimazstudio"
     compileSdk = 35
@@ -26,10 +12,23 @@ android {
         minSdk = 25
         targetSdk = 35
         versionCode = 1
-        versionName = "V3.0-Beta-$shortCommitHash"
+        versionName = "1.0" // Default versionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
+
+    // Git command to get short commit hash
+    fun String.runCommand(): String? =
+        try {
+            ProcessBuilder(*split(" ").toTypedArray())
+                .redirectErrorStream(true)
+                .start()
+                .inputStream
+                .bufferedReader()
+                .readText()
+        } catch (e: Exception) {
+            null
+        }
 
     signingConfigs {
         create("release") {
@@ -53,7 +52,27 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+
+            val shortCommitHash = "git rev-parse --short HEAD".runCommand()?.trim() ?: "dev"
+            versionNameSuffix = "-Beta-$shortCommitHash"
         }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    kotlin {
+        jvmToolchain(21)
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.15"
     }
 
     packaging {
@@ -75,29 +94,12 @@ android {
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    kotlin {
-        jvmToolchain(21)
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
-
     applicationVariants.all {
-        outputs.all {
-            val variant = this@all
-            val buildTypeName = variant.buildType.name
-            val version = variant.versionName
+        val variant = this
+        variant.outputs.all {
             val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val buildTypeName = variant.buildType.name.replaceFirstChar { it.uppercase() }
+            val version = variant.versionName
             output.outputFileName = "ktimazstudio_${buildTypeName}_v${version}.apk"
         }
     }
@@ -112,7 +114,6 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-
     implementation("androidx.compose.material:material-icons-core:1.7.8")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
