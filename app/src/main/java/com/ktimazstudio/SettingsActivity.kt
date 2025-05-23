@@ -297,25 +297,40 @@ class SettingsActivity : ComponentActivity() {
                             onConfirm = { viewModel.resetAllSettings(); showResetDialog = false },
                             onDismiss = { showResetDialog = false }
                         )
-                    
-    if (showAboutDialog) {
-                        AlertDialog(
-                            onDismissRequest = { showAboutDialog = false },
-                            icon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                            title = { Text("Ktimaz Studio Interface") },
-                            text = {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Version: ${java.time.Year.now().value}.alpha.${java.time.LocalDate.now().dayOfYear}", style = MaterialTheme.typography.bodyMedium)
-                                    Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
-                                    Text("© ${java.time.Year.now().value} Ktimaz Design Labs.", style = MaterialTheme.typography.bodySmall)
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("\"Pioneering tomorrow's experiences, today.\"", style = MaterialTheme.typography.labelMedium, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
-                                }
-                            },
-                            confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Acknowledge") } }
-                        )
-    }
+                    }
 
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissRequest,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = { Text("Ktimaz Studio Interface") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Version: 3.0", style = MaterialTheme.typography.bodyMedium)
+                    Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
+                    Text("©2024 Rightly Now all Control by Ktimaz Studio.", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "\"Pioneering tomorrow's experiences, today.\"",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismissRequest) {
+                    Text("Acknowledge")
+                }
+            }
+        )
+    }
 
 
                     showPickerKey?.let { pickerKey ->
