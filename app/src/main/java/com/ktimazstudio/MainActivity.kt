@@ -195,7 +195,7 @@ fun AnimatedCardGrid(onCardClick: (String) -> Unit) {
                         slideInVertically(
                             initialOffsetY = { fullHeight -> fullHeight / 3 },
                             // Line 188 in previous error logs
-                            animationSpec = tween(durationMillis = 500, easing = AnticipateOvershootInterpolator())
+                            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
                         ),
                 exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
                        slideOutVertically(
