@@ -94,13 +94,14 @@ android {
     }
 
     applicationVariants.configureEach {
-        outputs.configureEach {
-            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            val buildTypeName = name
-            val version = this@configureEach.versionName
-            output.outputFileName = "ktimazstudio_${buildTypeName}_v${version}.apk"
-        }
+    outputs.configureEach {
+        val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+        val buildTypeName = this@configureEach.buildType.name.capitalize()
+        val version = this@configureEach.mergedFlavor.versionName
+        outputImpl.outputFileName = "ktimazstudio_${buildTypeName}_v${version}.apk"
     }
+}
+
 }
 
 dependencies {
