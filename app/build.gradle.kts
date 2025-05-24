@@ -12,12 +12,12 @@ android {
         minSdk = 25
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0" // Default versionName
+        versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
 
-    // Git command to get short commit hash
+    // Git command helper
     fun String.runCommand(): String? =
         try {
             ProcessBuilder(*split(" ").toTypedArray())
@@ -26,6 +26,7 @@ android {
                 .inputStream
                 .bufferedReader()
                 .readText()
+                .trim()
         } catch (e: Exception) {
             null
         }
@@ -53,7 +54,7 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
 
-            val shortCommitHash = "git rev-parse --short HEAD".runCommand()?.trim() ?: "dev"
+            val shortCommitHash = "git rev-parse --short HEAD".runCommand() ?: "dev"
             versionNameSuffix = "-Beta-$shortCommitHash"
         }
     }
@@ -75,25 +76,6 @@ android {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
 
-    packaging {
-        resources {
-            excludes += setOf(
-                "kotlin/**",
-                "kotlin-tooling-metadata.json",
-                "assets/dexopt/**",
-                "assets/dexopt/baseline.prof",
-                "assets/dexopt/baseline.profm",
-                "META-INF/LICENSE",
-                "META-INF/DEPENDENCIES",
-                "META-INF/*.kotlin_module",
-                "**/DebugProbesKt.bin",
-                "okhttp3/internal/publicsuffix/NOTICE",
-                "okhttp3/**",
-                "/META-INF/{AL2.0,LGPL2.1}"
-            )
-        }
-    }
-
     applicationVariants.all {
         val variant = this
         variant.outputs.all {
@@ -101,6 +83,29 @@ android {
             val buildTypeName = variant.buildType.name.replaceFirstChar { it.uppercase() }
             val version = variant.versionName
             output.outputFileName = "ktimazstudio_${buildTypeName}_v${version}.apk"
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        if (variant.buildType == "release") {
+            variant.packaging.resources.excludes.addAll(
+                listOf(
+                    "kotlin/**",
+                    "kotlin-tooling-metadata.json",
+                    "assets/dexopt/**",
+                    "assets/dexopt/baseline.prof",
+                    "assets/dexopt/baseline.profm",
+                    "META-INF/LICENSE",
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/*.kotlin_module",
+                    "**/DebugProbesKt.bin",
+                    "okhttp3/internal/publicsuffix/NOTICE",
+                    "okhttp3/**",
+                    "/META-INF/{AL2.0,LGPL2.1}"
+                )
+            )
         }
     }
 }
@@ -119,6 +124,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
+
+    // Optional
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.startup:startup-runtime:1.1.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
