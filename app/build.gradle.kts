@@ -55,7 +55,7 @@ android {
             signingConfig = signingConfigs.getByName("release")
 
             val shortCommitHash = "git rev-parse --short HEAD".runCommand() ?: "dev"
-            versionNameSuffix = "-Beta-$shortCommitHash"
+            versionNameSuffix = "-alpha-$shortCommitHash"
         }
     }
 
@@ -95,8 +95,6 @@ androidComponents {
                     "kotlin/**",
                     "kotlin-tooling-metadata.json",
                     "assets/dexopt/**",
-                    "assets/dexopt/baseline.prof",
-                    "assets/dexopt/baseline.profm",
                     "META-INF/LICENSE",
                     "META-INF/DEPENDENCIES",
                     "META-INF/*.kotlin_module",
@@ -126,11 +124,11 @@ dependencies {
     implementation("androidx.compose.animation:animation-core")
 
     // Optional
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("androidx.startup:startup-runtime:1.1.1")
+   // implementation("androidx.navigation:navigation-compose:2.7.7")
+   // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+   // implementation("androidx.datastore:datastore-preferences:1.1.1")
+   // implementation("androidx.work:work-runtime-ktx:2.9.0")
+   // implementation("androidx.startup:startup-runtime:1.1.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
