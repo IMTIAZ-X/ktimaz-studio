@@ -12,12 +12,11 @@ android {
         minSdk = 25
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0" // Default versionName
+        versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
 
-    // Git command to get short commit hash
     fun String.runCommand(): String? =
         try {
             ProcessBuilder(*split(" ").toTypedArray())
@@ -58,23 +57,6 @@ android {
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    kotlin {
-        jvmToolchain(21)
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
-
     packaging {
         resources {
             excludes += setOf(
@@ -94,12 +76,28 @@ android {
         }
     }
 
-    applicationVariants.all {
-        val variant = this
-        variant.outputs.all {
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    kotlin {
+        jvmToolchain(21)
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.15"
+    }
+
+    applicationVariants.configureEach {
+        outputs.configureEach {
             val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            val buildTypeName = variant.buildType.name.replaceFirstChar { it.uppercase() }
-            val version = variant.versionName
+            val buildTypeName = name
+            val version = this@configureEach.versionName
             output.outputFileName = "ktimazstudio_${buildTypeName}_v${version}.apk"
         }
     }
@@ -119,6 +117,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
+
+    // Optional Extensions
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.startup:startup-runtime:1.1.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
