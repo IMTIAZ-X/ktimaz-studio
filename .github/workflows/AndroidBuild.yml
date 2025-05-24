@@ -1,15 +1,14 @@
-name: Android CI & Release
+name: ANDROID CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
   build:
-    name: Build, Analyze & Release APK/AAB/APKS
+    name: Build APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -40,24 +39,26 @@ jobs:
           echo "android.useAndroidX=true" >> gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-      - name: Enable Gradle Build Scan and Project Reports
-        run: |
-          echo "org.gradle.caching=true" >> gradle.properties
-          echo "org.gradle.parallel=true" >> gradle.properties
-          echo "org.gradle.configureondemand=true" >> gradle.properties
-          echo "org.gradle.daemon=true" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8" >> gradle.properties
-          echo "gradle.enterprise.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
-          echo "gradle.enterprise.buildScan.termsOfServiceAgree=YES" >> gradle.properties
-
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Run Lint
+      - name: Run Lint (Debug and Release)
         run: ./gradlew lintReportDebug lintReportRelease
+
+      - name: Upload Lint Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LintReports
+          path: app/build/reports/lint-results-*.html
 
       - name: Run Unit Tests
         run: ./gradlew testDebugUnitTest
+
+      - name: Enable Gradle Build Scan
+        run: |
+          echo "gradle.enterprise.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
+          echo "gradle.enterprise.buildScan.termsOfServiceAgree=YES" >> gradle.properties
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
@@ -65,46 +66,39 @@ jobs:
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: App-Debug
+          name: App-Debug.apk
           path: app/build/outputs/apk/debug/**/*.apk
 
-      - name: Build Release APK & Metadata
-        env:
-          RELEASE_STORE_FILE: ${{ secrets.RELEASE_STORE_FILE }}
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew bundleRelease assembleRelease
-
-      - name: Build APKS using bundletool
-        run: |
-          wget https://github.com/google/bundletool/releases/download/1.15.6/bundletool-all-1.15.6.jar -O bundletool.jar
-          java -jar bundletool.jar build-apks \
-            --bundle=app/build/outputs/bundle/release/app-release.aab \
-            --output=app-release.apks \
-            --ks=${{ secrets.RELEASE_STORE_FILE }} \
-            --ks-pass=pass:${{ secrets.RELEASE_STORE_PASSWORD }} \
-            --ks-key-alias=${{ secrets.RELEASE_KEY_ALIAS }} \
-            --key-pass=pass:${{ secrets.RELEASE_KEY_PASSWORD }} \
-            --mode=universal
-
-      - name: Upload AAB, APKS, APK & Metadata
-        uses: actions/upload-artifact@v4
-        with:
-          name: App-Release
-          path: |
-            app/build/outputs/apk/release/**/*.apk
-            app/build/outputs/bundle/release/*.aab
-            app-release.apks
-            app/build/outputs/apk/release/output-metadata.json
-            app/build/outputs/mapping/release/mapping.txt
-
-      - name: Obfuscate, Encrypt and Optimize (Proguard/R8)
+      - name: Obfuscate, Encrypt and Optimize
         run: |
           echo "Ensure your proguard-rules.pro includes:"
           echo "-keep class !**.BuildConfig { *; }"
           echo "-printmapping mapping.txt"
           echo "-optimizations code/simplification/arithmetic"
+          echo "Build will automatically use R8 via Android Gradle Plugin"
+
+      - name: Build Release APK
+        env:
+          RELEASE_STORE_FILE: ${{ secrets.RELEASE_STORE_FILE }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Upload Release APK and Metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: App-Release.apk
+          path: |
+            app/build/outputs/apk/release/**/*.apk
+            app/build/outputs/apk/release/output-metadata.json
+
+      - name: Upload ProGuard Mapping (if exists)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProGuardMapping
+          path: app/build/outputs/mapping/release/mapping.txt
 
       - name: Upload All Project Files (Backup)
         if: always()
@@ -112,6 +106,6 @@ jobs:
         with:
           name: Full-Project-Backup
           path: |
-            .
+            ./
             !**/build/**
             !**/.gradle/**
