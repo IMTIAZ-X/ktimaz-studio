@@ -17,6 +17,7 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    // Helper function to get git commit hash
     fun String.runCommand(): String? =
         try {
             ProcessBuilder(*split(" ").toTypedArray())
@@ -25,6 +26,7 @@ android {
                 .inputStream
                 .bufferedReader()
                 .readText()
+                .trim()
         } catch (e: Exception) {
             null
         }
@@ -52,7 +54,7 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
 
-            val shortCommitHash = "git rev-parse --short HEAD".runCommand()?.trim() ?: "dev"
+            val shortCommitHash = "git rev-parse --short HEAD".runCommand() ?: "dev"
             versionNameSuffix = "-Beta-$shortCommitHash"
         }
     }
@@ -63,8 +65,6 @@ android {
                 "kotlin/**",
                 "kotlin-tooling-metadata.json",
                 "assets/dexopt/**",
-                "assets/dexopt/baseline.prof",
-                "assets/dexopt/baseline.profm",
                 "META-INF/LICENSE",
                 "META-INF/DEPENDENCIES",
                 "META-INF/*.kotlin_module",
@@ -92,16 +92,17 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
-
-    applicationVariants.configureEach {
-    outputs.configureEach {
-        val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-        val buildTypeName = this@configureEach.buildType.name.capitalize()
-        val version = this@configureEach.mergedFlavor.versionName
-        outputImpl.outputFileName = "ktimazstudio_${buildTypeName}_v${version}.apk"
-    }
 }
 
+// Use androidComponents instead of deprecated applicationVariants
+androidComponents {
+    onVariants { variant ->
+        val buildType = variant.buildType
+        val versionName = variant.outputs.single().versionName.orNull ?: "1.0"
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("ktimazstudio_${buildType}_v$versionName.apk")
+        }
+    }
 }
 
 dependencies {
