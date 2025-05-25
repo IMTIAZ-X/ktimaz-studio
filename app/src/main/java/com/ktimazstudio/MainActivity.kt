@@ -28,12 +28,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll // Required for TopAppBar scroll behavior
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign // <<< ADDED IMPORT FOR TextAlign
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
@@ -43,7 +44,7 @@ import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.FileReader
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) // For TopAppBar scroll behavior
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +59,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ktimaz { 
+            ktimaz {
                 val context = LocalContext.current
                 val snackbarHostState = remember { SnackbarHostState() }
 
@@ -75,20 +76,25 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                val futuristicGradient = Brush.verticalGradient(
+                // Gradient using primary color and a darker variant or primaryContainer
+                val primaryGradient = Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.95f), // Start with primary
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), // Transition to container
+                        MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp) // End with a subtle surface color
                     )
                 )
+
+                // For TopAppBar scroll behavior
+                val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(futuristicGradient)
+                        .background(primaryGradient)
                 ) {
                     Scaffold(
+                        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), // Apply scroll behavior
                         topBar = {
                             TopAppBar(
                                 title = {
@@ -96,7 +102,7 @@ class MainActivity : ComponentActivity() {
                                         text = stringResource(id = R.string.app_name),
                                         fontSize = 26.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        color = MaterialTheme.colorScheme.onPrimary // Good contrast on primary
                                     )
                                 },
                                 actions = {
@@ -106,16 +112,20 @@ class MainActivity : ComponentActivity() {
                                         Icon(
                                             imageVector = Icons.Filled.Settings,
                                             contentDescription = "Settings",
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                            tint = MaterialTheme.colorScheme.onPrimary // Good contrast on primary
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                                modifier = Modifier.statusBarsPadding()
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color.Transparent, // Keep AppBar transparent
+                                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.9f) // Subtle color when scrolled
+                                ),
+                                modifier = Modifier.statusBarsPadding(),
+                                scrollBehavior = scrollBehavior // Assign scroll behavior
                             )
                         },
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                        containerColor = Color.Transparent
+                        containerColor = Color.Transparent // Scaffold is transparent
                     ) { paddingValues ->
                         AnimatedCardGrid(modifier = Modifier.padding(paddingValues)) { title ->
                             val intent = if (title == "System Config") {
@@ -161,7 +171,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
-    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Ensure this resource exists
     val haptic = LocalHapticFeedback.current
 
     LazyVerticalGrid(
@@ -173,39 +183,44 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
     ) {
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                delay(index * 120L + 150L)
+            LaunchedEffect(key1 = title) { // Use a stable key for LaunchedEffect if items can change
+                delay(index * 100L + 200L) // Adjusted delay for smoother stagger
                 itemVisible = true
             }
 
             AnimatedVisibility(
                 visible = itemVisible,
-                enter = fadeIn(animationSpec = tween(500, easing = LinearOutSlowInEasing)) +
+                enter = fadeIn(animationSpec = tween(durationMillis = 500, easing = LinearOutSlowInEasing)) +
                         slideInVertically(
                             initialOffsetY = { it / 2 },
-                            animationSpec = tween(700, easing = FastOutSlowInEasing)
+                            animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing)
+                        ) +
+                        scaleIn(
+                            initialScale = 0.8f,
+                            animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing)
                         ),
-                exit = fadeOut(animationSpec = tween(300)) +
-                       slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(400))
+                exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
+                       scaleOut(targetScale = 0.9f, animationSpec = tween(durationMillis = 300)) +
+                       slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(durationMillis = 400))
             ) {
-                val infiniteTransition = rememberInfiniteTransition(label = "card_pulse_$title")
+                val infiniteTransition = rememberInfiniteTransition(label = "card_pulse_effects_$title")
                 val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.97f,
+                    initialValue = 0.98f, // Subtle scale
                     targetValue = 1.0f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(1600, easing = EaseInOutSine),
+                        animation = tween(1800, easing = EaseInOutSine), // Slower, smoother pulse
                         repeatMode = RepeatMode.Reverse
                     ),
                     label = "card_scale_$title"
                 )
                 val cardAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.9f,
-                    targetValue = 0.75f,
+                    initialValue = 0.85f, // Alpha range for pulse
+                    targetValue = 0.70f,
                      animationSpec = infiniteRepeatable(
-                        animation = tween(1600, easing = EaseInOutSine),
+                        animation = tween(1800, easing = EaseInOutSine),
                         repeatMode = RepeatMode.Reverse
                     ),
-                    label = "card_alpha_$title"
+                    label = "card_alpha_pulse_$title"
                 )
 
                 Card(
@@ -217,10 +232,13 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardAlpha)
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 10.dp, pressedElevation = 4.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp, pressedElevation = 2.dp), // Press sinks in
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(6.dp) else Modifier)
+                        .then(
+                            // Conditional blur with slightly reduced radius for performance
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(4.dp) else Modifier
+                        )
                         .fillMaxWidth()
                         .height(180.dp)
                 ) {
@@ -242,7 +260,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center // Line 251
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
