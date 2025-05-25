@@ -64,12 +64,15 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_22
-        targetCompatibility = JavaVersion.VERSION_22
+        sourceCompatibility = JavaVersion.VERSION_24
+        targetCompatibility = JavaVersion.VERSION_24
     }
 
     kotlin {
-        jvmToolchain(22)
+        jvmToolchain(24)
+    }
+    kotlinOptions {
+        jvmTarget = '24' // Or '1.8', '11'
     }
 
     buildFeatures {
