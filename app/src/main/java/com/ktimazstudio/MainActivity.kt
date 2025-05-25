@@ -14,7 +14,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,16 +23,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur // <<< Import for blur
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType // <<< Import for Haptics
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback // <<< Import for Haptics
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign // <<< ADDED IMPORT FOR TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
@@ -48,8 +48,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // WindowCompat.setDecorFitsSystemWindows(window, false) // Optional: For edge-to-edge
-
         if (detectVpn()) {
             Toast.makeText(this, "VPN detected. Closing app for security...", Toast.LENGTH_LONG).show()
             lifecycleScope.launch {
@@ -60,7 +58,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ktimaz { // Your app's theme
+            ktimaz { 
                 val context = LocalContext.current
                 val snackbarHostState = remember { SnackbarHostState() }
 
@@ -77,7 +75,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Define the gradient using theme colors
                 val futuristicGradient = Brush.verticalGradient(
                     colors = listOf(
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
@@ -89,42 +86,41 @@ class MainActivity : ComponentActivity() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(futuristicGradient) // Apply the theme-based gradient
+                        .background(futuristicGradient)
                 ) {
                     Scaffold(
                         topBar = {
                             TopAppBar(
                                 title = {
                                     Text(
-                                        text = stringResource(id = R.string.app_name), // Ensure R.string.app_name exists
+                                        text = stringResource(id = R.string.app_name),
                                         fontSize = 26.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer // Color that contrasts with gradient
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 },
                                 actions = {
                                     IconButton(onClick = {
-                                        context.startActivity(Intent(context, SettingsActivity::class.java)) // Ensure SettingsActivity exists
+                                        context.startActivity(Intent(context, SettingsActivity::class.java))
                                     }) {
                                         Icon(
                                             imageVector = Icons.Filled.Settings,
                                             contentDescription = "Settings",
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer // Color that contrasts
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent), // Keep TopAppBar transparent
+                                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                                 modifier = Modifier.statusBarsPadding()
                             )
                         },
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                        containerColor = Color.Transparent // Scaffold itself is transparent to show Box background
+                        containerColor = Color.Transparent
                     ) { paddingValues ->
                         AnimatedCardGrid(modifier = Modifier.padding(paddingValues)) { title ->
-                            val intent = if (title == "System Config") { // Ensure this title matches your settings card
+                            val intent = if (title == "System Config") {
                                 Intent(context, SettingsActivity::class.java)
                             } else {
-                                // Ensure ComingActivity exists
                                 Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title)
                             }
                             context.startActivity(intent)
@@ -165,21 +161,20 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
-    // Ensure R.mipmap.ic_launcher_round exists
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
     val haptic = LocalHapticFeedback.current
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 160.dp), // Increased minSize for larger touch targets
+        columns = GridCells.Adaptive(minSize = 160.dp),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp), // Slightly more spacing
+        verticalArrangement = Arrangement.spacedBy(22.dp),
         horizontalArrangement = Arrangement.spacedBy(22.dp),
         modifier = modifier.fillMaxSize()
     ) {
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
-                delay(index * 120L + 150L) // Slightly adjusted stagger and initial delay
+                delay(index * 120L + 150L)
                 itemVisible = true
             }
 
@@ -187,18 +182,18 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                 visible = itemVisible,
                 enter = fadeIn(animationSpec = tween(500, easing = LinearOutSlowInEasing)) +
                         slideInVertically(
-                            initialOffsetY = { it / 2 }, // Slide in from further
-                            animationSpec = tween(700, easing = FastOutSlowInEasing) // Using FastOutSlowInEasing
+                            initialOffsetY = { it / 2 },
+                            animationSpec = tween(700, easing = FastOutSlowInEasing)
                         ),
                 exit = fadeOut(animationSpec = tween(300)) +
                        slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(400))
             ) {
                 val infiniteTransition = rememberInfiniteTransition(label = "card_pulse_$title")
                 val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.97f, // More subtle breathing
+                    initialValue = 0.97f,
                     targetValue = 1.0f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(1600, easing = EaseInOutSine), // Slower, smoother easing
+                        animation = tween(1600, easing = EaseInOutSine),
                         repeatMode = RepeatMode.Reverse
                     ),
                     label = "card_scale_$title"
@@ -213,22 +208,21 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                     label = "card_alpha_$title"
                 )
 
-
                 Card(
                     onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Tactile feedback
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onCardClick(title)
                     },
-                    shape = RoundedCornerShape(28.dp), // Even more rounded for a softer, futuristic look
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardAlpha) // Use theme color with animated alpha
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardAlpha)
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 10.dp, pressedElevation = 4.dp), // Invert elevation for press
+                    elevation = CardDefaults.cardElevation(defaultElevation = 10.dp, pressedElevation = 4.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(6.dp) else Modifier) // Apply blur conditionally
+                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(6.dp) else Modifier)
                         .fillMaxWidth()
-                        .height(180.dp) // Slightly taller
+                        .height(180.dp)
                 ) {
                     Column(
                         Modifier
@@ -240,15 +234,15 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         Image(
                             painter = icons[index % icons.size],
                             contentDescription = title,
-                            modifier = Modifier.size(68.dp) // Larger icon
+                            modifier = Modifier.size(68.dp)
                         )
-                        Spacer(Modifier.height(14.dp)) // More space
+                        Spacer(Modifier.height(14.dp))
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleSmall, // Changed to titleSmall for potentially longer names
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, // Use theme color
-                            textAlign = TextAlign.Center // Center text for better balance
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center // Line 251
                         )
                     }
                 }
