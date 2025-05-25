@@ -2,14 +2,15 @@ name: Android Release
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight UTC
-  workflow_dispatch:     # Manual trigger
+    - cron: '0 0 * * *'  # Daily at midnight UTC
+  workflow_dispatch:
 
 jobs:
-  secure-release:
+  build:
+    name: Build & Release
     runs-on: ubuntu-latest
     env:
-      VERSION_NAME: "1.0"  # Set your version name
+      VERSION_NAME: "1.0"
 
     steps:
       - name: Checkout Code
@@ -24,17 +25,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Configure Gradle Properties
+      - name: Configure Gradle
         run: |
           echo "android.useAndroidX=true" >> gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
           echo "org.gradle.jvmargs=-Xmx8g -Dfile.encoding=UTF-8 -XX:+UseParallelGC" >> gradle.properties
           echo "android.enableR8.fullMode=true" >> gradle.properties
 
-      - name: Grant execute permission for gradlew
+      - name: Grant Execute Permission
         run: chmod +x ./gradlew
 
-      - name: Build APKs
+      - name: Build Release APK
         env:
           RELEASE_STORE_FILE: ${{ secrets.RELEASE_STORE_FILE }}
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
@@ -42,7 +43,12 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Get Last Release Date
+      - name: Rename APK File
+        run: |
+          mkdir -p release-artifacts
+          cp app/build/outputs/apk/release/*.apk release-artifacts/Ktimaz_Studio_Release_v${{ env.VERSION_NAME }}.apk
+
+      - name: Check Last Release Date
         id: release_check
         run: |
           LAST=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.published_at // empty')
@@ -60,11 +66,11 @@ jobs:
         if: steps.release_check.outputs.ready == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          name: "Secure Release ${{ env.VERSION_NAME }}"
+          name: "KTIMAZ Studio v${{ env.VERSION_NAME }}"
           tag_name: "v${{ env.VERSION_NAME }}-${{ github.run_number }}"
-          files: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/release/output-metadata.json
-            app/build/outputs/mapping/release/mapping.txt
+          files: release-artifacts/*.apk
+          draft: false
+          prerelease: false
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
