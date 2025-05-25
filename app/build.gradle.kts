@@ -71,9 +71,6 @@ android {
     kotlin {
         jvmToolchain(24)
     }
-    kotlinOptions {
-        jvmTarget = '24' // Or '1.8', '11'
-    }
 
     buildFeatures {
         compose = true
