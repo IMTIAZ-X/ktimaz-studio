@@ -90,8 +90,8 @@ class MainActivity : ComponentActivity() {
 
                 Box(
                   //  modifier = Modifier
-                        .fillMaxSize()
-                        .background(primaryGradient)
+                     //   .fillMaxSize()
+                      //  .background(primaryGradient)
                 ) {
                     Scaffold(
                         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), // Apply scroll behavior
