@@ -79,9 +79,9 @@ class MainActivity : ComponentActivity() {
                 // Gradient using primary color and a darker variant or primaryContainer
                 val primaryGradient = Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.95f), // Start with primary
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), // Transition to container
-                        MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp) // End with a subtle surface color
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.55f), // Start with primary
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f), // Transition to container
+                        MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp) // End with a subtle surface color
                     )
                 )
 
@@ -89,9 +89,9 @@ class MainActivity : ComponentActivity() {
                 val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
                 Box(
-                  //  modifier = Modifier
-                     //   .fillMaxSize()
-                      //  .background(primaryGradient)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(primaryGradient)
                 ) {
                     Scaffold(
                         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), // Apply scroll behavior
