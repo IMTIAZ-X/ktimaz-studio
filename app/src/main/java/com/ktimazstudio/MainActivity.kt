@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
                 val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
                 Box(
-                    modifier = Modifier
+                  //  modifier = Modifier
                         .fillMaxSize()
                         .background(primaryGradient)
                 ) {
