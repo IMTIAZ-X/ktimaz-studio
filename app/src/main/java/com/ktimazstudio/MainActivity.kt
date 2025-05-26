@@ -13,16 +13,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke // For outlined card border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.LocalIndication // <<< ADDED IMPORT
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
-import androidx.compose.foundation.lazy.itemsIndexed // For SettingsScreenContent
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,8 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope // <<< ENSURED IMPORT for MainSettingsViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel // <<< ADDED IMPORT for viewModel delegate
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel // <<< ENSURED IMPORT for viewModel delegate
 import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -61,7 +61,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // Define Navigation Destinations
-sealed class Screen(val route: String, val label: String, val icon: ImageVector, val index: Int) { // Added index for transitions
+sealed class Screen(val route: String, val label: String, val icon: ImageVector, val index: Int) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard, 0)
     object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings, 1)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person, 2)
@@ -113,7 +113,7 @@ interface MainSettingsRepository {
 }
 
 class MainSharedPreferencesSettingsRepository(private val context: Context) : MainSettingsRepository {
-    private val prefsName = "main_app_core_settings_v2" // Incremented version for fresh state
+    private val prefsName = "main_app_core_settings_v2"
     private val sharedPreferences = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
     private val _settingsStateFlow = MutableStateFlow<Map<String, MainSettingValue>>(loadSettingsFromPrefs())
 
@@ -130,7 +130,7 @@ class MainSharedPreferencesSettingsRepository(private val context: Context) : Ma
     }
     override fun getSettingsFlow(): Flow<Map<String, MainSettingValue>> = _settingsStateFlow.asStateFlow()
     override suspend fun updateSetting(key: String, value: MainSettingValue) {
-        withContext(Dispatchers.IO) { // Ensure IO context for SharedPreferences
+        withContext(Dispatchers.IO) {
             sharedPreferences.edit().apply {
                 when (value) {
                     is MainSettingValue.Bool -> putBoolean(key, value.value)
@@ -140,7 +140,6 @@ class MainSharedPreferencesSettingsRepository(private val context: Context) : Ma
                 apply()
             }
         }
-        // Update StateFlow from the main thread or a context appropriate for StateFlow updates
         val newMap = _settingsStateFlow.value.toMutableMap()
         newMap[key] = value
         _settingsStateFlow.value = newMap.toMap()
@@ -154,7 +153,7 @@ class MainSettingsViewModel(private val repository: MainSettingsRepository) : Vi
     val settingDefinitions: List<MainSettingModel> = createMainSettingsDefinitions()
 
     init {
-        viewModelScope.launch { // viewModelScope is now resolved
+        viewModelScope.launch {
             repository.getSettingsFlow().collect { persistedValues ->
                 _uiState.update { it.copy(settingsValues = persistedValues, isLoading = false) }
             }
@@ -229,23 +228,24 @@ class MainActivity : ComponentActivity() {
                         AnimatedContent(
                             targetState = selectedDestination,
                             transitionSpec = {
-                                val slideDirection = if (targetState.index > initialState.index) { // Using index instead of ordinal
+                                // Use AnimatedContentScope.SlideDirection
+                                val direction = if (targetState.index > initialState.index) {
                                     AnimatedContentScope.SlideDirection.Left
                                 } else {
                                     AnimatedContentScope.SlideDirection.Right
                                 }
-                                slideIntoContainer(towards = slideDirection, animationSpec = tween(450, easing = FastOutSlowInEasing)) + fadeIn(animationSpec = tween(400)) togetherWith
-                                slideOutOfContainer(towards = slideDirection, animationSpec = tween(450, easing = FastOutSlowInEasing)) + fadeOut(animationSpec = tween(400)) using // Correctly applying 'using'
+                                slideIntoContainer(towards = direction, animationSpec = tween(450, easing = FastOutSlowInEasing)) + fadeIn(animationSpec = tween(400)) togetherWith
+                                slideOutOfContainer(towards = direction, animationSpec = tween(450, easing = FastOutSlowInEasing)) + fadeOut(animationSpec = tween(400)) using
                                 SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> tween(450, easing = FastOutSlowInEasing) })
                             }, label = "main_content_transition"
-                        ) { targetScreen -> // Renamed for clarity
+                        ) { targetScreen ->
                             Box(modifier = Modifier.padding(paddingValues)) {
                                 when (targetScreen) {
                                     Screen.Dashboard -> AnimatedCardGrid { title ->
                                         if (title == "System Config") context.startActivity(Intent(context, SettingsActivity::class.java))
                                         else context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
                                     }
-                                    Screen.AppSettings -> SettingsScreenWrapper()
+                                    Screen.AppSettings -> SettingsScreenWrapper() // viewModel() will be resolved here
                                     Screen.Profile -> ProfilePlaceholderScreen()
                                 }
                             }
@@ -297,7 +297,7 @@ fun AppNavigationRail(
         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
     ) {
         Spacer(Modifier.height(56.dp))
-        mainScreenDestinations.forEach { screen -> // Use the defined list
+        mainScreenDestinations.forEach { screen ->
             val isSelected = selectedDestination == screen
             val iconScale by animateFloatAsState(targetValue = if (isSelected) 1.15f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy), label = "nav_icon_scale_${screen.route}")
             NavigationRailItem(
@@ -323,8 +323,7 @@ fun AppNavigationRail(
 fun SettingsScreenWrapper(modifier: Modifier = Modifier) {
     val context = LocalContext.current.applicationContext
     val repository: MainSettingsRepository = remember { MainSharedPreferencesSettingsRepository(context) }
-    // viewModel() delegate from androidx.lifecycle.viewmodel.compose
-    val settingsViewModel: MainSettingsViewModel = viewModel { MainSettingsViewModel(repository) } // viewModel() is now resolved
+    val settingsViewModel: MainSettingsViewModel = viewModel { MainSettingsViewModel(repository) } // <<< Correct usage of viewModel
     val uiState by settingsViewModel.uiState.collectAsState()
 
     Column(modifier = modifier.fillMaxSize().padding(top = 0.dp)) {
@@ -341,7 +340,7 @@ fun SettingsScreenWrapper(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun MainSettingsScreenContent( /* ... same as before ... */
+fun MainSettingsScreenContent(
     modifier: Modifier = Modifier,
     settingDefinitions: List<MainSettingModel>,
     settingsValues: Map<String, MainSettingValue>,
@@ -388,7 +387,7 @@ fun MainSettingsScreenContent( /* ... same as before ... */
 }
 
 @Composable
-fun MainSettingsGroupHeader(title: String) { /* ... same as before ... */
+fun MainSettingsGroupHeader(title: String) {
     Text(
         text = title.uppercase(),
         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp),
@@ -398,7 +397,7 @@ fun MainSettingsGroupHeader(title: String) { /* ... same as before ... */
 }
 
 @Composable
-fun MainSettingItem( /* ... same as before, uses LocalIndication ... */
+fun MainSettingItem(
     settingDefinition: MainSettingModel,
     settingsValues: Map<String, MainSettingValue>,
     isEffectivelyEnabled: Boolean,
@@ -431,7 +430,7 @@ fun MainSettingItem( /* ... same as before, uses LocalIndication ... */
                     }
                 },
                 interactionSource = remember { MutableInteractionSource() },
-                indication = LocalIndication.current // LocalIndication is now resolved
+                indication = LocalIndication.current
             ).padding(horizontal = 20.dp, vertical = 18.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -524,12 +523,12 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                     colors = CardDefaults.outlinedCardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = animatedAlpha)
                     ),
-                    border = BorderStroke( // Corrected usage for border
+                    border = BorderStroke(
                         1.dp,
                         Brush.horizontalGradient(
                             colors = listOf(
                                 MaterialTheme.colorScheme.primary.copy(alpha=0.5f),
-                                MaterialTheme.colorScheme.secondary.copy(alpha=0.4f) // Slightly different alpha
+                                MaterialTheme.colorScheme.secondary.copy(alpha=0.4f)
                             )
                         )
                     ),
