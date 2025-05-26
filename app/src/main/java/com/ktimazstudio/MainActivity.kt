@@ -18,8 +18,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dashboard // Icon for Home/Dashboard
-import androidx.compose.material.icons.filled.Person // Icon for Profile
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector // <<< ADDED IMPORT
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -43,13 +44,12 @@ import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.BufferedReader
-import java.io.FileReader
+// Removed BufferedReader and FileReader as they are no longer used for VPN detection
 
 // Define Navigation Destinations
-sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+sealed class Screen(val route: String, val label: String, val icon: ImageVector) { // Line 50, ImageVector is now resolved
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
-    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings) // Renamed to avoid conflict
+    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
@@ -58,10 +58,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (detectVpn()) {
-            Toast.makeText(this, "VPN detected. Closing app for security...", Toast.LENGTH_LONG).show()
+        // Pass 'this' (Context) to detectVpn
+        if (detectVpn(this)) {
+            Toast.makeText(this, "VPN connection detected. Exiting application.", Toast.LENGTH_LONG).show()
             lifecycleScope.launch {
-                delay(5000)
+                delay(4000) // Slightly shorter delay
                 finishAffinity()
             }
             return
@@ -90,13 +91,13 @@ class MainActivity : ComponentActivity() {
                     colors = listOf(
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.90f),
                         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
-                        MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.6f) // Softer end
+                        MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.6f)
                     )
                 )
 
                 val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
-                Row( // Root is now a Row for NavigationRail + Content
+                Row(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(primaryGradient)
@@ -108,20 +109,18 @@ class MainActivity : ComponentActivity() {
 
                     Scaffold(
                         modifier = Modifier
-                            .weight(1f) // Content takes remaining space
+                            .weight(1f)
                             .nestedScroll(scrollBehavior.nestedScrollConnection),
                         topBar = {
-                            CenterAlignedTopAppBar( // Changed to CenterAlignedTopAppBar
+                            CenterAlignedTopAppBar(
                                 title = {
                                     Text(
                                         text = stringResource(id = R.string.app_name),
-                                        fontSize = 22.sp, // Adjusted size
-                                        fontWeight = FontWeight.Medium, // Adjusted weight
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 },
-                                // Actions can be moved to NavRail or kept if specific to a screen
-                                // For simplicity, removing the top app bar settings icon as it's in NavRail now
                                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                                     containerColor = Color.Transparent,
                                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
@@ -133,7 +132,7 @@ class MainActivity : ComponentActivity() {
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                         containerColor = Color.Transparent
                     ) { paddingValues ->
-                        AnimatedContent( // Animate content changes between destinations
+                        AnimatedContent(
                             targetState = selectedDestination,
                             transitionSpec = {
                                 fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
@@ -145,15 +144,14 @@ class MainActivity : ComponentActivity() {
                             Box(modifier = Modifier.padding(paddingValues)) {
                                 when (targetDestination) {
                                     Screen.Dashboard -> AnimatedCardGrid { title ->
-                                        // If a card named "System Config" launches settings activity
                                         if (title == "System Config") {
                                             context.startActivity(Intent(context, SettingsActivity::class.java))
                                         } else {
                                             context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
                                         }
                                     }
-                                    Screen.AppSettings -> SettingsPlaceholderScreen() // Placeholder
-                                    Screen.Profile -> ProfilePlaceholderScreen()       // Placeholder
+                                    Screen.AppSettings -> SettingsPlaceholderScreen()
+                                    Screen.Profile -> ProfilePlaceholderScreen()
                                 }
                             }
                         }
@@ -181,12 +179,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun detectVpn(): Boolean = try {
-        BufferedReader(FileReader("/proc/net/tcp")).useLines { lines ->
-            lines.any { it.contains("0100007F:") || it.contains("00000000:10E1") }
+    // Updated VPN Detection using NetworkCapabilities
+    private fun detectVpn(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        // Check all networks, not just the active one, as some VPNs might create additional virtual networks
+        connectivityManager.allNetworks.forEach { network ->
+            val capabilities = connectivityManager.getNetworkCapabilities(network)
+            if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                // Check if this VPN network is actually providing internet connectivity
+                // This helps differentiate from VPNs that might be active but not routing internet traffic
+                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                    return true // Actively connected and validated VPN providing internet
+                }
+                // If you want to detect any active VPN regardless of its internet routing status:
+                // return true
+            }
         }
-    } catch (_: Exception) {
-        false
+        return false
     }
 }
 
@@ -198,21 +208,20 @@ fun AppNavigationRail(
 ) {
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
     NavigationRail(
-        modifier = modifier.statusBarsPadding().fillMaxHeight(), // Fill height and respect status bar
-        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.9f), // Semi-transparent rail
+        modifier = modifier.statusBarsPadding().fillMaxHeight(),
+        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.9f),
         header = {
-            // Optional: Add a header like an app icon or logo
-            // Icon(painterResource(R.mipmap.ic_launcher_round), contentDescription = "App Logo", modifier = Modifier.padding(vertical = 20.dp))
+            // Optional header
         }
     ) {
-        Spacer(Modifier.weight(0.1f)) // Push items down a bit
+        Spacer(Modifier.weight(0.1f))
         destinations.forEach { screen ->
             NavigationRailItem(
                 selected = selectedDestination == screen,
                 onClick = { onDestinationSelected(screen) },
                 icon = { Icon(screen.icon, contentDescription = screen.label) },
                 label = { Text(screen.label) },
-                alwaysShowLabel = false, // Show label only when selected or if space permits
+                alwaysShowLabel = false,
                 colors = NavigationRailItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -222,7 +231,7 @@ fun AppNavigationRail(
                 )
             )
         }
-        Spacer(Modifier.weight(1f)) // Push items towards center/top
+        Spacer(Modifier.weight(1f))
     }
 }
 
@@ -230,8 +239,6 @@ fun AppNavigationRail(
 fun SettingsPlaceholderScreen(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
         Text("Settings Screen Content Goes Here", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
-        // In a real app, you'd embed your Settings composables here or navigate.
-        // For example, you could call your SettingsScreenContent directly if its ViewModel is available.
     }
 }
 
@@ -251,7 +258,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
 
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 160.dp),
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp), // Adjusted top padding
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
         horizontalArrangement = Arrangement.spacedBy(22.dp),
         modifier = modifier.fillMaxSize()
@@ -259,7 +266,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(key1 = title) {
-                delay(index * 80L + 150L) // Slightly faster stagger
+                delay(index * 80L + 150L)
                 itemVisible = true
             }
 
@@ -278,16 +285,16 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
             ) {
                 val infiniteTransition = rememberInfiniteTransition(label = "card_effects_$title")
                 val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.99f, // Even more subtle scale for breathing
+                    initialValue = 0.99f,
                     targetValue = 1.0f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(2200, easing = EaseInOutCubic), // Slower, smoother
+                        animation = tween(2200, easing = EaseInOutCubic),
                         repeatMode = RepeatMode.Reverse
                     ),
                     label = "card_scale_$title"
                 )
                  val animatedAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.80f, // Reduced alpha for outlined cards with blur
+                    initialValue = 0.80f,
                     targetValue = 0.65f,
                      animationSpec = infiniteRepeatable(
                         animation = tween(2200, easing = EaseInOutCubic),
@@ -302,14 +309,14 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         onCardClick(title)
                     },
                     shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.outlinedCardColors( // OUTLINED Card
-                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = animatedAlpha) // Subtle pulsing alpha
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = animatedAlpha)
                     ),
-                    border = CardDefaults.outlinedCardBorder(enabled = true), // Standard outlined border
-                    elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp), // Outlined cards usually have 0dp elevation
+                    border = CardDefaults.outlinedCardBorder(enabled = true),
+                    elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(3.dp) else Modifier) // Reduced blur
+                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(3.dp) else Modifier)
                         .fillMaxWidth()
                         .height(180.dp)
                 ) {
@@ -323,14 +330,14 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         Image(
                             painter = icons[index % icons.size],
                             contentDescription = title,
-                            modifier = Modifier.size(64.dp) // Kept icon size
+                            modifier = Modifier.size(64.dp)
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold, // Changed from Bold
-                            color = MaterialTheme.colorScheme.onSurface, // Use onSurface for outlined card content
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center
                         )
                     }
