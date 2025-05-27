@@ -128,26 +128,6 @@ dependencies {
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
 
-    
-    // Core Compose UI
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-core")
-    implementation("androidx.compose.material:material-icons-extended") // For more icons
-
-    // Compose Animation (CRUCIAL for SlideDirection, AnimatedContent, etc.)
-    implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.animation:animation-core") // Often included with :animation
-
-    // Activity & Lifecycle for Compose (CRUCIAL for viewModel() and lifecycleScope)
-    implementation("androidx.activity:activity-compose:1.9.0") // Or latest
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0") // Or latest
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0") // CRUCIAL for viewModel()
-
- 
-
     // Optional
    // implementation("androidx.navigation:navigation-compose:2.7.7")
    // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
