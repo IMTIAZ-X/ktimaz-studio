@@ -19,8 +19,8 @@ import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Menu // Added for expand/collapse
-import androidx.compose.material.icons.filled.MenuOpen // Added for expand/collapse
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings // Corrected Icon import name
 import androidx.compose.material3.*
@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 // Define Navigation Destinations
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
-    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings) // Changed from AppSettings to Settings Icon
+    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
@@ -99,6 +99,7 @@ class MainActivity : ComponentActivity() {
 
                 val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
                 val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
+                val scrolledAppBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
 
                 Row(
                     modifier = Modifier
@@ -117,6 +118,9 @@ class MainActivity : ComponentActivity() {
                             .weight(1f)
                             .nestedScroll(scrollBehavior.nestedScrollConnection),
                         topBar = {
+                            // Determine scroll state based on content offset
+                            val isScrolled = scrollBehavior.state.contentOffset > 0.1f
+
                             CenterAlignedTopAppBar(
                                 title = {
                                     Text(
@@ -127,27 +131,28 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                    containerColor = Color.Transparent, // Made transparent to show gradient
-                                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
+                                    containerColor = Color.Transparent, // Transparent when not scrolled (gradient shows)
+                                    scrolledContainerColor = scrolledAppBarColor // Color when scrolled (matches explicit background)
                                 ),
                                 modifier = Modifier
                                     .statusBarsPadding()
-                                    .graphicsLayer { // Apply shadow elevation and clipping for rounded corners
-                                        shadowElevation = if (scrollBehavior.state.contentOffset > -1f) 4.dp.toPx() else 0f
+                                    .graphicsLayer {
+                                        shadowElevation = if (isScrolled) 4.dp.toPx() else 0f
                                         shape = topAppBarRoundedShape
                                         clip = true
                                     }
-                                    .background( // Background applied after clipping for rounded shape to take effect
-                                        MaterialTheme.colorScheme.surfaceColorAtElevation(
-                                            if (scrollBehavior.state.contentOffset > -1f) 3.dp else 0.dp
-                                        ).copy(alpha = if (scrollBehavior.state.contentOffset > -1f) 0.95f else 0.0f)
+                                    .background( // This background is for the clipped shape
+                                        color = if (isScrolled) {
+                                            scrolledAppBarColor // Visible color when scrolled
+                                        } else {
+                                            Color.Transparent // Fully transparent when not scrolled
+                                        }
                                     ),
-
                                 scrollBehavior = scrollBehavior
                             )
                         },
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                        containerColor = Color.Transparent
+                        containerColor = Color.Transparent // Scaffold itself is transparent
                     ) { paddingValues ->
                         AnimatedContent(
                             targetState = selectedDestination,
@@ -221,7 +226,7 @@ fun AppNavigationRail(
 ) {
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
     val railWidth by animateDpAsState(
-        targetValue = if (isExpanded) 200.dp else 80.dp, // Wider when expanded
+        targetValue = if (isExpanded) 200.dp else 80.dp,
         animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "nav_rail_width_anim"
     )
@@ -230,8 +235,8 @@ fun AppNavigationRail(
         modifier = modifier
             .statusBarsPadding()
             .fillMaxHeight()
-            .width(railWidth) // Animated width
-            .padding(vertical = 8.dp), // Added some vertical padding
+            .width(railWidth)
+            .padding(vertical = 8.dp),
         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.9f),
         header = {
             IconButton(onClick = onMenuClick) {
@@ -241,10 +246,10 @@ fun AppNavigationRail(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Spacer(Modifier.height(20.dp)) // Space below header icon
+            Spacer(Modifier.height(20.dp))
         }
     ) {
-        Spacer(Modifier.weight(0.1f)) // Pushes items down a bit
+        Spacer(Modifier.weight(0.1f))
         destinations.forEach { screen ->
             val isSelected = selectedDestination == screen
             val iconScale by animateFloatAsState(
@@ -267,7 +272,6 @@ fun AppNavigationRail(
                     )
                 },
                 label = {
-                    // AnimatedVisibility for the label
                     AnimatedVisibility(
                         visible = isExpanded,
                         enter = fadeIn(animationSpec = tween(150, delayMillis = 100)) + expandHorizontally(animationSpec = tween(250, delayMillis = 50)),
@@ -276,19 +280,19 @@ fun AppNavigationRail(
                         Text(screen.label, maxLines = 1)
                     }
                 },
-                alwaysShowLabel = isExpanded, // Control label visibility directly
+                alwaysShowLabel = isExpanded,
                 colors = NavigationRailItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary, // Effective when alwaysShowLabel is true or expanded
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
                     indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant // Effective when alwaysShowLabel is true or expanded
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                modifier = Modifier.padding(vertical = 4.dp) // Added padding for better spacing
+                modifier = Modifier.padding(vertical = 4.dp)
             )
-            Spacer(Modifier.height(8.dp)) // Space between items
+            Spacer(Modifier.height(8.dp))
         }
-        Spacer(Modifier.weight(1f)) // Pushes items up
+        Spacer(Modifier.weight(1f))
     }
 }
 
@@ -311,7 +315,7 @@ fun ProfilePlaceholderScreen(modifier: Modifier = Modifier) {
 @Composable
 fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
-    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Ensure this resource exists
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
     val haptic = LocalHapticFeedback.current
 
     LazyVerticalGrid(
@@ -324,7 +328,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(key1 = title) {
-                delay(index * 80L + 150L) // Staggered animation
+                delay(index * 80L + 150L)
                 itemVisible = true
             }
 
@@ -370,11 +374,11 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                     colors = CardDefaults.outlinedCardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = animatedAlpha)
                     ),
-                    border = CardDefaults.outlinedCardBorder(enabled = true), // Consider theming this
-                    elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp), // Outlined cards typically have 0 elevation
+                    border = CardDefaults.outlinedCardBorder(enabled = true),
+                    elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(3.dp) else Modifier) // Conditional blur
+                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(3.dp) else Modifier)
                         .fillMaxWidth()
                         .height(180.dp)
                 ) {
@@ -386,7 +390,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            painter = icons[index % icons.size], // Use modulo for safety if lists differ
+                            painter = icons[index % icons.size],
                             contentDescription = title,
                             modifier = Modifier.size(64.dp)
                         )
