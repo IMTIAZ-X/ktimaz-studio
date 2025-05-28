@@ -163,14 +163,14 @@ fun MainApplicationUI() {
 
     LaunchedEffect(Unit) {
         val mainActivity = context as? MainActivity ?: return@LaunchedEffect
-        if (!mainActivity.isConnected(context)) {
+        if (!isConnected(context)) {
             val result = snackbarHostState.showSnackbar(
                 message = "No Internet Connection!",
                 actionLabel = "Wi-Fi Settings",
                 duration = SnackbarDuration.Indefinite
             )
             if (result == SnackbarResult.ActionPerformed) {
-                mainActivity.openWifiSettings(context)
+                openWifiSettings(context)
             }
         }
     }
