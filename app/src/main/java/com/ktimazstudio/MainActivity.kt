@@ -19,17 +19,20 @@ import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Menu // Added for expand/collapse
+import androidx.compose.material.icons.filled.MenuOpen // Added for expand/collapse
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Settings // Corrected Icon import name
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector // <<< ADDED IMPORT
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -44,12 +47,11 @@ import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-// Removed BufferedReader and FileReader as they are no longer used for VPN detection
 
 // Define Navigation Destinations
-sealed class Screen(val route: String, val label: String, val icon: ImageVector) { // Line 50, ImageVector is now resolved
+sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
-    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
+    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings) // Changed from AppSettings to Settings Icon
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
@@ -58,11 +60,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Pass 'this' (Context) to detectVpn
         if (detectVpn(this)) {
             Toast.makeText(this, "VPN connection detected. Exiting application.", Toast.LENGTH_LONG).show()
             lifecycleScope.launch {
-                delay(4000) // Slightly shorter delay
+                delay(4000)
                 finishAffinity()
             }
             return
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val snackbarHostState = remember { SnackbarHostState() }
                 var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
+                var isRailExpanded by remember { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
                     if (!isConnected(context)) {
@@ -96,6 +98,7 @@ class MainActivity : ComponentActivity() {
                 )
 
                 val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+                val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
 
                 Row(
                     modifier = Modifier
@@ -104,7 +107,9 @@ class MainActivity : ComponentActivity() {
                 ) {
                     AppNavigationRail(
                         selectedDestination = selectedDestination,
-                        onDestinationSelected = { selectedDestination = it }
+                        onDestinationSelected = { selectedDestination = it },
+                        isExpanded = isRailExpanded,
+                        onMenuClick = { isRailExpanded = !isRailExpanded }
                     )
 
                     Scaffold(
@@ -122,10 +127,22 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                    containerColor = Color.Transparent,
+                                    containerColor = Color.Transparent, // Made transparent to show gradient
                                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
                                 ),
-                                modifier = Modifier.statusBarsPadding(),
+                                modifier = Modifier
+                                    .statusBarsPadding()
+                                    .graphicsLayer { // Apply shadow elevation and clipping for rounded corners
+                                        shadowElevation = if (scrollBehavior.state.contentOffset > -1f) 4.dp.toPx() else 0f
+                                        shape = topAppBarRoundedShape
+                                        clip = true
+                                    }
+                                    .background( // Background applied after clipping for rounded shape to take effect
+                                        MaterialTheme.colorScheme.surfaceColorAtElevation(
+                                            if (scrollBehavior.state.contentOffset > -1f) 3.dp else 0.dp
+                                        ).copy(alpha = if (scrollBehavior.state.contentOffset > -1f) 0.95f else 0.0f)
+                                    ),
+
                                 scrollBehavior = scrollBehavior
                             )
                         },
@@ -179,21 +196,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Updated VPN Detection using NetworkCapabilities
     private fun detectVpn(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        // Check all networks, not just the active one, as some VPNs might create additional virtual networks
         connectivityManager.allNetworks.forEach { network ->
             val capabilities = connectivityManager.getNetworkCapabilities(network)
             if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-                // Check if this VPN network is actually providing internet connectivity
-                // This helps differentiate from VPNs that might be active but not routing internet traffic
                 if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                     capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
-                    return true // Actively connected and validated VPN providing internet
+                    return true
                 }
-                // If you want to detect any active VPN regardless of its internet routing status:
-                // return true
             }
         }
         return false
@@ -204,48 +215,95 @@ class MainActivity : ComponentActivity() {
 fun AppNavigationRail(
     selectedDestination: Screen,
     onDestinationSelected: (Screen) -> Unit,
+    isExpanded: Boolean,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
+    val railWidth by animateDpAsState(
+        targetValue = if (isExpanded) 200.dp else 80.dp, // Wider when expanded
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "nav_rail_width_anim"
+    )
+
     NavigationRail(
-        modifier = modifier.statusBarsPadding().fillMaxHeight(),
+        modifier = modifier
+            .statusBarsPadding()
+            .fillMaxHeight()
+            .width(railWidth) // Animated width
+            .padding(vertical = 8.dp), // Added some vertical padding
         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.9f),
         header = {
-            // Optional header
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Filled.MenuOpen else Icons.Filled.Menu,
+                    contentDescription = if (isExpanded) "Collapse Menu" else "Expand Menu",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(20.dp)) // Space below header icon
         }
     ) {
-        Spacer(Modifier.weight(0.1f))
+        Spacer(Modifier.weight(0.1f)) // Pushes items down a bit
         destinations.forEach { screen ->
+            val isSelected = selectedDestination == screen
+            val iconScale by animateFloatAsState(
+                targetValue = if (isSelected) 1.15f else 1.0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "nav_item_icon_scale_anim"
+            )
+
             NavigationRailItem(
-                selected = selectedDestination == screen,
+                selected = isSelected,
                 onClick = { onDestinationSelected(screen) },
-                icon = { Icon(screen.icon, contentDescription = screen.label) },
-                label = { Text(screen.label) },
-                alwaysShowLabel = false,
+                icon = {
+                    Icon(
+                        imageVector = screen.icon,
+                        contentDescription = screen.label,
+                        modifier = Modifier.graphicsLayer(scaleX = iconScale, scaleY = iconScale)
+                    )
+                },
+                label = {
+                    // AnimatedVisibility for the label
+                    AnimatedVisibility(
+                        visible = isExpanded,
+                        enter = fadeIn(animationSpec = tween(150, delayMillis = 100)) + expandHorizontally(animationSpec = tween(250, delayMillis = 50)),
+                        exit = fadeOut(animationSpec = tween(100)) + shrinkHorizontally(animationSpec = tween(200))
+                    ) {
+                        Text(screen.label, maxLines = 1)
+                    }
+                },
+                alwaysShowLabel = isExpanded, // Control label visibility directly
                 colors = NavigationRailItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary, // Effective when alwaysShowLabel is true or expanded
                     indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant // Effective when alwaysShowLabel is true or expanded
+                ),
+                modifier = Modifier.padding(vertical = 4.dp) // Added padding for better spacing
             )
+            Spacer(Modifier.height(8.dp)) // Space between items
         }
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.weight(1f)) // Pushes items up
     }
 }
+
 
 @Composable
 fun SettingsPlaceholderScreen(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-        Text("Settings Screen Content Goes Here", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+        Text("Settings Screen Content Goes Here", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
 @Composable
 fun ProfilePlaceholderScreen(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-        Text("User Profile Content Goes Here", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+        Text("User Profile Content Goes Here", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -253,7 +311,7 @@ fun ProfilePlaceholderScreen(modifier: Modifier = Modifier) {
 @Composable
 fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
-    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Ensure this resource exists
     val haptic = LocalHapticFeedback.current
 
     LazyVerticalGrid(
@@ -266,7 +324,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(key1 = title) {
-                delay(index * 80L + 150L)
+                delay(index * 80L + 150L) // Staggered animation
                 itemVisible = true
             }
 
@@ -312,11 +370,11 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                     colors = CardDefaults.outlinedCardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = animatedAlpha)
                     ),
-                    border = CardDefaults.outlinedCardBorder(enabled = true),
-                    elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp),
+                    border = CardDefaults.outlinedCardBorder(enabled = true), // Consider theming this
+                    elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp), // Outlined cards typically have 0 elevation
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(3.dp) else Modifier)
+                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(3.dp) else Modifier) // Conditional blur
                         .fillMaxWidth()
                         .height(180.dp)
                 ) {
@@ -328,7 +386,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            painter = icons[index % icons.size],
+                            painter = icons[index % icons.size], // Use modulo for safety if lists differ
                             contentDescription = title,
                             modifier = Modifier.size(64.dp)
                         )
@@ -344,5 +402,21 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                 }
             }
         }
+    }
+}
+
+// Dummy activities for navigation (replace with your actual activities)
+class SettingsActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent { Text("System Config Activity", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(16.dp)) }
+    }
+}
+
+class ComingActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val title = intent.getStringExtra("CARD_TITLE") ?: "Coming Soon"
+        setContent { Text("$title - Content Coming Soon!", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(16.dp)) }
     }
 }
