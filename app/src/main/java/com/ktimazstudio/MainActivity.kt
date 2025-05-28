@@ -14,10 +14,14 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable // Added import
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.rememberScrollState // Added import
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll // Added import
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight // Added import
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuOpen
@@ -118,7 +122,6 @@ class MainActivity : ComponentActivity() {
                             .weight(1f)
                             .nestedScroll(scrollBehavior.nestedScrollConnection),
                         topBar = {
-                            // Determine scroll state based on content offset
                             val isScrolled = scrollBehavior.state.contentOffset > 0.1f
 
                             CenterAlignedTopAppBar(
@@ -131,8 +134,8 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                    containerColor = Color.Transparent, // Transparent when not scrolled (gradient shows)
-                                    scrolledContainerColor = scrolledAppBarColor // Color when scrolled (matches explicit background)
+                                    containerColor = Color.Transparent,
+                                    scrolledContainerColor = scrolledAppBarColor
                                 ),
                                 modifier = Modifier
                                     .statusBarsPadding()
@@ -141,18 +144,18 @@ class MainActivity : ComponentActivity() {
                                         shape = topAppBarRoundedShape
                                         clip = true
                                     }
-                                    .background( // This background is for the clipped shape
+                                    .background(
                                         color = if (isScrolled) {
-                                            scrolledAppBarColor // Visible color when scrolled
+                                            scrolledAppBarColor
                                         } else {
-                                            Color.Transparent // Fully transparent when not scrolled
+                                            Color.Transparent
                                         }
                                     ),
                                 scrollBehavior = scrollBehavior
                             )
                         },
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                        containerColor = Color.Transparent // Scaffold itself is transparent
+                        containerColor = Color.Transparent
                     ) { paddingValues ->
                         AnimatedContent(
                             targetState = selectedDestination,
@@ -172,7 +175,7 @@ class MainActivity : ComponentActivity() {
                                             context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
                                         }
                                     }
-                                    Screen.AppSettings -> SettingsPlaceholderScreen()
+                                    Screen.AppSettings -> SettingsScreen() // Updated to use SettingsScreen
                                     Screen.Profile -> ProfilePlaceholderScreen()
                                 }
                             }
@@ -296,18 +299,124 @@ fun AppNavigationRail(
     }
 }
 
-
-@Composable
-fun SettingsPlaceholderScreen(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-        Text("Settings Screen Content Goes Here", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
-    }
-}
-
 @Composable
 fun ProfilePlaceholderScreen(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
         Text("User Profile Content Goes Here", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+@Composable
+fun SettingsScreen(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()) // Make it scrollable for more options
+    ) {
+        Text(
+            "Application Settings",
+            style = MaterialTheme.typography.headlineSmall, // Changed to Small for better fit
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 24.dp) // Increased bottom padding
+        )
+
+        // Example Setting Item 1: Toggle
+        var notificationsEnabled by remember { mutableStateOf(true) }
+        SettingItem(
+            title = "Enable Notifications",
+            description = "Receive updates and alerts.",
+            control = {
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = { notificationsEnabled = it }
+                )
+            }
+        )
+
+        Divider(modifier = Modifier.padding(vertical = 12.dp)) // Increased padding
+
+        // Example Setting Item 2: Clickable
+        var showAccountDialog by remember { mutableStateOf(false) }
+        SettingItem(
+            title = "Account Preferences",
+            description = "Manage your account details.",
+            control = {
+                Icon(
+                    Icons.Filled.ChevronRight,
+                    contentDescription = "Go to account preferences"
+                )
+            },
+            onClick = {
+                showAccountDialog = true // Example action: show a dialog
+            }
+        )
+        if (showAccountDialog) {
+            AlertDialog(
+                onDismissRequest = { showAccountDialog = false },
+                title = { Text("Account Preferences") },
+                text = { Text("Account settings would be shown here or navigate to a new screen.") },
+                confirmButton = {
+                    TextButton(onClick = { showAccountDialog = false }) { Text("OK") }
+                }
+            )
+        }
+
+
+        Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // Example Setting Item 3: Informational
+        SettingItem(
+            title = "App Version",
+            description = "1.0.0 (Build ${BuildConfig.VERSION_CODE})", // Example: Use BuildConfig if available
+            control = {} // No interactive control
+        )
+         Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+        Text(
+            "More settings options can be added below.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 24.dp).align(Alignment.CenterHorizontally)
+        )
+    }
+}
+
+@Composable
+fun SettingItem(
+    title: String,
+    description: String? = null,
+    onClick: (() -> Unit)? = null,
+    control: @Composable (() -> Unit)? = null
+) {
+    val itemModifier = if (onClick != null) {
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp, horizontal = 8.dp) // Increased padding
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp, horizontal = 8.dp) // Increased padding
+    }
+
+    Row(
+        modifier = itemModifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            if (description != null) {
+                Spacer(modifier = Modifier.height(4.dp)) // Increased space
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (control != null) {
+            Box(modifier = Modifier.padding(start = 8.dp)) { // Added padding for control
+                control()
+            }
+        }
     }
 }
 
@@ -410,3 +519,8 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
 }
 
 // Dummy activities for navigation (replace with your actual activities)
+// Ensure R.string.app_name and R.mipmap.ic_launcher_round exist
+// Add `android.permission.ACCESS_NETWORK_STATE` to your AndroidManifest.xml for connectivity checks.
+// For BuildConfig.VERSION_CODE, ensure your module's build.gradle has `buildFeatures { buildConfig true }`
+// (often enabled by default for app modules).
+
