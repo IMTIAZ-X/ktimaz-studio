@@ -21,6 +21,10 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    buildFeatures {
+        buildConfig = true 
+}
+
     // Git command helper
     fun String.runCommand(): String? =
         try {
