@@ -404,19 +404,3 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         }
     }
 }
-
-// Dummy activities for navigation (replace with your actual activities)
-class SettingsActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { Text("System Config Activity", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(16.dp)) }
-    }
-}
-
-class ComingActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val title = intent.getStringExtra("CARD_TITLE") ?: "Coming Soon"
-        setContent { Text("$title - Content Coming Soon!", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(16.dp)) }
-    }
-}
