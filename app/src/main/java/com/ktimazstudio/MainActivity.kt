@@ -164,7 +164,7 @@ class MainActivity : ComponentActivity() {
                                         if (title == "System Config") {
                                             context.startActivity(Intent(context, SettingsActivity::class.java))
                                         } else {
-                                         //   context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
+                                            context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
                                         }
                                     }
                                     Screen.AppSettings -> SettingsPlaceholderScreen()
@@ -406,11 +406,3 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
 }
 
 // Dummy activities for navigation (replace with your actual activities)
-
-class ComingActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val title = intent.getStringExtra("CARD_TITLE") ?: "Coming Soon"
-        setContent { Text("$title - Content Coming Soon!", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(16.dp)) }
-    }
-}
