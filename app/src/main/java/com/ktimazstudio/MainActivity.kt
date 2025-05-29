@@ -406,7 +406,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = usernameInput,
                     onValueChange = { usernameInput = it.trim(); errorMessage = null },
                     label = { Text("Username") },
-                    leadingIcon = { Icon(OutlinedAccountCircle, contentDescription = "Username") },
+                    leadingIcon = { Icon(androidx.compose.material.icons.outlined.AccountCircle, contentDescription = "Username") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
                     shape = RoundedCornerShape(16.dp), // Rounded text field
@@ -418,7 +418,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = passwordInput,
                     onValueChange = { passwordInput = it; errorMessage = null },
                     label = { Text("Password") },
-                    leadingIcon = { Icon(OutlinedLock, contentDescription = "Password") },
+                    leadingIcon = { Icon(androidx.compose.material.icons.outlined.Lock, contentDescription = "Password") },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
@@ -809,7 +809,8 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                     colors = CardDefaults.outlinedCardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha) // Slightly more elevated
                     ),
-                    border = CardDefaults.outlinedCardBorder(enabled = true, width = 0.5.dp), // Thinner border
+                    // import androidx.compose.foundation.BorderStroke // Make sure this import is present
+                    border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outline), // Thinner border
                     elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
