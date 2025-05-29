@@ -843,17 +843,3 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
 }
 
 // Dummy activities (ensure R.string.app_name and R.mipmap.ic_launcher_round exist)
-class SettingsActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { ktimaz { Text("System Config Activity (Legacy)", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(16.dp)) } }
-    }
-}
-
-class ComingActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val title = intent.getStringExtra("CARD_TITLE") ?: "Coming Soon"
-        setContent { ktimaz { Text("$title - Content Coming Soon!", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(16.dp)) } }
-    }
-}
