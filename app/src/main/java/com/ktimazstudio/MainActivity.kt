@@ -75,41 +75,6 @@ import kotlinx.coroutines.launch
 
 // Dummy activities (ensure R.string.app_name and R.mipmap.ic_launcher_round exist)
 // These would typically be separate files
-class SettingsActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            ktimaz {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("System Config Screen (Placeholder)", style = MaterialTheme.typography.headlineMedium)
-                    }
-                }
-            }
-        }
-    }
-}
-
-class ComingActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "Coming Soon"
-        setContent {
-            ktimaz {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$cardTitle", style = MaterialTheme.typography.headlineMedium)
-                            Spacer(Modifier.height(16.dp))
-                            Text("This feature is coming soon!", style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 
 // --- SharedPreferencesManager ---
 class SharedPreferencesManager(context: Context) {
