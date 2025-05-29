@@ -74,7 +74,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Dummy activities (ensure R.string.app_name and R.mipmap.ic_launcher_round exist)
-// These would typically be separate files
 
 // --- SharedPreferencesManager ---
 class SharedPreferencesManager(context: Context) {
@@ -410,7 +409,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = usernameInput,
                     onValueChange = { usernameInput = it.trim(); errorMessage = null },
                     label = { Text("Username") },
-                    leadingIcon = { Icon(OutlinedAccountCircle, contentDescription = "Username") },
+                    leadingIcon = { Icon(OutlinedAccountCircle, contentDescription = "Username") }, // Corrected
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
                     shape = RoundedCornerShape(16.dp), // Rounded text field
@@ -422,7 +421,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = passwordInput,
                     onValueChange = { passwordInput = it; errorMessage = null },
                     label = { Text("Password") },
-                    leadingIcon = { Icon(OutlinedLock, contentDescription = "Password") },
+                    leadingIcon = { Icon(OutlinedLock, contentDescription = "Password") }, // Corrected
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
