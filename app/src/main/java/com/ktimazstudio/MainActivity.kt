@@ -2,6 +2,7 @@ package com.ktimazstudio
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -23,17 +24,21 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBox // Added for About
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.ExitToApp // Added for Logout
+import androidx.compose.material.icons.filled.Info // Added for About
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Policy // Added for Privacy Policy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Lock // Using outlined for consistency in Login
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -65,14 +70,24 @@ import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// Define Navigation Destinations
-sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
-    object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
-    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
-    object Profile : Screen("profile", "Profile", Icons.Filled.Person)
+// --- SharedPreferencesManager ---
+class SharedPreferencesManager(context: Context) {
+    private val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
+
+    companion object {
+        private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
+    }
+
+    fun isLoggedIn(): Boolean {
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+    }
+
+    fun setLoggedIn(loggedIn: Boolean) {
+        prefs.edit().putBoolean(KEY_IS_LOGGED_IN, loggedIn).apply()
+    }
 }
 
-// Top-level utility functions
+// --- Top-level utility functions ---
 fun isConnected(context: Context): Boolean {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     val activeNetwork = cm.activeNetwork ?: return false
@@ -105,24 +120,33 @@ fun detectVpn(context: Context): Boolean {
     return false
 }
 
+// --- Navigation Destinations ---
+sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+    object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
+    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
+    object Profile : Screen("profile", "Profile", Icons.Filled.Person)
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
+    private lateinit var sharedPrefsManager: SharedPreferencesManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sharedPrefsManager = SharedPreferencesManager(applicationContext)
 
-        if (detectVpn(this)) { // Call top-level function
-            Toast.makeText(this, "VPN connection detected. Exiting application.", Toast.LENGTH_LONG).show()
-            lifecycleScope.launch {
-                delay(4000)
-                finishAffinity()
+        if (detectVpn(this)) {
+            setContent {
+                ktimaz { // Apply your theme
+                    VpnDetectedDialog { finishAffinity() }
+                }
             }
-            return
+            return // Stop further execution if VPN is detected
         }
 
         setContent {
             ktimaz {
-                var isLoggedIn by rememberSaveable { mutableStateOf(false) }
+                var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
 
                 AnimatedContent(
                     targetState = isLoggedIn,
@@ -133,17 +157,23 @@ class MainActivity : ComponentActivity() {
                                 fadeOut(animationSpec = tween(200)) +
                                         scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                             )
-                            .using(
-                                SizeTransform(clip = false)
-                            )
+                            .using(SizeTransform(clip = false))
                     },
                     label = "LoginScreenTransition"
                 ) { targetIsLoggedIn ->
                     if (targetIsLoggedIn) {
-                        MainApplicationUI()
+                        MainApplicationUI(
+                            onLogout = {
+                                sharedPrefsManager.setLoggedIn(false)
+                                isLoggedIn = false
+                            }
+                        )
                     } else {
                         LoginScreen(
-                            onLoginSuccess = { isLoggedIn = true }
+                            onLoginSuccess = {
+                                sharedPrefsManager.setLoggedIn(true)
+                                isLoggedIn = true
+                            }
                         )
                     }
                 }
@@ -152,16 +182,36 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Composable
+fun VpnDetectedDialog(onExitApp: () -> Unit) {
+    MaterialTheme { // Ensure MaterialTheme is applied for dialog styling
+        AlertDialog(
+            onDismissRequest = { /* Optionally allow dismiss, or force exit */ },
+            icon = { Icon(Icons.Filled.Lock, contentDescription = "VPN Detected Icon", tint = MaterialTheme.colorScheme.error) },
+            title = { Text("VPN Detected") },
+            text = { Text("For security reasons, this application cannot be used while a VPN connection is active. Please disable your VPN and try again.") },
+            confirmButton = {
+                Button(
+                    onClick = onExitApp,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Exit Application")
+                }
+            }
+        )
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun MainApplicationUI() {
+fun MainApplicationUI(onLogout: () -> Unit) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
     var isRailExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        // Now directly call the top-level functions
         if (!isConnected(context)) {
             val result = snackbarHostState.showSnackbar(
                 message = "No Internet Connection!",
@@ -204,7 +254,6 @@ fun MainApplicationUI() {
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
                 val isScrolled = scrollBehavior.state.contentOffset > 0.1f
-
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
@@ -226,11 +275,7 @@ fun MainApplicationUI() {
                             clip = true
                         }
                         .background(
-                            color = if (isScrolled) {
-                                scrolledAppBarColor
-                            } else {
-                                Color.Transparent
-                            }
+                            color = if (isScrolled) scrolledAppBarColor else Color.Transparent
                         ),
                     scrollBehavior = scrollBehavior
                 )
@@ -257,7 +302,7 @@ fun MainApplicationUI() {
                             }
                         }
                         Screen.AppSettings -> SettingsScreen()
-                        Screen.Profile -> ProfilePlaceholderScreen()
+                        Screen.Profile -> ProfilePlaceholderScreen(onLogout = onLogout) // Pass onLogout
                     }
                 }
             }
@@ -277,47 +322,57 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface),
+            .background( // Subtle gradient for a bit more depth
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surfaceContainerLowest,
+                        MaterialTheme.colorScheme.surface,
+                        MaterialTheme.colorScheme.surfaceContainer
+                    )
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp), // Slightly more rounded
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), // Opaque card
             modifier = Modifier
-                .fillMaxWidth(0.85f)
+                .fillMaxWidth(0.9f) // Max width constraint
+                .widthIn(max = 400.dp) // Max width for larger screens
                 .padding(16.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(all = 24.dp)
+                    .padding(horizontal = 24.dp, vertical = 32.dp) // Increased padding
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp) // Increased spacing
             ) {
+                // Optional: Placeholder for an App Logo
+                // Icon(painterResource(id = R.drawable.ic_app_logo), contentDescription = "App Logo", modifier = Modifier.size(80.dp))
+                // Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = stringResource(id = R.string.app_name),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.headlineSmall, // Adjusted style
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Welcome Back!",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    text = "Sign in to continue", // More descriptive subtitle
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = username,
-                    onValueChange = { username = it; errorMessage = null },
+                    onValueChange = { username = it.trim(); errorMessage = null },
                     label = { Text("Username") },
-                    leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username Icon") },
+                    leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username") },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -325,13 +380,10 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     value = password,
                     onValueChange = { password = it; errorMessage = null },
                     label = { Text("Password") },
-                    leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = "Password Icon") },
+                    leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = "Password") },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         focusManager.clearFocus()
                         if (username == "admin" && password == "admin") {
@@ -341,12 +393,9 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         }
                     }),
                     trailingIcon = {
-                        val image = if (passwordVisible)
-                            Icons.Filled.Visibility
-                        else Icons.Filled.VisibilityOff
-                        val description = if (passwordVisible) "Hide password" else "Show password"
+                        val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(imageVector = image, description)
+                            Icon(imageVector = image, if (passwordVisible) "Hide password" else "Show password")
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -354,13 +403,13 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                 AnimatedVisibility(
                     visible = errorMessage != null,
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically()
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 })
                 ) {
                     Text(
                         text = errorMessage ?: "",
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelMedium, // Adjusted style
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -374,19 +423,15 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                             errorMessage = "Invalid username or password."
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp)
-                        .height(50.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp).height(50.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Login", style = MaterialTheme.typography.labelLarge)
+                    Text("LOGIN", style = MaterialTheme.typography.labelLarge) // Uppercase for emphasis
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun AppNavigationRail(
@@ -406,7 +451,7 @@ fun AppNavigationRail(
     NavigationRail(
         modifier = modifier
             .statusBarsPadding()
-            .fillMaxHeight()
+            .fillMaxHeight() // Ensures full height
             .width(railWidth)
             .padding(vertical = 8.dp),
         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.9f),
@@ -426,10 +471,7 @@ fun AppNavigationRail(
             val isSelected = selectedDestination == screen
             val iconScale by animateFloatAsState(
                 targetValue = if (isSelected) 1.15f else 1.0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
                 label = "nav_item_icon_scale_anim"
             )
 
@@ -448,9 +490,7 @@ fun AppNavigationRail(
                         visible = isExpanded,
                         enter = fadeIn(animationSpec = tween(150, delayMillis = 100)) + expandHorizontally(animationSpec = tween(250, delayMillis = 50)),
                         exit = fadeOut(animationSpec = tween(100)) + shrinkHorizontally(animationSpec = tween(200))
-                    ) {
-                        Text(screen.label, maxLines = 1)
-                    }
+                    ) { Text(screen.label, maxLines = 1) }
                 },
                 alwaysShowLabel = isExpanded,
                 colors = NavigationRailItemDefaults.colors(
@@ -469,14 +509,36 @@ fun AppNavigationRail(
 }
 
 @Composable
-fun ProfilePlaceholderScreen(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-        Text("User Profile Content Goes Here", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
+fun ProfilePlaceholderScreen(modifier: Modifier = Modifier, onLogout: () -> Unit) {
+    Column(
+        modifier = modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "User Profile Content Goes Here",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = onLogout,
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+        ) {
+            Icon(Icons.Filled.ExitToApp, contentDescription = "Logout Icon", tint = MaterialTheme.colorScheme.onErrorContainer)
+            Spacer(Modifier.width(8.dp))
+            Text("Logout", color = MaterialTheme.colorScheme.onErrorContainer)
+        }
     }
 }
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
+    var showAboutDialog by remember { mutableStateOf(false) }
+    var showPrivacyDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -494,6 +556,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         SettingItem(
             title = "Enable Notifications",
             description = "Receive updates and alerts.",
+            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)},
             control = {
                 Switch(
                     checked = notificationsEnabled,
@@ -501,49 +564,69 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 )
             }
         )
-
         Divider(modifier = Modifier.padding(vertical = 12.dp))
 
         var showAccountDialog by remember { mutableStateOf(false) }
         SettingItem(
             title = "Account Preferences",
             description = "Manage your account details.",
-            control = {
-                Icon(
-                    Icons.Filled.ChevronRight,
-                    contentDescription = "Go to account preferences"
-                )
-            },
-            onClick = {
-                showAccountDialog = true
-            }
+            leadingIcon = { Icon(Icons.Filled.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "Go to account preferences") },
+            onClick = { showAccountDialog = true }
         )
         if (showAccountDialog) {
             AlertDialog(
                 onDismissRequest = { showAccountDialog = false },
                 title = { Text("Account Preferences") },
-                text = { Text("Account settings would be shown here or navigate to a new screen.") },
-                confirmButton = {
-                    TextButton(onClick = { showAccountDialog = false }) { Text("OK") }
-                }
+                text = { Text("Account settings details would appear here or navigate to a dedicated screen.") },
+                confirmButton = { TextButton(onClick = { showAccountDialog = false }) { Text("OK") } }
             )
         }
+        Divider(modifier = Modifier.padding(vertical = 12.dp))
 
+        // About Item
+        SettingItem(
+            title = "About",
+            description = "Information about this application.",
+            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View About") },
+            onClick = { showAboutDialog = true }
+        )
+        if (showAboutDialog) {
+            AlertDialog(
+                onDismissRequest = { showAboutDialog = false },
+                title = { Text("About " + stringResource(id = R.string.app_name)) },
+                text = { Text("Version: ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})\n\nDeveloped by Ktimaz Studio.\n\nThis application is a demonstration of various Android and Jetpack Compose features.") },
+                confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Close") } }
+            )
+        }
+        Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // Privacy Policy Item
+        SettingItem(
+            title = "Privacy Policy",
+            description = "Read our privacy policy.",
+            leadingIcon = { Icon(Icons.Filled.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Privacy Policy") },
+            onClick = { showPrivacyDialog = true }
+        )
+        if (showPrivacyDialog) {
+            AlertDialog(
+                onDismissRequest = { showPrivacyDialog = false },
+                title = { Text("Privacy Policy") },
+                text = { Text("Placeholder for Privacy Policy text. In a real application, this would contain the full policy details or link to a web page.\n\nWe value your privacy...") },
+                confirmButton = { TextButton(onClick = { showPrivacyDialog = false }) { Text("Close") } }
+            )
+        }
         Divider(modifier = Modifier.padding(vertical = 12.dp))
 
         SettingItem(
             title = "App Version",
-            description = "1.0.0 (Build ${BuildConfig.VERSION_CODE})",
+            description = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)}, // Re-using settings icon as an example
             control = {}
         )
-         Divider(modifier = Modifier.padding(vertical = 12.dp))
-
-        Text(
-            "More settings options can be added below.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 24.dp).align(Alignment.CenterHorizontally)
-        )
+        Divider(modifier = Modifier.padding(vertical = 12.dp))
     }
 }
 
@@ -551,25 +634,24 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 fun SettingItem(
     title: String,
     description: String? = null,
+    leadingIcon: (@Composable () -> Unit)? = null, // Added leadingIcon
     onClick: (() -> Unit)? = null,
     control: @Composable (() -> Unit)? = null
 ) {
-    val itemModifier = if (onClick != null) {
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 16.dp, horizontal = 8.dp)
-    } else {
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp, horizontal = 8.dp)
-    }
+    val itemModifier = Modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .padding(vertical = 16.dp, horizontal = 8.dp)
 
     Row(
         modifier = itemModifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        if (leadingIcon != null) {
+            Box(modifier = Modifier.padding(end = 16.dp)) { // Padding for the icon
+                leadingIcon()
+            }
+        }
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
             if (description != null) {
@@ -623,19 +705,13 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                 val scale by infiniteTransition.animateFloat(
                     initialValue = 0.99f,
                     targetValue = 1.0f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(2200, easing = EaseInOutCubic),
-                        repeatMode = RepeatMode.Reverse
-                    ),
+                    animationSpec = infiniteRepeatable(animation = tween(2200, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_scale_$title"
                 )
                  val animatedAlpha by infiniteTransition.animateFloat(
                     initialValue = 0.80f,
                     targetValue = 0.65f,
-                     animationSpec = infiniteRepeatable(
-                        animation = tween(2200, easing = EaseInOutCubic),
-                        repeatMode = RepeatMode.Reverse
-                    ),
+                     animationSpec = infiniteRepeatable(animation = tween(2200, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_alpha_$title"
                 )
 
@@ -657,9 +733,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         .height(180.dp)
                 ) {
                     Column(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
+                        Modifier.fillMaxSize().padding(16.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
