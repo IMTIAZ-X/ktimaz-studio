@@ -28,17 +28,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp // Updated
 import androidx.compose.material.icons.automirrored.filled.MenuOpen // Updated
 import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.AccountCircle // For Profile Picture
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.AccountCircle // Corrected import for Filled.AccountCircle
+import androidx.compose.material.icons.filled.Lock // Corrected import for Filled.Lock
 import androidx.compose.material.icons.outlined.AccountCircle as OutlinedAccountCircle // Alias for login
 import androidx.compose.material.icons.outlined.Lock as OutlinedLock // Alias for login
 import androidx.compose.foundation.BorderStroke
@@ -72,6 +72,44 @@ import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+// Dummy activities (ensure R.string.app_name and R.mipmap.ic_launcher_round exist)
+// These would typically be separate files
+class SettingsActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            ktimaz {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("System Config Screen (Placeholder)", style = MaterialTheme.typography.headlineMedium)
+                    }
+                }
+            }
+        }
+    }
+}
+
+class ComingActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "Coming Soon"
+        setContent {
+            ktimaz {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$cardTitle", style = MaterialTheme.typography.headlineMedium)
+                            Spacer(Modifier.height(16.dp))
+                            Text("This feature is coming soon!", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 // --- SharedPreferencesManager ---
 class SharedPreferencesManager(context: Context) {
@@ -407,7 +445,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = usernameInput,
                     onValueChange = { usernameInput = it.trim(); errorMessage = null },
                     label = { Text("Username") },
-                    leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username") },
+                    leadingIcon = { Icon(OutlinedAccountCircle, contentDescription = "Username") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
                     shape = RoundedCornerShape(16.dp), // Rounded text field
@@ -419,7 +457,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = passwordInput,
                     onValueChange = { passwordInput = it; errorMessage = null },
                     label = { Text("Password") },
-                    leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = "Password") },
+                    leadingIcon = { Icon(OutlinedLock, contentDescription = "Password") },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
@@ -843,5 +881,3 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         }
     }
 }
-
-// Dummy activities (ensure R.string.app_name and R.mipmap.ic_launcher_round exist)
