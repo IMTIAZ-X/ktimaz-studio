@@ -25,18 +25,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Lock // Added for Login
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Visibility // Added for Login
-import androidx.compose.material.icons.filled.VisibilityOff // Added for Login
-import androidx.compose.material.icons.outlined.AccountCircle // Added for Login
-import androidx.compose.material.icons.outlined.Lock // Added for Login (alternative)
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Lock // Using outlined for consistency in Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable // Added for login state
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -48,7 +48,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager // Added for Login
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -72,13 +72,46 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
+// Top-level utility functions
+fun isConnected(context: Context): Boolean {
+    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val activeNetwork = cm.activeNetwork ?: return false
+    val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+           capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+}
+
+fun openWifiSettings(context: Context) {
+    Toast.makeText(context, "Please enable Wi-Fi or connect to a network.", Toast.LENGTH_LONG).show()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        context.startActivity(Intent(Settings.Panel.ACTION_WIFI))
+    } else {
+        @Suppress("DEPRECATION")
+        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+    }
+}
+
+fun detectVpn(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    connectivityManager.allNetworks.forEach { network ->
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+        if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+            if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                return true
+            }
+        }
+    }
+    return false
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // VPN Check is good to have before any UI
-        if (detectVpn(this)) {
+        if (detectVpn(this)) { // Call top-level function
             Toast.makeText(this, "VPN connection detected. Exiting application.", Toast.LENGTH_LONG).show()
             lifecycleScope.launch {
                 delay(4000)
@@ -89,13 +122,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ktimaz {
-                var isLoggedIn by rememberSaveable { mutableStateOf(false) } // Login State
+                var isLoggedIn by rememberSaveable { mutableStateOf(false) }
 
                 AnimatedContent(
                     targetState = isLoggedIn,
                     transitionSpec = {
-                        // Transition for appearing: Fade in and scale up slightly
-                        // Transition for disappearing: Fade out and scale down slightly
                         (fadeIn(animationSpec = tween(400, delayMillis = 200)) +
                                 scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)))
                             .togetherWith(
@@ -103,7 +134,7 @@ class MainActivity : ComponentActivity() {
                                         scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                             )
                             .using(
-                                SizeTransform(clip = false) // Allow content to overlap during transition
+                                SizeTransform(clip = false)
                             )
                     },
                     label = "LoginScreenTransition"
@@ -119,38 +150,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    // detectVpn, isConnected, openWifiSettings remain the same
-    private fun isConnected(context: Context): Boolean {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork = cm.activeNetwork ?: return false
-        val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-               capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-    }
-
-    private fun openWifiSettings(context: Context) {
-        Toast.makeText(context, "Please enable Wi-Fi or connect to a network.", Toast.LENGTH_LONG).show()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            context.startActivity(Intent(Settings.Panel.ACTION_WIFI))
-        } else {
-            @Suppress("DEPRECATION")
-            context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-        }
-    }
-
-    private fun detectVpn(context: Context): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        connectivityManager.allNetworks.forEach { network ->
-            val capabilities = connectivityManager.getNetworkCapabilities(network)
-            if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -162,7 +161,7 @@ fun MainApplicationUI() {
     var isRailExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        val mainActivity = context as? MainActivity ?: return@LaunchedEffect
+        // Now directly call the top-level functions
         if (!isConnected(context)) {
             val result = snackbarHostState.showSnackbar(
                 message = "No Internet Connection!",
@@ -209,7 +208,7 @@ fun MainApplicationUI() {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            text = stringResource(id = R.string.app_name), // Ensure R.string.app_name exists
+                            text = stringResource(id = R.string.app_name),
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -274,12 +273,11 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current // For Toasts
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface), // Use surface color for background
+            .background(MaterialTheme.colorScheme.surface),
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -287,18 +285,18 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
             modifier = Modifier
-                .fillMaxWidth(0.85f) // Responsive width
+                .fillMaxWidth(0.85f)
                 .padding(16.dp)
         ) {
             Column(
                 modifier = Modifier
                     .padding(all = 24.dp)
-                    .verticalScroll(rememberScrollState()), // Scrollable if content overflows on small screens
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = stringResource(id = R.string.app_name), // Make sure R.string.app_name is defined
+                    text = stringResource(id = R.string.app_name),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -378,7 +376,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp) // Add some top padding
+                        .padding(top = 16.dp)
                         .height(50.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -389,8 +387,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     }
 }
 
-
-// AppNavigationRail, SettingsScreen, SettingItem, ProfilePlaceholderScreen, AnimatedCardGrid, SettingsActivity, ComingActivity remain the same
 
 @Composable
 fun AppNavigationRail(
@@ -537,7 +533,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 
         SettingItem(
             title = "App Version",
-            description = "1.0.0 (Build ${BuildConfig.VERSION_CODE})", // Ensure BuildConfig is accessible
+            description = "1.0.0 (Build ${BuildConfig.VERSION_CODE})",
             control = {}
         )
          Divider(modifier = Modifier.padding(vertical = 12.dp))
@@ -593,7 +589,7 @@ fun SettingItem(
 @Composable
 fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
-    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Ensure this resource exists
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
     val haptic = LocalHapticFeedback.current
 
     LazyVerticalGrid(
