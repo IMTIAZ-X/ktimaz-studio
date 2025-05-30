@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke // Ensure this is imported
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,12 +26,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp // Updated
-import androidx.compose.material.icons.automirrored.filled.MenuOpen // Updated
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.AccountCircle // For Profile Picture
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.HistoryEdu // For Changelog
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
@@ -39,8 +41,9 @@ import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.AccountCircle as OutlinedAccountCircle // Alias for login
-import androidx.compose.material.icons.outlined.Lock as OutlinedLock // Alias for login
+// Direct imports for outlined icons used in LoginScreen
+import androidx.compose.material.icons.outlined.AccountCircle // Correct direct import
+import androidx.compose.material.icons.outlined.Lock // Correct direct import
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -78,7 +81,7 @@ class SharedPreferencesManager(context: Context) {
 
     companion object {
         private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
-        private const val KEY_USERNAME = "username_key" // To store username
+        private const val KEY_USERNAME = "username_key"
     }
 
     fun isLoggedIn(): Boolean {
@@ -91,7 +94,7 @@ class SharedPreferencesManager(context: Context) {
             if (loggedIn && username != null) {
                 putString(KEY_USERNAME, username)
             } else if (!loggedIn) {
-                remove(KEY_USERNAME) // Clear username on logout
+                remove(KEY_USERNAME)
             }
             apply()
         }
@@ -120,17 +123,15 @@ fun openWifiSettings(context: Context) {
     }
 }
 
-@Suppress("DEPRECATION") // Suppressing for allNetworks as it's a platform deprecation
+@Suppress("DEPRECATION")
 fun detectVpn(context: Context): Boolean {
     val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    // Using allNetworks to check for VPNs that might not be the active default network.
     connectivityManager.allNetworks.forEach { network ->
         val capabilities = connectivityManager.getNetworkCapabilities(network)
         if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-            // Check if this VPN network is actually providing internet connectivity
             if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
-                return true // Actively connected and validated VPN providing internet
+                return true
             }
         }
     }
@@ -164,7 +165,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             ktimaz {
                 var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
-                val currentUsername by remember { mutableStateOf(sharedPrefsManager.getUsername()) }
+                // Use a derived state for username to ensure it recomposes when sharedPrefs changes after login
+                var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
 
 
                 AnimatedContent(
@@ -182,10 +184,11 @@ class MainActivity : ComponentActivity() {
                 ) { targetIsLoggedIn ->
                     if (targetIsLoggedIn) {
                         MainApplicationUI(
-                            username = currentUsername ?: "User", // Provide a default if null
+                            username = currentUsername ?: "User",
                             onLogout = {
-                                sharedPrefsManager.setLoggedIn(false) // Username cleared by setLoggedIn
+                                sharedPrefsManager.setLoggedIn(false)
                                 isLoggedIn = false
+                                // currentUsername will update due to remember(isLoggedIn)
                             }
                         )
                     } else {
@@ -193,7 +196,7 @@ class MainActivity : ComponentActivity() {
                             onLoginSuccess = { loggedInUsername ->
                                 sharedPrefsManager.setLoggedIn(true, loggedInUsername)
                                 isLoggedIn = true
-                                // username state in MainApplicationUI will pick up from sharedPrefsManager
+                                // currentUsername will update due to remember(isLoggedIn)
                             }
                         )
                     }
@@ -207,9 +210,9 @@ class MainActivity : ComponentActivity() {
 fun VpnDetectedDialog(onExitApp: () -> Unit) {
     MaterialTheme {
         AlertDialog(
-            onDismissRequest = { /* Forcing exit, so dismiss does nothing specific here */ },
+            onDismissRequest = { /* VPN Dialog is not dismissible by user action */ },
             icon = { Icon(Icons.Filled.Lock, contentDescription = "VPN Detected Icon", tint = MaterialTheme.colorScheme.error) },
-            title = { Text("VPN Detected", color = MaterialTheme.colorScheme.onErrorContainer) },
+            title = { Text("VPN Detected", color = MaterialTheme.colorScheme.onSurface) }, // Use onSurface for title
             text = { Text("For security reasons, this application cannot be used while a VPN connection is active. Please disable your VPN and try again.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 Button(
@@ -219,7 +222,7 @@ fun VpnDetectedDialog(onExitApp: () -> Unit) {
                     Text("Exit Application", color = MaterialTheme.colorScheme.onError)
                 }
             },
-            containerColor = MaterialTheme.colorScheme.errorContainer
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh // Use a surface color for dialog
         )
     }
 }
@@ -285,7 +288,7 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     },
-                    colors = TopAppBarDefaults.topAppBarColors( // Updated
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                         scrolledContainerColor = scrolledAppBarColor,
                         navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -347,10 +350,14 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
-        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant, // Softer unfocused border
         cursorColor = MaterialTheme.colorScheme.primary,
         focusedLabelColor = MaterialTheme.colorScheme.primary,
-        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+        unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
     )
 
     Box(
@@ -368,26 +375,26 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Card(
-            shape = RoundedCornerShape(24.dp), // Increased rounding
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp), // Slightly more elevation
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .widthIn(max = 420.dp) // Max width for better large screen layout
+                .widthIn(max = 420.dp)
                 .padding(16.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 28.dp, vertical = 36.dp) // Adjusted padding
+                    .padding(horizontal = 28.dp, vertical = 36.dp)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 Icon(
-                    painter = painterResource(id = R.mipmap.ic_launcher_round), // Replace with your actual app logo
+                    painter = painterResource(id = R.mipmap.ic_launcher_round),
                     contentDescription = stringResource(id = R.string.app_name) + " Logo",
-                    modifier = Modifier.size(72.dp),
-                    tint = Color.Unspecified // If your logo has its own colors
+                    modifier = Modifier.size(72.dp).clip(CircleShape), // Clip logo if it's not already round
+                    tint = Color.Unspecified
                 )
                 Text(
                     text = stringResource(id = R.string.app_name),
@@ -406,10 +413,11 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = usernameInput,
                     onValueChange = { usernameInput = it.trim(); errorMessage = null },
                     label = { Text("Username") },
-                    leadingIcon = { Icon(OutlinedAccountCircle, contentDescription = "Username") },
+                    // Using direct icon reference
+                    leadingIcon = { Icon(androidx.compose.material.icons.outlined.AccountCircle, contentDescription = "Username") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
-                    shape = RoundedCornerShape(16.dp), // Rounded text field
+                    shape = RoundedCornerShape(16.dp),
                     colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -418,17 +426,18 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = passwordInput,
                     onValueChange = { passwordInput = it; errorMessage = null },
                     label = { Text("Password") },
-                    leadingIcon = { Icon(OutlinedLock, contentDescription = "Password") },
+                    // Using direct icon reference
+                    leadingIcon = { Icon(androidx.compose.material.icons.outlined.Lock, contentDescription = "Password") },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         focusManager.clearFocus()
                         if (usernameInput == "admin" && passwordInput == "admin") {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Success feedback
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onLoginSuccess(usernameInput)
                         } else {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) // Error feedback
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             errorMessage = "Invalid username or password."
                         }
                     }),
@@ -438,7 +447,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                             Icon(imageVector = image, if (passwordVisible) "Hide password" else "Show password")
                         }
                     },
-                    shape = RoundedCornerShape(16.dp), // Rounded text field
+                    shape = RoundedCornerShape(16.dp),
                     colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -467,8 +476,8 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                             errorMessage = "Invalid username or password."
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp).height(52.dp), // Adjusted padding and height
-                    shape = RoundedCornerShape(16.dp), // Rounded button
+                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp).height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 6.dp)
                 ) {
                     Text("LOGIN", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
@@ -488,24 +497,23 @@ fun AppNavigationRail(
 ) {
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
     val railWidth by animateDpAsState(
-        targetValue = if (isExpanded) 180.dp else 80.dp, // Reduced expanded width
-        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing), // Slightly slower for smoother feel
+        targetValue = if (isExpanded) 180.dp else 80.dp,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
         label = "nav_rail_width_anim"
     )
-
-    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f) // Slightly more elevated look
+    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f)
 
     NavigationRail(
         modifier = modifier
             .statusBarsPadding()
             .fillMaxHeight()
             .width(railWidth)
-            .padding(vertical = 12.dp, horizontal = 4.dp), // Added horizontal padding
+            .padding(vertical = 12.dp, horizontal = 4.dp),
         containerColor = railContainerColor,
         header = {
             IconButton(
                 onClick = onMenuClick,
-                modifier = Modifier.padding(bottom = 16.dp) // More space after header
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 AnimatedContent(
                     targetState = isExpanded,
@@ -523,17 +531,16 @@ fun AppNavigationRail(
             }
         }
     ) {
-        Spacer(Modifier.weight(0.05f)) // Adjusted weight for item positioning
+        Spacer(Modifier.weight(0.05f))
         destinations.forEach { screen ->
             val isSelected = selectedDestination == screen
             val iconScale by animateFloatAsState(
-                targetValue = if (isSelected) 1.1f else 1.0f, // Subtle scale
+                targetValue = if (isSelected) 1.1f else 1.0f,
                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
                 label = "nav_item_icon_scale_anim"
             )
             val indicatorColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else Color.Transparent
             val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-
 
             NavigationRailItem(
                 selected = isSelected,
@@ -552,17 +559,17 @@ fun AppNavigationRail(
                         exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally(animationSpec = tween(250), shrinkTowards = Alignment.Start)
                     ) { Text(screen.label, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
                 },
-                alwaysShowLabel = isExpanded, // Show label only when expanded
+                alwaysShowLabel = isExpanded,
                 colors = NavigationRailItemDefaults.colors(
                     selectedIconColor = contentColor,
-                    selectedTextColor = contentColor, // Use the same color for text when selected
+                    selectedTextColor = contentColor,
                     indicatorColor = indicatorColor,
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                modifier = Modifier.padding(vertical = 6.dp).height(56.dp) // Consistent item height
+                modifier = Modifier.padding(vertical = 6.dp).height(56.dp)
             )
-            if (destinations.last() != screen) { // Add spacer between items but not after the last one
+            if (destinations.last() != screen) {
                 Spacer(Modifier.height(6.dp))
             }
         }
@@ -575,43 +582,43 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp) // Increased padding
-            .verticalScroll(rememberScrollState()), // Make scrollable if content grows
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Filled.AccountCircle, // Placeholder profile picture
+            imageVector = Icons.Filled.AccountCircle,
             contentDescription = "Profile Picture",
             modifier = Modifier
-                .size(120.dp) // Larger profile picture
+                .size(120.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(24.dp)) // Increased spacing
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = username.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }, // Capitalize username
-            style = MaterialTheme.typography.headlineMedium, // Larger text for username
+            text = username.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
+            style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Welcome to your profile!", // Subtitle
+            text = "Welcome to your profile!",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(48.dp)) // More space before logout
+        Spacer(modifier = Modifier.height(48.dp))
         Button(
             onClick = onLogout,
-            shape = RoundedCornerShape(16.dp), // More rounded button
+            shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer
             ),
-            modifier = Modifier.fillMaxWidth(0.7f).height(50.dp) // Responsive width
+            modifier = Modifier.fillMaxWidth(0.7f).height(50.dp)
         ) {
             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
-            Spacer(Modifier.width(12.dp)) // Increased space in button
+            Spacer(Modifier.width(12.dp))
             Text("Logout", fontWeight = FontWeight.SemiBold)
         }
     }
@@ -621,19 +628,19 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
 fun SettingsScreen(modifier: Modifier = Modifier) {
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
-    val context = LocalContext.current // For Toast
+    var showChangelogDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp) // Adjusted padding
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Text(
             "Application Settings",
-            style = MaterialTheme.typography.titleLarge, // Adjusted for better hierarchy
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp) // Consistent padding
+            modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
         )
 
         var notificationsEnabled by remember { mutableStateOf(true) }
@@ -648,7 +655,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 )
             }
         )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp)) // Updated
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         var showAccountDialog by remember { mutableStateOf(false) }
         SettingItem(
@@ -667,7 +674,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 confirmButton = { TextButton(onClick = { showAccountDialog = false }) { Text("OK") } }
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp)) // Updated
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         SettingItem(
             title = "About",
@@ -679,13 +686,13 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         if (showAboutDialog) {
             AlertDialog(
                 onDismissRequest = { showAboutDialog = false },
-                icon = { Icon(Icons.Filled.Info, contentDescription = null)},
+                icon = { Icon(Icons.Filled.Info, contentDescription = "About App Icon")},
                 title = { Text("About " + stringResource(id = R.string.app_name)) },
                 text = { Text("Version: ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})\n\nDeveloped by Ktimaz Studio.\n\nThis application is a demonstration of various Android and Jetpack Compose features. Thank you for using our app!") },
                 confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Close") } }
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp)) // Updated
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         SettingItem(
             title = "Privacy Policy",
@@ -697,21 +704,58 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         if (showPrivacyDialog) {
             AlertDialog(
                 onDismissRequest = { showPrivacyDialog = false },
-                icon = { Icon(Icons.Filled.Policy, contentDescription = null)},
+                icon = { Icon(Icons.Filled.Policy, contentDescription = "Privacy Policy Icon")},
                 title = { Text("Privacy Policy") },
                 text = { Text("Placeholder for Privacy Policy text. In a real application, this would contain the full policy details or link to a web page.\n\nWe are committed to protecting your privacy. Our policy outlines how we collect, use, and safeguard your information.") },
                 confirmButton = { TextButton(onClick = { showPrivacyDialog = false }) { Text("Close") } }
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp)) // Updated
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+        // Changelog Item
+        SettingItem(
+            title = "Changelog",
+            description = "See what's new in this version.",
+            leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Changelog", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            onClick = { showChangelogDialog = true }
+        )
+        if (showChangelogDialog) {
+            AlertDialog(
+                onDismissRequest = { showChangelogDialog = false },
+                icon = { Icon(Icons.Filled.HistoryEdu, contentDescription = "Changelog Icon", modifier = Modifier.size(28.dp))},
+                title = { Text("What's New - v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleLarge) },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Text("Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                        Text("✨ New Features:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                        Text("  • Added persistent login with auto-login.", style = MaterialTheme.typography.bodyMedium)
+                        Text("  • Implemented Logout functionality.", style = MaterialTheme.typography.bodyMedium)
+                        Text("  • Enhanced VPN detection with a Material 3 dialog.", style = MaterialTheme.typography.bodyMedium)
+                        Text("  • Added 'About', 'Privacy Policy', and 'Changelog' to Settings.", style = MaterialTheme.typography.bodyMedium)
+                        Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                        Text("  • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyMedium)
+                        Text("  • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyMedium)
+                        Text("  • Profile screen now shows username and placeholder picture.", style = MaterialTheme.typography.bodyMedium)
+                        Text("  • General UI/UX tweaks for a more expressive Material 3 feel.", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Thank you for updating!", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showChangelogDialog = false }) { Text("Awesome!") } },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest // Slightly different container for dialog
+            )
+        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
 
         SettingItem(
             title = "App Version",
             description = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
-            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)}, // Changed to Info for consistency
+            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = {}
         )
-         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp)) // Updated
+         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
     }
 }
 
@@ -726,22 +770,22 @@ fun SettingItem(
     val itemModifier = Modifier
         .fillMaxWidth()
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-        .padding(vertical = 16.dp, horizontal = 8.dp) // Consistent padding
+        .padding(vertical = 16.dp, horizontal = 8.dp)
 
     Row(
         modifier = itemModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (leadingIcon != null) {
-            Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) { // Ensure icon size consistency
+            Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
                 leadingIcon()
             }
         }
-        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) { // Adjusted padding
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
             if (description != null) {
-                Spacer(modifier = Modifier.height(2.dp)) // Reduced space
-                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) // Slightly larger body
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (control != null) {
@@ -761,15 +805,15 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
 
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 160.dp),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp), // Adjusted padding
-        verticalArrangement = Arrangement.spacedBy(20.dp), // Adjusted spacing
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
         modifier = modifier.fillMaxSize()
     ) {
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(key1 = title) {
-                delay(index * 70L + 100L) // Slightly adjusted stagger
+                delay(index * 70L + 100L)
                 itemVisible = true
             }
 
@@ -782,19 +826,19 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         ) +
                         scaleIn(
                             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                            initialScale = 0.75f // Slightly larger initial scale
+                            initialScale = 0.75f
                         ),
-                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.85f, animationSpec = tween(150)) // Faster exit
+                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.85f, animationSpec = tween(150))
             ) {
                 val infiniteTransition = rememberInfiniteTransition(label = "card_effects_$title")
                 val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.995f, // More subtle scale
+                    initialValue = 0.995f,
                     targetValue = 1.0f,
                     animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_scale_$title"
                 )
                  val animatedAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.75f, // Adjusted alpha
+                    initialValue = 0.75f,
                     targetValue = 0.60f,
                      animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_alpha_$title"
@@ -805,17 +849,18 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onCardClick(title)
                     },
-                    shape = RoundedCornerShape(24.dp), // Consistent rounding
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha) // Slightly more elevated
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.outlinedCardColors( // Changed to outlined for variety, can be CardDefaults.cardColors if preferred
+                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
                     ),
-                    border = CardDefaults.outlinedCardBorder(enabled = true, width = 0.5.dp), // Thinner border
-                    elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp),
+                    // Corrected: Use BorderStroke directly for the border parameter of the Card
+                    border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), // Subtle elevation for outlined cards
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier) // More subtle blur
+                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                         .fillMaxWidth()
-                        .height(170.dp) // Slightly adjusted height
+                        .height(170.dp)
                 ) {
                     Column(
                         Modifier.fillMaxSize().padding(16.dp),
@@ -825,13 +870,13 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         Image(
                             painter = icons[index % icons.size],
                             contentDescription = title,
-                            modifier = Modifier.size(60.dp) // Slightly smaller icon
+                            modifier = Modifier.size(60.dp)
                         )
                         Spacer(Modifier.height(10.dp))
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium, // Adjusted weight
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center
                         )
@@ -841,5 +886,3 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         }
     }
 }
-
-// Dummy activities (ensure R.string.app_name and R.mipmap.ic_launcher_round exist)
