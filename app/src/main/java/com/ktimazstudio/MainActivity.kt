@@ -153,6 +153,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
 
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.Transparant.toArgb())
+        )
+
         if (detectVpn(this)) {
             setContent {
                 ktimaz {
