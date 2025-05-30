@@ -153,10 +153,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
 
-        enableEdgeToEdge(
-            
-        )
-
         if (detectVpn(this)) {
             setContent {
                 ktimaz {
