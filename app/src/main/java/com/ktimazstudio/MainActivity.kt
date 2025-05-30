@@ -28,20 +28,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp // Updated
 import androidx.compose.material.icons.automirrored.filled.MenuOpen // Updated
 import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.AccountCircle // For Profile Picture
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.AccountCircle // Corrected import for Filled.AccountCircle
-import androidx.compose.material.icons.filled.Lock // Corrected import for Filled.Lock
 import androidx.compose.material.icons.outlined.AccountCircle as OutlinedAccountCircle // Alias for login
 import androidx.compose.material.icons.outlined.Lock as OutlinedLock // Alias for login
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -72,8 +71,6 @@ import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-// Dummy activities (ensure R.string.app_name and R.mipmap.ic_launcher_round exist)
 
 // --- SharedPreferencesManager ---
 class SharedPreferencesManager(context: Context) {
@@ -409,7 +406,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = usernameInput,
                     onValueChange = { usernameInput = it.trim(); errorMessage = null },
                     label = { Text("Username") },
-                    leadingIcon = { Icon(OutlinedAccountCircle, contentDescription = "Username") }, // Corrected
+                    leadingIcon = { Icon(OutlinedAccountCircle, contentDescription = "Username") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
                     shape = RoundedCornerShape(16.dp), // Rounded text field
@@ -421,7 +418,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     value = passwordInput,
                     onValueChange = { passwordInput = it; errorMessage = null },
                     label = { Text("Password") },
-                    leadingIcon = { Icon(OutlinedLock, contentDescription = "Password") }, // Corrected
+                    leadingIcon = { Icon(OutlinedLock, contentDescription = "Password") },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
@@ -812,8 +809,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                     colors = CardDefaults.outlinedCardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha) // Slightly more elevated
                     ),
-                    // import androidx.compose.foundation.BorderStroke // Make sure this import is present
-                    border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outline), // Thinner border
+                    border = CardDefaults.outlinedCardBorder(enabled = true, width = 0.5.dp), // Thinner border
                     elevation = CardDefaults.outlinedCardElevation(defaultElevation = 0.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
@@ -845,3 +841,5 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         }
     }
 }
+
+// Dummy activities (ensure R.string.app_name and R.mipmap.ic_launcher_round exist)
