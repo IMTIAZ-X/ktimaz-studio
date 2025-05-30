@@ -414,7 +414,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     onValueChange = { usernameInput = it.trim(); errorMessage = null },
                     label = { Text("Username") },
                     // Using direct icon reference
-                    leadingIcon = { Icon(androidx.compose.material.icons.outlined.AccountCircle, contentDescription = "Username") },
+                    leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
                     shape = RoundedCornerShape(16.dp),
@@ -427,7 +427,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     onValueChange = { passwordInput = it; errorMessage = null },
                     label = { Text("Password") },
                     // Using direct icon reference
-                    leadingIcon = { Icon(androidx.compose.material.icons.outlined.Lock, contentDescription = "Password") },
+                    leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = "Password") },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
