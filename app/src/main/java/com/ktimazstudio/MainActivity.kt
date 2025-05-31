@@ -12,6 +12,8 @@ import android.os.Build
 import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
