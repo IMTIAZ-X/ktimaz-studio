@@ -98,7 +98,7 @@ class SharedPreferencesManager(context: Context) {
 
     /**
      * Checks if a user is currently logged in.
-     * @return true if a user is logged in, false otherwise.
+     * return true if a user is logged in, false otherwise.
      */
     fun isLoggedIn(): Boolean {
         return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
@@ -124,7 +124,7 @@ class SharedPreferencesManager(context: Context) {
 
     /**
      * Retrieves the username of the currently logged-in user.
-     * @return The username string, or null if no user is logged in.
+     * return The username string, or null if no user is logged in.
      */
     fun getUsername(): String? {
         return prefs.getString(KEY_USERNAME, null)
@@ -136,7 +136,7 @@ class SharedPreferencesManager(context: Context) {
 /**
  * Checks if the device has an active and validated internet connection.
  * @param context The application context.
- * @return true if connected to the internet, false otherwise.
+ * return true if connected to the internet, false otherwise.
  */
 fun isConnected(context: Context): Boolean {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -187,13 +187,24 @@ class SecurityManager(private val context: Context) {
      * Calculates the SHA-256 hash of the application's *signing certificate*.
      * This is a more robust integrity check than file hash as it remains constant
      * for signed APKs regardless of minor build variations.
-     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
+     
+      /**
+     * Checks if a debugger is currently attached to the application process.
+     * This now combines Android's built-in check with a more robust procfs check.
+     * return true if a debugger is connected, false otherwise.
+     */
+    fun isDebuggerConnected(): Boolean {
+        return Debug.isDebuggerConnected() || isTracerAttached()
+    }
+
+    // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
      
     /**
      * Checks if a VPN connection is active.
      * This method iterates through all active networks and checks for the VPN transport.
-     * @return true if a VPN is detected and it has internet capabilities, false otherwise.
+     * return true if a VPN is detected and it has internet capabilities, false otherwise.
      */
     @Suppress("DEPRECATION")
     fun isVpnActive(): Boolean {
@@ -214,7 +225,7 @@ class SecurityManager(private val context: Context) {
     /**
      * Registers a NetworkCallback to listen for real-time VPN status changes.
      * @param onVpnStatusChanged Callback to be invoked when VPN status changes.
-     * @return The registered NetworkCallback instance, which should be unregistered later.
+     * return The registered NetworkCallback instance, which should be unregistered later.
      */
     fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -259,26 +270,15 @@ class SecurityManager(private val context: Context) {
     }
 
     /**
-     * Checks if a debugger is currently attached to the application process.
-     * This now combines Android's built-in check with a more robust procfs check.
-     * @return true if a debugger is connected, false otherwise.
-     */
-    fun isDebuggerConnected(): Boolean {
-        return Debug.isDebuggerConnected() || isTracerAttached()
-    }
-
-    // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
-
-    /**
      * Calculates the SHA-256 hash of the application's *signing certificate*.
      * This is a more robust integrity check than file hash as it remains constant
      * for signed APKs regardless of minor build variations.
-     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
 
     /**
      * Attempts to detect if the application is running on an emulator.
      * This check is not exhaustive and can be bypassed.
-     * @return true if an emulator is likely detected, false otherwise.
+     * return true if an emulator is likely detected, false otherwise.
      */
     fun isRunningOnEmulator(): Boolean {
         return (Build.FINGERPRINT.startsWith("generic")
@@ -294,7 +294,7 @@ class SecurityManager(private val context: Context) {
     /**
      * Attempts to detect if the device is rooted.
      * This check is not exhaustive and can be bypassed.
-     * @return true if root is likely detected, false otherwise.
+     * return true if root is likely detected, false otherwise.
      */
     fun isDeviceRooted(): Boolean {
         val paths = arrayOf(
@@ -336,7 +336,7 @@ class SecurityManager(private val context: Context) {
     /**
      * Calculates the SHA-256 hash of the application's APK file.
      * This can be used to detect if the APK has been tampered with.
-     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
      fun getSignatureSha256Hash(): String? {
         try {
@@ -369,7 +369,7 @@ class SecurityManager(private val context: Context) {
       /**
      * Checks if the APK's *signature hash* matches the expected hash.
      * This is now the primary integrity check.
-     * @return true if the signature hash matches, false otherwise.
+     * return true if the signature hash matches, false otherwise.
      */
 
     /**
@@ -378,7 +378,7 @@ class SecurityManager(private val context: Context) {
      *
      * Calculates the SHA-256 hash of the application's APK file.
      * This can be used to detect if the APK has been tampered with.
-     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
     fun getApkSha256Hash_UNUSED(): String? {
         try {
@@ -400,14 +400,14 @@ class SecurityManager(private val context: Context) {
      /**
      * Checks if the APK's *signature hash* matches the expected hash.
      * This is now the primary integrity check.
-     * @return true if the signature hash matches, false otherwise.
+     * return true if the signature hash matches, false otherwise.
      */
      
        /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, or system properties.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
-     * @return true if a hooking framework is likely detected, false otherwise.
+     * return true if a hooking framework is likely detected, false otherwise.
      */
     
     
@@ -464,7 +464,7 @@ class SecurityManager(private val context: Context) {
 
     /**
      * Checks if the APK hash matches the expected hash.
-     * @return true if the hash matches, false otherwise.
+     * return true if the hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
         val currentSignatureHash = getSignatureSha256Hash()
@@ -476,13 +476,13 @@ class SecurityManager(private val context: Context) {
 
     /**
      * Aggregates all security checks to determine if the app environment is secure.
-     * @return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
+     * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
      */
 
     /**
      * Gets the size of the installed application (APK + data).
      * This can be used as a very basic indicator of tampering if the size changes unexpectedly.
-     * @return The app size in bytes, or -1 if unable to retrieve.
+     * return The app size in bytes, or -1 if unable to retrieve.
      */
     fun getAppSize(): Long {
         try {
@@ -520,7 +520,7 @@ class SecurityManager(private val context: Context) {
 
     /**
      * Aggregates all security checks to determine if the app environment is secure.
-     * @return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
+     * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
      */
     fun getSecurityIssue(): SecurityIssue {
         if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
