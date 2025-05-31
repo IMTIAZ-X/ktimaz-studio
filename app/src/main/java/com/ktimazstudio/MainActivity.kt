@@ -13,6 +13,8 @@ import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
 import android.widget.Toast
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
@@ -429,11 +431,14 @@ class SecurityManager(private val context: Context) {
             val process = Runtime.getRuntime().exec("getprop")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                for (prop in props) {
-                    if (line?.contains("[$prop]:") == true) return true
-                }
-            }
+            var line: String?
+            while (true) {
+            line = reader.readLine()
+           if (line == null) break
+            for (prop in props) {
+            if (line.contains("[$prop]:")) return true
+    }
+}
             process.destroy()
         } catch (e: Exception) {
             // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
