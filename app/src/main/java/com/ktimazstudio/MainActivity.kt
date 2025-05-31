@@ -327,10 +327,19 @@ class SecurityManager(private val context: Context) {
                 val bytes = file.readBytes()
                 val digest = MessageDigest.getInstance("SHA-256")
                 val hashBytes = digest.digest(bytes)
-                return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
+                val calculatedHash = hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
+
+                // --- ADD THIS LINE FOR DEBUGGING ---
+                Toast.makeText(context, "Calculated APK Hash: $calculatedHash", Toast.LENGTH_LONG).show()
+                // ------------------------------------
+
+                return calculatedHash
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            // --- ADD THIS LINE FOR DEBUGGING ---
+            Toast.makeText(context, "Error calculating hash: ${e.message}", Toast.LENGTH_LONG).show()
+            // ------------------------------------
         }
         return null
     }
