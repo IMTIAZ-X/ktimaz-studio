@@ -22,7 +22,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
@@ -83,6 +82,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
+import androidx.compose.foundation.border // <-- ADDED THIS IMPORT
 
 // --- SharedPreferencesManager ---
 /**
@@ -100,7 +100,7 @@ class SharedPreferencesManager(context: Context) {
 
     /**
      * Checks if a user is currently logged in.
-     * @return true if a user is logged in, false otherwise.
+     * return true if a user is logged in, false otherwise.
      */
     fun isLoggedIn(): Boolean {
         return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
@@ -126,7 +126,7 @@ class SharedPreferencesManager(context: Context) {
 
     /**
      * Retrieves the username of the currently logged-in user.
-     * @return The username string, or null if no user is logged in.
+     * return The username string, or null if no user is logged in.
      */
     fun getUsername(): String? {
         return prefs.getString(KEY_USERNAME, null)
@@ -138,7 +138,7 @@ class SharedPreferencesManager(context: Context) {
 /**
  * Checks if the device has an active and validated internet connection.
  * @param context The application context.
- * @return true if connected to the internet, false otherwise.
+ * return true if connected to the internet, false otherwise.
  */
 fun isConnected(context: Context): Boolean {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -182,19 +182,30 @@ class SecurityManager(private val context: Context) {
     // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425
     private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
 
-    /**
+    // ... (isVpnActive, registerVpnDetectionCallback, unregisterVpnDetectionCallback remain the same) ...
+    // ... (isDebuggerConnected, isRunningOnEmulator, isDeviceRooted remain the same) ...
+    
+     /**
+     * Calculates the SHA-256 hash of the application's *signing certificate*.
+     * This is a more robust integrity check than file hash as it remains constant
+     * for signed APKs regardless of minor build variations.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     */
+     
+      /**
      * Checks if a debugger is currently attached to the application process.
      * This now combines Android's built-in check with a more robust procfs check.
-     * @return true if a debugger is connected, false otherwise.
+     * return true if a debugger is connected, false otherwise.
      */
     fun isDebuggerConnected(): Boolean {
-        return Debug.isDebuggerConnected() || isTracerAttached()
+    return Debug.isDebuggerConnected() || isTracerAttached()
     }
-
+    // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
+     
     /**
      * Checks if a VPN connection is active.
      * This method iterates through all active networks and checks for the VPN transport.
-     * @return true if a VPN is detected and it has internet capabilities, false otherwise.
+     * return true if a VPN is detected and it has internet capabilities, false otherwise.
      */
     @Suppress("DEPRECATION")
     fun isVpnActive(): Boolean {
@@ -215,7 +226,7 @@ class SecurityManager(private val context: Context) {
     /**
      * Registers a NetworkCallback to listen for real-time VPN status changes.
      * @param onVpnStatusChanged Callback to be invoked when VPN status changes.
-     * @return The registered NetworkCallback instance, which should be unregistered later.
+     * return The registered NetworkCallback instance, which should be unregistered later.
      */
     fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -259,10 +270,11 @@ class SecurityManager(private val context: Context) {
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 
+  
     /**
      * Attempts to detect if the application is running on an emulator.
      * This check is not exhaustive and can be bypassed.
-     * @return true if an emulator is likely detected, false otherwise.
+     * return true if an emulator is likely detected, false otherwise.
      */
     fun isRunningOnEmulator(): Boolean {
         return (Build.FINGERPRINT.startsWith("generic")
@@ -278,7 +290,7 @@ class SecurityManager(private val context: Context) {
     /**
      * Attempts to detect if the device is rooted.
      * This check is not exhaustive and can be bypassed.
-     * @return true if root is likely detected, false otherwise.
+     * return true if root is likely detected, false otherwise.
      */
     fun isDeviceRooted(): Boolean {
         val paths = arrayOf(
@@ -318,12 +330,11 @@ class SecurityManager(private val context: Context) {
     }
 
     /**
-     * Calculates the SHA-256 hash of the application's *signing certificate*.
-     * This is a more robust integrity check than file hash as it remains constant
-     * for signed APKs regardless of minor build variations.
-     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     * Calculates the SHA-256 hash of the application's APK file.
+     * This can be used to detect if the APK has been tampered with.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
-    fun getSignatureSha256Hash(): String? {
+     fun getSignatureSha256Hash(): String? {
         try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
@@ -350,6 +361,12 @@ class SecurityManager(private val context: Context) {
         }
         return null
     }
+    
+      /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * return true if the signature hash matches, false otherwise.
+     */
 
     /**
      * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
@@ -357,7 +374,7 @@ class SecurityManager(private val context: Context) {
      *
      * Calculates the SHA-256 hash of the application's APK file.
      * This can be used to detect if the APK has been tampered with.
-     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
     fun getApkSha256Hash_UNUSED(): String? {
         try {
@@ -375,13 +392,21 @@ class SecurityManager(private val context: Context) {
         }
         return null
     }
-
-    /**
+    
+     /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * return true if the signature hash matches, false otherwise.
+     */
+     
+       /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, or system properties.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
-     * @return true if a hooking framework is likely detected, false otherwise.
+     * return true if a hooking framework is likely detected, false otherwise.
      */
+    
+    
     fun isHookingFrameworkDetected(): Boolean {
         // 1. Check for common Xposed/Magisk/Frida related files/directories
         val knownHookFiles = arrayOf(
@@ -407,12 +432,12 @@ class SecurityManager(private val context: Context) {
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             while (true) {
-                line = reader.readLine()
-                if (line == null) break
-                for (prop in props) {
-                    if (line.contains("[$prop]:")) return true
-                }
-            }
+            line = reader.readLine()
+           if (line == null) break
+            for (prop in props) {
+            if (line.contains("[$prop]:")) return true
+    }
+}
             process.destroy()
         } catch (e: Exception) {
             // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
@@ -437,7 +462,7 @@ class SecurityManager(private val context: Context) {
 
     /**
      * Checks if the APK hash matches the expected hash.
-     * @return true if the hash matches, false otherwise.
+     * return true if the hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
         val currentSignatureHash = getSignatureSha256Hash()
@@ -445,10 +470,17 @@ class SecurityManager(private val context: Context) {
         return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
     }
 
+    // ... (getAppSize and isAppSizeModified_UNUSED remain the same) ...
+
+    /**
+     * Aggregates all security checks to determine if the app environment is secure.
+     * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
+     */
+
     /**
      * Gets the size of the installed application (APK + data).
      * This can be used as a very basic indicator of tampering if the size changes unexpectedly.
-     * @return The app size in bytes, or -1 if unable to retrieve.
+     * return The app size in bytes, or -1 if unable to retrieve.
      */
     fun getAppSize(): Long {
         try {
@@ -463,6 +495,12 @@ class SecurityManager(private val context: Context) {
         return -1L
     }
 
+    // You could also add a check for expected app size and compare.
+    // private val EXPECTED_APP_SIZE_BYTES = 12345678L // Example size
+    // fun isAppSizeModified(): Boolean {
+    //     return getAppSize() != -1L && getAppSize() != EXPECTED_APP_SIZE_BYTES
+    // }
+    
     fun isTracerAttached(): Boolean {
         try {
             val statusFile = File("/proc/self/status")
@@ -483,7 +521,7 @@ class SecurityManager(private val context: Context) {
 
     /**
      * Aggregates all security checks to determine if the app environment is secure.
-     * @return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
+     * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
      */
     fun getSecurityIssue(): SecurityIssue {
         if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
@@ -666,18 +704,17 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
         }
     }
 
-    // A richer, more dynamic primary gradient
     val primaryGradient = Brush.verticalGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.95f), // Slightly more opaque
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f), // Stronger container color
-            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.7f) // Smoother transition
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.90f),
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
+            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.6f)
         )
     )
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-    val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp) // More rounded
-    val scrolledAppBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp).copy(alpha = 0.98f) // Deeper elevation color
+    val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
+    val scrolledAppBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
 
     Row(
         modifier = Modifier
@@ -701,8 +738,8 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
                     title = {
                         Text(
                             text = stringResource(id = R.string.app_name),
-                            fontSize = 24.sp, // Slightly larger title
-                            fontWeight = FontWeight.Bold, // Bolder title
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     },
@@ -716,7 +753,7 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
                     modifier = Modifier
                         .statusBarsPadding()
                         .graphicsLayer {
-                            shadowElevation = if (isScrolled) 8.dp.toPx() else 0f // Stronger shadow when scrolled
+                            shadowElevation = if (isScrolled) 4.dp.toPx() else 0f
                             shape = topAppBarRoundedShape
                             clip = true
                         }
@@ -732,10 +769,10 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
             AnimatedContent(
                 targetState = selectedDestination,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(400, easing = LinearOutSlowInEasing)) +
-                            slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 400 else -400 }, animationSpec = tween(400, easing = EaseOutCubic)) togetherWith // Smoother, faster slide
+                    fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                            slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(300)) togetherWith
                             fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                            slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -400 else 400 }, animationSpec = tween(300, easing = EaseInCubic))
+                            slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -300 else 300 }, animationSpec = tween(300))
                 }, label = "nav_rail_content_transition"
             ) { targetDestination ->
                 Box(modifier = Modifier.padding(paddingValues)) {
@@ -767,10 +804,14 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
     var passwordInput by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) } // New state for loading indicator
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current
+    val context = LocalContext.current   // Use application context for Toast
+
+    // ... rest of your LoginScreen code ...
+
+    // Inside your Button onClick or KeyboardActions onDone:
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -791,9 +832,9 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
     // Gradient for the background of the login screen
     val backgroundGradient = Brush.verticalGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f), // Stronger start
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
             MaterialTheme.colorScheme.surfaceContainerLow,
-            MaterialTheme.colorScheme.surfaceContainerHighest // Deeper end
+            MaterialTheme.colorScheme.surfaceContainerHigh
         )
     )
 
@@ -805,36 +846,36 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
     ) {
         // Animated Card for the login form
         Card(
-            shape = RoundedCornerShape(32.dp), // Even more rounded
-            elevation = CardDefaults.cardElevation(defaultElevation = 20.dp), // More prominent shadow
+            shape = RoundedCornerShape(28.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .widthIn(max = 520.dp) // Wider max width for larger screens
+                .widthIn(max = 480.dp) // Max width for larger screens
                 .padding(24.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 36.dp, vertical = 48.dp) // Increased padding
-                    .verticalScroll(rememberScrollState()),
+                    .padding(horizontal = 32.dp, vertical = 40.dp)
+                    .verticalScroll(rememberScrollState()), // Make content scrollable if it overflows
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(28.dp) // Increased spacing
+                verticalArrangement = Arrangement.spacedBy(24.dp) // Increased spacing
             ) {
                 // App Logo
                 Image(
                     painter = painterResource(id = R.mipmap.ic_launcher_round),
                     contentDescription = stringResource(id = R.string.app_name) + " Logo",
                     modifier = Modifier
-                        .size(112.dp) // Larger logo
+                        .size(96.dp) // Larger logo
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) // More vibrant background
-                        .padding(12.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                        .padding(8.dp)
                 )
                 Text(
                     text = stringResource(id = R.string.app_name),
-                    style = MaterialTheme.typography.headlineLarge, // Back to headlineLarge for impact
+                    style = MaterialTheme.typography.headlineMedium, // CHANGED from headlineLarge
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.ExtraBold // Even bolder
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = "Securely sign in to your account",
@@ -843,7 +884,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(20.dp)) // More space
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Username Field
                 OutlinedTextField(
@@ -853,7 +894,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username Icon") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
-                    shape = RoundedCornerShape(24.dp), // More rounded corners
+                    shape = RoundedCornerShape(18.dp), // More rounded corners
                     colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
                     isError = errorMessage != null
@@ -870,11 +911,13 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         focusManager.clearFocus()
+                        // Trigger login attempt
                         isLoading = true
                         errorMessage = null // Clear previous error
-                        val scope = (context as ComponentActivity).lifecycleScope
-                        scope.launch {
-                            delay(1200) // Slightly longer simulation for a "heavy" login
+                        // Simulate network delay
+                        val scope = (context as? ComponentActivity)?.lifecycleScope
+                        scope?.launch {
+                            delay(1000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onLoginSuccess(usernameInput)
@@ -894,7 +937,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                             Icon(imageVector = image, contentDescription = description)
                         }
                     },
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(18.dp),
                     colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
                     isError = errorMessage != null
@@ -903,14 +946,14 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                 // Error Message
                 AnimatedVisibility(
                     visible = errorMessage != null,
-                    enter = fadeIn(animationSpec = tween(300)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+                    enter = fadeIn(animationSpec = tween(200)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
                     exit = fadeOut(animationSpec = tween(200)) + slideOutVertically(targetOffsetY = { -it / 2 }, animationSpec = spring(stiffness = Spring.StiffnessMedium))
                 ) {
                     Text(
                         text = errorMessage ?: "",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(top = 8.dp) // More padding
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
 
@@ -919,10 +962,12 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     onClick = {
                         focusManager.clearFocus()
                         isLoading = true
-                        errorMessage = null
-                        val scope = (context as ComponentActivity).lifecycleScope
-                        scope.launch {
-                            delay(1200) // Simulate network request
+                        errorMessage = null // Clear previous error
+                        // Simulate network delay
+                        // 'context' here is now guaranteed to be a ComponentActivity for lifecycleScope
+                        val scope = (context as ComponentActivity).lifecycleScope // Cast now safe
+                        scope?.launch { // This block will now execute
+                            delay(1000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onLoginSuccess(usernameInput)
@@ -937,25 +982,22 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 32.dp) // More padding
-                        .height(60.dp), // Taller button
-                    shape = RoundedCornerShape(28.dp), // More rounded
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp, pressedElevation = 12.dp), // More prominent shadow
+                        .padding(top = 24.dp)
+                        .height(56.dp), // Taller button
+                    shape = RoundedCornerShape(20.dp), // More rounded
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp), // More prominent shadow
                     enabled = !isLoading // Disable button while loading
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(28.dp)) // Larger indicator
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                     } else {
-                        Text("LOGIN", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold) // Bolder text
+                        Text("LOGIN", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
                 // Placeholder for Forgot Password / Sign Up
-                TextButton(onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    Toast.makeText(context, "Forgot Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
-                }) {
-                    Text("Forgot password?", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                TextButton(onClick = { /* TODO: Implement navigation to Forgot Password */ }) {
+                    Text("Forgot password?", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -970,11 +1012,10 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
 @Composable
 fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () -> Unit) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
 
     val profileBackgroundGradient = Brush.verticalGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), // Slightly more vibrant start
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
             MaterialTheme.colorScheme.background,
             MaterialTheme.colorScheme.background
         )
@@ -989,45 +1030,45 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        Spacer(modifier = Modifier.height(56.dp)) // More top space
+        Spacer(modifier = Modifier.height(48.dp))
 
         // Profile Picture / Icon
         Box(
             modifier = Modifier
-                .size(180.dp) // Even larger profile picture area
+                .size(160.dp) // Larger profile picture area
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), // Stronger primary
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f), // Stronger container
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
                             MaterialTheme.colorScheme.surfaceVariant
                         ),
-                        radius = 140f // Larger radial effect
+                        radius = 120f
                     )
                 )
-                .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape), // Thicker border
+                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape), // <-- FIXED HERE: 'border' modifier
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Filled.AccountCircle,
                 contentDescription = "Profile Picture",
-                modifier = Modifier.size(120.dp), // Larger icon size within the circle
+                modifier = Modifier.size(100.dp), // Icon size within the circle
                 tint = MaterialTheme.colorScheme.onPrimary
             )
         }
-        Spacer(modifier = Modifier.height(40.dp)) // More space
+        Spacer(modifier = Modifier.height(32.dp))
 
         // Username
         Text(
             text = username.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
-            style = MaterialTheme.typography.displaySmall, // Larger, more impactful text
+            style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Welcome Message
         Text(
@@ -1035,72 +1076,66 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
-        Spacer(modifier = Modifier.height(56.dp)) // More space
+        Spacer(modifier = Modifier.height(48.dp))
 
         // Profile Options (Placeholder)
         Card(
-            shape = RoundedCornerShape(24.dp), // More rounded
-            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp), // More prominent shadow
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
             modifier = Modifier
-                .fillMaxWidth(0.95f) // Slightly wider card
-                .widthIn(max = 550.dp) // Wider max width
+                .fillMaxWidth(0.9f)
+                .widthIn(max = 500.dp)
                 .padding(horizontal = 16.dp)
         ) {
-            Column(modifier = Modifier.padding(vertical = 20.dp)) { // More vertical padding
+            Column(modifier = Modifier.padding(vertical = 16.dp)) {
                 ProfileOptionItem(
                     icon = Icons.Filled.AccountBox,
                     title = "Edit Profile",
                     description = "Update your personal information."
                 ) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     Toast.makeText(context, "Edit Profile Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 28.dp)) // Thicker padding for divider
+                Divider(modifier = Modifier.padding(horizontal = 24.dp))
                 ProfileOptionItem(
                     icon = Icons.Filled.Lock,
                     title = "Change Password",
                     description = "Secure your account with a new password."
                 ) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     Toast.makeText(context, "Change Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 28.dp))
+                Divider(modifier = Modifier.padding(horizontal = 24.dp))
                 ProfileOptionItem(
                     icon = Icons.Filled.Settings,
                     title = "Privacy Settings",
                     description = "Manage your data and privacy preferences."
                 ) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     Toast.makeText(context, "Privacy Settings Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
             }
         }
-        Spacer(modifier = Modifier.height(56.dp)) // More space
+        Spacer(modifier = Modifier.height(48.dp))
 
         // Logout Button
         Button(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onLogout()
-            },
-            shape = RoundedCornerShape(28.dp), // More rounded
+            onClick = onLogout,
+            shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error, // Stronger error color for logout
                 contentColor = MaterialTheme.colorScheme.onError
             ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp, pressedElevation = 12.dp), // More prominent shadow
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
             modifier = Modifier
-                .fillMaxWidth(0.8f) // Wider button
-                .height(60.dp) // Taller button
+                .fillMaxWidth(0.7f)
+                .height(56.dp)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout Icon", modifier = Modifier.size(28.dp)) // Larger icon
-            Spacer(Modifier.width(18.dp)) // More space
-            Text("Logout", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold) // Bolder text
+            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout Icon")
+            Spacer(Modifier.width(16.dp))
+            Text("Logout", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -1118,26 +1153,25 @@ fun ProfileOptionItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 28.dp, vertical = 18.dp), // Increased padding
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null, // Icon is decorative here
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(32.dp) // Larger icon
+            modifier = Modifier.size(28.dp)
         )
-        Spacer(modifier = Modifier.width(24.dp)) // More space
-        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+        Spacer(modifier = Modifier.width(20.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge, // Larger title
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodyMedium, // Slightly larger description
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -1145,10 +1179,11 @@ fun ProfileOptionItem(
             imageVector = Icons.Filled.ChevronRight,
             contentDescription = "Go to $title",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp) // Larger chevron
+            modifier = Modifier.size(20.dp)
         )
     }
 }
+
 
 @Composable
 fun AppNavigationRail(
@@ -1158,61 +1193,56 @@ fun AppNavigationRail(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalHapticFeedback.current
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
     val railWidth by animateDpAsState(
-        targetValue = if (isExpanded) 220.dp else 88.dp, // Wider expanded, slightly wider collapsed
-        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing), // Slightly longer animation
+        targetValue = if (isExpanded) 180.dp else 80.dp,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
         label = "nav_rail_width_anim"
     )
-    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp).copy(alpha = 0.98f) // Deeper elevation color
+    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f)
 
     NavigationRail(
         modifier = modifier
             .statusBarsPadding()
             .fillMaxHeight()
             .width(railWidth)
-            .padding(vertical = 16.dp, horizontal = 6.dp), // Increased padding
+            .padding(vertical = 12.dp, horizontal = 4.dp),
         containerColor = railContainerColor,
         header = {
             IconButton(
                 onClick = onMenuClick,
-                modifier = Modifier.padding(bottom = 20.dp) // More space below header
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 AnimatedContent(
                     targetState = isExpanded,
                     transitionSpec = {
-                        fadeIn(animationSpec = tween(250, delayMillis = 150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(250, delayMillis = 150)) togetherWith // Faster, more pronounced scale
-                                fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.7f, animationSpec = tween(150))
+                        fadeIn(animationSpec = tween(200, delayMillis = 150)) + scaleIn(initialScale = 0.8f, animationSpec = tween(200, delayMillis = 150)) togetherWith
+                                fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f, animationSpec = tween(150))
                     }, label = "menu_icon_transition"
                 ) { expanded ->
                     Icon(
                         imageVector = if (expanded) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
                         contentDescription = if (expanded) "Collapse Menu" else "Expand Menu",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(32.dp) // Larger icon
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
     ) {
-        Spacer(Modifier.weight(0.1f)) // More space at top
+        Spacer(Modifier.weight(0.05f))
         destinations.forEach { screen ->
             val isSelected = selectedDestination == screen
             val iconScale by animateFloatAsState(
-                targetValue = if (isSelected) 1.2f else 1.0f, // More pronounced scale on selection
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), // Bouncier spring
+                targetValue = if (isSelected) 1.1f else 1.0f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
                 label = "nav_item_icon_scale_anim"
             )
-            val indicatorColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else Color.Transparent // Stronger indicator color
-            val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant // OnPrimary for selected
+            val indicatorColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else Color.Transparent
+            val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
 
             NavigationRailItem(
                 selected = isSelected,
-                onClick = {
-                    onDestinationSelected(screen)
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Haptic feedback on navigation
-                },
+                onClick = { onDestinationSelected(screen) },
                 icon = {
                     Icon(
                         imageVector = screen.icon,
@@ -1223,17 +1253,9 @@ fun AppNavigationRail(
                 label = {
                     AnimatedVisibility(
                         visible = isExpanded,
-                        enter = fadeIn(animationSpec = tween(250, delayMillis = 150)) + expandHorizontally(animationSpec = tween(350, delayMillis = 100), expandFrom = Alignment.Start), // Slightly longer expand
-                        exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally(animationSpec = tween(300), shrinkTowards = Alignment.Start)
-                    ) {
-                        Text(
-                            screen.label,
-                            maxLines = 1,
-                            style = MaterialTheme.typography.titleMedium, // Larger label text
-                            fontWeight = FontWeight.SemiBold, // Bolder label
-                            color = animateColorAsState(targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, label = "nav_label_color_anim").value // Animated label color
-                        )
-                    }
+                        enter = fadeIn(animationSpec = tween(200, delayMillis = 150)) + expandHorizontally(animationSpec = tween(300, delayMillis = 100), expandFrom = Alignment.Start),
+                        exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally(animationSpec = tween(250), shrinkTowards = Alignment.Start)
+                    ) { Text(screen.label, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
                 },
                 alwaysShowLabel = isExpanded,
                 colors = NavigationRailItemDefaults.colors(
@@ -1243,10 +1265,10 @@ fun AppNavigationRail(
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                modifier = Modifier.padding(vertical = 8.dp).height(64.dp) // More vertical padding, taller item
+                modifier = Modifier.padding(vertical = 6.dp).height(56.dp)
             )
             if (destinations.last() != screen) {
-                Spacer(Modifier.height(8.dp)) // More spacing between items
+                Spacer(Modifier.height(6.dp))
             }
         }
         Spacer(Modifier.weight(1f))
@@ -1258,20 +1280,18 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 12.dp) // Increased padding
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Text(
             "Application Settings",
-            style = MaterialTheme.typography.headlineSmall, // Larger title
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 20.dp, horizontal = 12.dp) // More padding
+            modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
         )
 
         var notificationsEnabled by remember { mutableStateOf(true) }
@@ -1282,20 +1302,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             control = {
                 Switch(
                     checked = notificationsEnabled,
-                    onCheckedChange = {
-                        notificationsEnabled = it
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Haptic feedback on switch
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.primary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    onCheckedChange = { notificationsEnabled = it }
                 )
             }
         )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp)) // Thicker padding
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         var showAccountDialog by remember { mutableStateOf(false) }
         SettingItem(
@@ -1303,10 +1314,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Manage your account details.",
             leadingIcon = { Icon(Icons.Filled.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "Go to account preferences", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                showAccountDialog = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
+            onClick = { showAccountDialog = true }
         )
         if (showAccountDialog) {
             AlertDialog(
@@ -1317,17 +1325,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 confirmButton = { TextButton(onClick = { showAccountDialog = false }) { Text("OK") } }
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         SettingItem(
             title = "About",
             description = "Information about this application.",
             leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View About", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                showAboutDialog = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
+            onClick = { showAboutDialog = true }
         )
         if (showAboutDialog) {
             AlertDialog(
@@ -1338,17 +1343,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Close") } }
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         SettingItem(
             title = "Privacy Policy",
             description = "Read our privacy policy.",
             leadingIcon = { Icon(Icons.Filled.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Privacy Policy", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                showPrivacyDialog = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
+            onClick = { showPrivacyDialog = true }
         )
         if (showPrivacyDialog) {
             AlertDialog(
@@ -1359,7 +1361,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 confirmButton = { TextButton(onClick = { showPrivacyDialog = false }) { Text("Close") } }
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         // Changelog Item
         SettingItem(
@@ -1367,39 +1369,36 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "See what's new in this version.",
             leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Changelog", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                showChangelogDialog = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
+            onClick = { showChangelogDialog = true }
         )
         if (showChangelogDialog) {
             AlertDialog(
                 onDismissRequest = { showChangelogDialog = false },
-                icon = { Icon(Icons.Filled.HistoryEdu, contentDescription = "Changelog Icon", modifier = Modifier.size(32.dp))}, // Larger icon
-                title = { Text("What's New - v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.headlineSmall) }, // Larger title
+                icon = { Icon(Icons.Filled.HistoryEdu, contentDescription = "Changelog Icon", modifier = Modifier.size(28.dp))},
+                title = { Text("What's New - v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleLarge) },
                 text = {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                        Text("Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp)) // More padding
-                        Text("✨ New Features:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)) // More padding
-                        Text(" • Added persistent login with auto-login.", style = MaterialTheme.typography.bodyLarge) // Larger body text
-                        Text(" • Implemented Logout functionality.", style = MaterialTheme.typography.bodyLarge)
-                        Text(" • Enhanced VPN detection with a Material 3 dialog.", style = MaterialTheme.typography.bodyLarge)
-                        Text(" • Added 'About', 'Privacy Policy', and 'Changelog' to Settings.", style = MaterialTheme.typography.bodyLarge)
-                        Text(" • Implemented basic reverse engineering detection (debugger, emulator, root, APK tampering).", style = MaterialTheme.typography.bodyLarge)
-                        Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 6.dp)) // More padding
-                        Text(" • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyLarge)
-                        Text(" • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyLarge)
-                        Text(" • Profile screen now shows username and placeholder picture.", style = MaterialTheme.typography.bodyLarge)
-                        Text(" • General UI/UX tweaks for a more expressive Material 3 feel.", style = MaterialTheme.typography.bodyLarge)
-                        Spacer(modifier = Modifier.height(20.dp)) // More space
-                        Text("Thank you for updating!", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) // Slightly larger text
+                        Text("Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                        Text("✨ New Features:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                        Text(" • Added persistent login with auto-login.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Implemented Logout functionality.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Enhanced VPN detection with a Material 3 dialog.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added 'About', 'Privacy Policy', and 'Changelog' to Settings.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Implemented basic reverse engineering detection (debugger, emulator, root, APK tampering).", style = MaterialTheme.typography.bodyMedium)
+                        Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                        Text(" • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Profile screen now shows username and placeholder picture.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • General UI/UX tweaks for a more expressive Material 3 feel.", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Thank you for updating!", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     }
                 },
                 confirmButton = { TextButton(onClick = { showChangelogDialog = false }) { Text("Awesome!") } },
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
 
         SettingItem(
@@ -1408,7 +1407,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = {}
         )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
     }
 }
 
@@ -1423,26 +1422,26 @@ fun SettingItem(
     val itemModifier = Modifier
         .fillMaxWidth()
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-        .padding(vertical = 18.dp, horizontal = 12.dp) // Increased padding
+        .padding(vertical = 16.dp, horizontal = 8.dp)
 
     Row(
         modifier = itemModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (leadingIcon != null) {
-            Box(modifier = Modifier.padding(end = 20.dp).size(28.dp), contentAlignment = Alignment.Center) { // Larger icon size, more padding
+            Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
                 leadingIcon()
             }
         }
-        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) { // More padding
-            Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium) // Larger title
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
             if (description != null) {
-                Spacer(modifier = Modifier.height(4.dp)) // More space
-                Text(description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) // Larger description
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (control != null) {
-            Box(modifier = Modifier.padding(start = 10.dp)) { // More padding
+            Box(modifier = Modifier.padding(start = 8.dp)) {
                 control()
             }
         }
@@ -1452,39 +1451,22 @@ fun SettingItem(
 
 @Composable
 fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
-    val cards = listOf(
-        "Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link",
-        "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer",
-        "Sonic Emitter", "AI Core Access", "System Config", "Data Vault" // Added one more for good measure
-    )
-    // Using a selection of Material Icons for better visual distinction
-    val cardIcons = listOf(
-        Icons.Filled.Dashboard, // Analyzer
-        Icons.Filled.Info, // Synthesizer
-        Icons.Filled.HistoryEdu, // Holovid
-        Icons.Filled.Lock, // Neural Net
-        Icons.Filled.Policy, // Encrypted Notes
-        Icons.Filled.Settings, // Quantum Web
-        Icons.Filled.AccountBox, // Bio Scanner
-        Icons.Filled.AccountCircle, // Interface Designer
-        Icons.Filled.Person, // Sonic Emitter
-        Icons.Filled.Menu, // AI Core Access
-        Icons.Filled.Settings, // System Config
-        Icons.Filled.Lock // Data Vault
-    )
+    val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
+    // Consider adding specific icons for each card for better visual distinction
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Placeholder: replace with distinct icons
     val haptic = LocalHapticFeedback.current
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 180.dp), // Slightly larger min size for cards
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 28.dp), // Increased padding
-        verticalArrangement = Arrangement.spacedBy(24.dp), // More spacing
-        horizontalArrangement = Arrangement.spacedBy(24.dp), // More spacing
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
         modifier = modifier.fillMaxSize()
     ) {
         itemsIndexed(cards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(key1 = title) {
-                delay(index * 80L + 150L) // Slightly longer staggered animation delay
+                delay(index * 70L + 100L) // Staggered animation delay
                 itemVisible = true
             }
 
@@ -1493,25 +1475,25 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                 enter = fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessVeryLow)) +
                         slideInVertically(
                             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                            initialOffsetY = { it / 3 } // Start from a bit further down
+                            initialOffsetY = { it / 2 }
                         ) +
                         scaleIn(
                             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                            initialScale = 0.6f // Start from a smaller scale
+                            initialScale = 0.75f
                         ),
-                exit = fadeOut(animationSpec = tween(200)) + scaleOut(targetScale = 0.8f, animationSpec = tween(200))
+                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.85f, animationSpec = tween(150))
             ) {
                 val infiniteTransition = rememberInfiniteTransition(label = "card_effects_$title")
                 val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.99f, // Subtle pulse
-                    targetValue = 1.01f,
-                    animationSpec = infiniteRepeatable(animation = tween(3000, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse), // Slower pulse
+                    initialValue = 0.995f,
+                    targetValue = 1.0f,
+                    animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_scale_$title"
                 )
                 val animatedAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.8f, // Slightly more opaque
-                    targetValue = 0.65f,
-                    animationSpec = infiniteRepeatable(animation = tween(3000, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
+                    initialValue = 0.75f,
+                    targetValue = 0.60f,
+                    animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_alpha_$title"
                 )
 
@@ -1520,34 +1502,33 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onCardClick(title)
                     },
-                    shape = RoundedCornerShape(28.dp), // More rounded
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.outlinedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = animatedAlpha) // Stronger elevation color
+                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
                     ),
-                    border = BorderStroke(width = 1.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f)), // Thicker, more visible border
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), // Slightly more elevation
+                    border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier
                         .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(3.dp) else Modifier) // Slightly more blur
+                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                         .fillMaxWidth()
-                        .height(190.dp) // Taller cards
+                        .height(170.dp)
                 ) {
                     Column(
-                        Modifier.fillMaxSize().padding(20.dp), // Increased padding
+                        Modifier.fillMaxSize().padding(16.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon( // Using Icon instead of Image for Material Icons
-                            imageVector = cardIcons[index % cardIcons.size], // Using specific icons
+                        Image(
+                            painter = icons[index % icons.size], // Using placeholder icon
                             contentDescription = title,
-                            modifier = Modifier.size(72.dp), // Larger icon
-                            tint = MaterialTheme.colorScheme.primary // Tint with primary color
+                            modifier = Modifier.size(60.dp)
                         )
-                        Spacer(Modifier.height(14.dp)) // More space
+                        Spacer(Modifier.height(10.dp))
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleLarge, // Larger title
-                            fontWeight = FontWeight.Bold, // Bolder
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center
                         )
