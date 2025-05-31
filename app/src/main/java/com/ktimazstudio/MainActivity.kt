@@ -713,7 +713,11 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
     var isLoading by remember { mutableStateOf(false) } // New state for loading indicator
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current.applicationContext // Use application context for Toast
+    val context = LocalContext.current   // Use application context for Toast
+
+    // ... rest of your LoginScreen code ...
+
+    // Inside your Button onClick or KeyboardActions onDone:
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -775,7 +779,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                 )
                 Text(
                     text = stringResource(id = R.string.app_name),
-                    style = MaterialTheme.typography.headlineLarge, // Larger headline
+                    style = MaterialTheme.typography.headlineMedium, // CHANGED from headlineLarge
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
@@ -866,7 +870,9 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                         isLoading = true
                         errorMessage = null // Clear previous error
                         // Simulate network delay
-                        val scope = (context as? ComponentActivity)?.lifecycleScope
+                        // 'context' here is now guaranteed to be a ComponentActivity for lifecycleScope
+                        val scope = (context as ComponentActivity).lifecycleScope // Cast now safe
+            scope.launch { // This block will now execute
                         scope?.launch {
                             delay(1000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
