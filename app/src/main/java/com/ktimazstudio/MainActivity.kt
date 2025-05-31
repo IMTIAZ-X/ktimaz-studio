@@ -196,9 +196,8 @@ class SecurityManager(private val context: Context) {
      * return true if a debugger is connected, false otherwise.
      */
     fun isDebuggerConnected(): Boolean {
-        return Debug.isDebuggerConnected() || isTracerAttached()
+    return Debug.isDebuggerConnected() || isTracerAttached()
     }
-
     // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
      
     /**
@@ -269,12 +268,7 @@ class SecurityManager(private val context: Context) {
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 
-    /**
-     * Calculates the SHA-256 hash of the application's *signing certificate*.
-     * This is a more robust integrity check than file hash as it remains constant
-     * for signed APKs regardless of minor build variations.
-     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
-
+  
     /**
      * Attempts to detect if the application is running on an emulator.
      * This check is not exhaustive and can be bypassed.
@@ -505,15 +499,18 @@ class SecurityManager(private val context: Context) {
     
     fun isTracerAttached(): Boolean {
         try {
-            val statusFile = "/proc/self/status"
-            File(statusFile).forEachLine { line ->
-                if (line.startsWith("TracerPid:")) {
-                    val tracerPid = line.substringAfter("TracerPid:").trim().toInt()
-                    return tracerPid != 0 // TracerPid > 0 means a debugger is attached
+            val statusFile = File("/proc/self/status")
+            if (statusFile.exists()) {
+                statusFile.bufferedReader().useLines { lines ->
+                    val tracerPidLine = lines.firstOrNull { it.startsWith("TracerPid:") }
+                    if (tracerPidLine != null) {
+                        val pid = tracerPidLine.substringAfter("TracerPid:").trim().toInt()
+                        return pid != 0
+                    }
                 }
             }
         } catch (e: Exception) {
-            // Log.e("SecurityCheck", "Error checking TracerPid: ${e.message}")
+            // Log.e("SecurityManager", "Error checking TracerPid: ${e.message}")
         }
         return false
     }
