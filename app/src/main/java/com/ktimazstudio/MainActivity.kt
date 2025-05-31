@@ -189,7 +189,79 @@ class SecurityManager(private val context: Context) {
      * for signed APKs regardless of minor build variations.
      * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
+     
+     fun isTracerAttached(): Boolean {
+        try {
+            val statusFile = "/proc/self/status"
+            File(statusFile).forEachLine { line ->
+                if (line.startsWith("TracerPid:")) {
+                    val tracerPid = line.substringAfter("TracerPid:").trim().toInt()
+                    return tracerPid != 0 // TracerPid > 0 means a debugger is attached
+                }
+            }
+        } catch (e: Exception) {
+            // Log.e("SecurityCheck", "Error checking TracerPid: ${e.message}")
+        }
+        return false
+    }
 
+    /**
+     * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
+     * for known files, installed packages, or system properties.
+     * This is not exhaustive and can be bypassed, but adds a layer of defense.
+     * @return true if a hooking framework is likely detected, false otherwise.
+     */
+    fun isHookingFrameworkDetected(): Boolean {
+        // 1. Check for common Xposed/Magisk/Frida related files/directories
+        val knownHookFiles = arrayOf(
+            "/system/app/XposedInstaller.apk",
+            "/system/bin/app_process_xposed",
+            "/system/lib/libxposed_art.so",
+            "/data/app/de.robv.android.xposed.installer",
+            "/data/data/de.robv.android.xposed.installer",
+            "/dev/frida", // Frida device file
+            "/data/local/tmp/frida-agent.so", // Common Frida agent path
+            "/data/local/frida/frida-server", // Frida server path
+            "/sbin/magisk", // Magisk detection
+            "/system/xbin/magisk"
+        )
+        for (path in knownHookFiles) {
+            if (File(path).exists()) return true
+        }
+
+        // 2. Check for common system properties (related to Xposed)
+        val props = listOf("xposed.active", "xposed.api_level", "xposed.installed")
+        try {
+            val process = Runtime.getRuntime().exec("getprop")
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                for (prop in props) {
+                    if (line?.contains("[$prop]:") == true) return true
+                }
+            }
+            process.destroy()
+        } catch (e: Exception) {
+            // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
+        }
+
+        // 3. Check for common packages (Xposed installer)
+        try {
+            context.packageManager.getPackageInfo("de.robv.android.xposed.installer", PackageManager.GET_ACTIVITIES)
+            return true
+        } catch (e: PackageManager.NameNotFoundException) {
+            // Package not found, which is good
+        } catch (e: Exception) {
+            // Log.e("SecurityCheck", "Error checking Xposed installer package: ${e.message}")
+        }
+
+        // 4. Check for suspicious loaded libraries (less reliable, but adds another layer)
+        // This would require reading /proc/self/maps and checking for known hooking library names.
+        // This is more complex and might lead to false positives, so omitted for brevity.
+
+        return false
+    }
+     
     /**
      * Checks if a VPN connection is active.
      * This method iterates through all active networks and checks for the VPN transport.
@@ -260,11 +332,20 @@ class SecurityManager(private val context: Context) {
 
     /**
      * Checks if a debugger is currently attached to the application process.
+     * This now combines Android's built-in check with a more robust procfs check.
      * @return true if a debugger is connected, false otherwise.
      */
     fun isDebuggerConnected(): Boolean {
-        return Debug.isDebuggerConnected()
+        return Debug.isDebuggerConnected() || isTracerAttached()
     }
+
+    // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
+
+    /**
+     * Calculates the SHA-256 hash of the application's *signing certificate*.
+     * This is a more robust integrity check than file hash as it remains constant
+     * for signed APKs regardless of minor build variations.
+     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
 
     /**
      * Attempts to detect if the application is running on an emulator.
@@ -356,6 +437,12 @@ class SecurityManager(private val context: Context) {
         }
         return null
     }
+    
+      /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * @return true if the signature hash matches, false otherwise.
+     */
 
     /**
      * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
@@ -437,7 +524,8 @@ class SecurityManager(private val context: Context) {
         if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
         if (isRunningOnEmulator()) return SecurityIssue.EMULATOR_DETECTED
         if (isDeviceRooted()) return SecurityIssue.ROOT_DETECTED
-        if (isApkTampered()) return SecurityIssue.APK_TAMPERED // This now uses signature hash
+        if (isHookingFrameworkDetected()) return SecurityIssue.HOOKING_FRAMEWORK_DETECTED // <-- NEW CHECK ADDED HERE
+        if (isApkTampered()) return SecurityIssue.APK_TAMPERED
         // Add other checks here as needed
         return SecurityIssue.NONE
     }
@@ -453,6 +541,7 @@ enum class SecurityIssue(val message: String) {
     EMULATOR_DETECTED("Emulator detected. For security, the app cannot run."),
     ROOT_DETECTED("Root access detected. For security, the app cannot run."),
     APK_TAMPERED("Application integrity compromised. Please reinstall."),
+    HOOKING_FRAMEWORK_DETECTED("Hooking framework detected. For security, the app cannot run."),
     UNKNOWN("An unknown security issue occurred.")
 }
 
