@@ -1158,6 +1158,7 @@ fun AppNavigationRail(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
     val railWidth by animateDpAsState(
         targetValue = if (isExpanded) 220.dp else 88.dp, // Wider expanded, slightly wider collapsed
