@@ -1,67 +1,28 @@
-package com.example.ktimaz // Assuming your package name, adjust if different
+package com.ktimazstudio
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
+import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
-import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.EaseInOutCubic
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,7 +30,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.AutoMirrored
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
@@ -78,56 +40,20 @@ import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.AutoMirrored.Filled.MenuOpen
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.AutoMirrored.Filled.ExitToApp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.material3.surfaceColorAtElevation
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -148,95 +74,211 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
+import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
-
-// --- Placeholder for your theme composable (e.g., in Theme.kt) ---
-// If your theme is defined in a separate file, make sure it's imported correctly.
-// For this single file example, I'll define a basic MaterialTheme wrapper.
-@Composable
-fun ktimaz(content: @Composable () -> Unit) {
-    MaterialTheme(content = content) // This is a placeholder. You might have a custom theme setup here.
-}
-
-// --- Placeholder for BuildConfig (usually auto-generated) ---
-// This is a dummy object to allow compilation if BuildConfig is not yet available.
-// In a real Android project, this is automatically generated by the build system.
-object BuildConfig {
-    const val VERSION_NAME = "1.0.0"
-    const val VERSION_CODE = 1
-}
-
-// --- Placeholder for your R class resources ---
-// These are dummy IDs to allow compilation.
-// In a real Android project, these are automatically generated.
-object R {
-    object string {
-        const val app_name = android.R.string.untitled // Using a system string as placeholder
-    }
-    object mipmap {
-        val ic_launcher_round = android.R.drawable.sym_def_app_icon // Using a system drawable as placeholder
-    }
-}
-
-
-// --- Utility Functions ---
-
-fun isConnected(context: Context): Boolean {
-    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    val activeNetwork = connectivityManager.activeNetwork ?: return false
-    val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork) ?: return false
-    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-}
-
-fun openWifiSettings(context: Context) {
-    val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    } else {
-        Toast.makeText(context, "Wi-Fi settings not found.", Toast.LENGTH_SHORT).show()
-    }
-}
+import java.security.MessageDigest
+import kotlin.experimental.and
+import androidx.compose.foundation.border // <-- ADDED THIS IMPORT
 
 // --- SharedPreferencesManager ---
+/**
+ * Manages user login status and username using SharedPreferences for persistent storage.
+ * This class provides a simple way to store and retrieve whether a user is logged in
+ * and their username.
+ */
 class SharedPreferencesManager(context: Context) {
-    private val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
 
-    fun isLoggedIn(): Boolean {
-        return prefs.getBoolean("is_logged_in", false)
+    companion object {
+        private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
+        private const val KEY_USERNAME = "username_key"
     }
 
+    /**
+     * Checks if a user is currently logged in.
+     * @return true if a user is logged in, false otherwise.
+     */
+    fun isLoggedIn(): Boolean {
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+    }
+
+    /**
+     * Sets the login status of the user. If logging in, the username is also stored.
+     * If logging out, the username is removed.
+     * @param loggedIn The new login status.
+     * @param username The username to store if logging in. Null if logging out.
+     */
     fun setLoggedIn(loggedIn: Boolean, username: String? = null) {
-        prefs.edit().putBoolean("is_logged_in", loggedIn).apply()
-        if (loggedIn && username != null) {
-            prefs.edit().putString("username", username).apply()
-        } else if (!loggedIn) {
-            prefs.edit().remove("username").apply()
+        prefs.edit().apply {
+            putBoolean(KEY_IS_LOGGED_IN, loggedIn)
+            if (loggedIn && username != null) {
+                putString(KEY_USERNAME, username)
+            } else if (!loggedIn) {
+                remove(KEY_USERNAME)
+            }
+            apply()
         }
     }
 
+    /**
+     * Retrieves the username of the currently logged-in user.
+     * @return The username string, or null if no user is logged in.
+     */
     fun getUsername(): String? {
-        return prefs.getString("username", null)
+        return prefs.getString(KEY_USERNAME, null)
     }
 }
 
-// --- SecurityManager ---
+// --- Top-level utility functions ---
+
+/**
+ * Checks if the device has an active and validated internet connection.
+ * @param context The application context.
+ * @return true if connected to the internet, false otherwise.
+ */
+fun isConnected(context: Context): Boolean {
+    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val activeNetwork = cm.activeNetwork ?: return false
+    val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+}
+
+/**
+ * Opens the Wi-Fi settings panel for the user to connect to a network.
+ * Displays a toast message instructing the user.
+ * @param context The application context.
+ */
+fun openWifiSettings(context: Context) {
+    Toast.makeText(context, "Please enable Wi-Fi or connect to a network.", Toast.LENGTH_LONG).show()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // For Android 10 (Q) and above, use Settings.Panel.ACTION_WIFI for a panel.
+        context.startActivity(Intent(Settings.Panel.ACTION_WIFI))
+    } else {
+        // For older Android versions, use ACTION_WIFI_SETTINGS.
+        @Suppress("DEPRECATION")
+        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+    }
+}
+
+/**
+ * Utility class for performing various security checks on the application's environment.
+ * These checks are designed to detect common reverse engineering, tampering, and
+ * undesirable network conditions like VPN usage.
+ *
+ * NOTE: Client-side security checks are never foolproof and can be bypassed by
+ * determined attackers. They serve as deterrents and indicators of compromise.
+ */
 class SecurityManager(private val context: Context) {
 
-    /**
-     * Checks if a debugger is connected to the application.
+    // Known good hash of the APK (replace with your actual app's release APK hash)
+    // You would typically calculate this hash for your *release* APK and hardcode it here.
+    // For demonstration, this is a placeholder.
+    // --- IMPORTANT: UPDATE THIS HASH TO YOUR APP'S RELEASE SIGNATURE SHA-256 HASH ---
+    // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425
+    private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
+
+    // ... (isVpnActive, registerVpnDetectionCallback, unregisterVpnDetectionCallback remain the same) ...
+    // ... (isDebuggerConnected, isRunningOnEmulator, isDeviceRooted remain the same) ...
+    
+     /**
+     * Calculates the SHA-256 hash of the application's *signing certificate*.
+     * This is a more robust integrity check than file hash as it remains constant
+     * for signed APKs regardless of minor build variations.
+     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
-    fun isDebuggerConnected(): Boolean {
-        return Debug.isDebuggerConnected() || Debug.waitingForDebugger()
+     
+    /**
+     * Checks if a VPN connection is active.
+     * This method iterates through all active networks and checks for the VPN transport.
+     * @return true if a VPN is detected and it has internet capabilities, false otherwise.
+     */
+    @Suppress("DEPRECATION")
+    fun isVpnActive(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager.allNetworks.forEach { network ->
+            val capabilities = connectivityManager.getNetworkCapabilities(network)
+            if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                // Ensure the VPN is actually providing internet
+                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     /**
-     * Checks if the application is running on an emulator.
+     * Registers a NetworkCallback to listen for real-time VPN status changes.
+     * @param onVpnStatusChanged Callback to be invoked when VPN status changes.
+     * @return The registered NetworkCallback instance, which should be unregistered later.
+     */
+    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                val capabilities = connectivityManager.getNetworkCapabilities(network)
+                if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true) {
+                    onVpnStatusChanged(true)
+                } else {
+                    // Re-check overall VPN status as other networks might be available
+                    onVpnStatusChanged(isVpnActive())
+                }
+            }
+
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                // When a network is lost, re-check if any VPN is still active
+                onVpnStatusChanged(isVpnActive())
+            }
+
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                super.onCapabilitiesChanged(network, networkCapabilities)
+                onVpnStatusChanged(isVpnActive())
+            }
+        }
+        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
+        return networkCallback
+    }
+
+    /**
+     * Unregisters a previously registered NetworkCallback.
+     * @param networkCallback The callback to unregister.
+     */
+    fun unregisterVpnDetectionCallback(networkCallback: ConnectivityManager.NetworkCallback) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager.unregisterNetworkCallback(networkCallback)
+    }
+
+    /**
+     * Checks if a debugger is currently attached to the application process.
+     * This now combines Android's built-in check with a more robust procfs check.
+     * @return true if a debugger is connected, false otherwise.
+     */
+    fun isDebuggerConnected(): Boolean {
+        return Debug.isDebuggerConnected() || isTracerAttached()
+    }
+
+    // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
+
+    /**
+     * Calculates the SHA-256 hash of the application's *signing certificate*.
+     * This is a more robust integrity check than file hash as it remains constant
+     * for signed APKs regardless of minor build variations.
+     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+
+    /**
+     * Attempts to detect if the application is running on an emulator.
+     * This check is not exhaustive and can be bypassed.
+     * @return true if an emulator is likely detected, false otherwise.
      */
     fun isRunningOnEmulator(): Boolean {
         return (Build.FINGERPRINT.startsWith("generic")
@@ -245,14 +287,14 @@ class SecurityManager(private val context: Context) {
                 || Build.MODEL.contains("Emulator")
                 || Build.MODEL.contains("Android SDK built for x86")
                 || Build.MANUFACTURER.contains("Genymotion")
-                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")
                 || "google_sdk" == Build.PRODUCT)
     }
 
     /**
-     * Checks if the device is rooted.
-     * This is a basic check and can be bypassed. More robust checks involve
-     * checking for su binary, test-keys, etc.
+     * Attempts to detect if the device is rooted.
+     * This check is not exhaustive and can be bypassed.
+     * @return true if root is likely detected, false otherwise.
      */
     fun isDeviceRooted(): Boolean {
         val paths = arrayOf(
@@ -261,156 +303,220 @@ class SecurityManager(private val context: Context) {
             "/system/bin/su",
             "/system/xbin/su",
             "/data/local/xbin/su",
+            "/data/local/bin/su",
             "/system/sd/xbin/su",
             "/system/bin/failsafe/su",
             "/data/local/su",
-            "/su/bin/su" // Magisk
+            "/su/bin/su"
         )
         for (path in paths) {
             if (File(path).exists()) return true
         }
+
+        // Check for test-keys in build tags (common for custom ROMs/rooted devices)
+        if (Build.TAGS != null && Build.TAGS.contains("test-keys")) {
+            return true
+        }
+
+        // Check if `su` command can be executed
+        var process: Process? = null
         try {
-            val process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
+            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
             if (reader.readLine() != null) return true
         } catch (e: Exception) {
-            // Log exception, but don't stop the check
+            // Command not found or other error, likely not rooted
+        } finally {
+            process?.destroy()
         }
+
         return false
     }
 
     /**
-     * Checks for the presence of common hooking frameworks (e.g., Xposed, Frida).
-     * This is a very basic check. Real-world detection is much more complex.
+     * Calculates the SHA-256 hash of the application's APK file.
+     * This can be used to detect if the APK has been tampered with.
+     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
+     fun getSignatureSha256Hash(): String? {
+        try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            }
+
+            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.signingInfo?.apkContentsSigners
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.signatures
+            }
+
+            if (signatures != null && signatures.isNotEmpty()) {
+                val md = MessageDigest.getInstance("SHA-256")
+                // For most apps, there's only one signing certificate. If multiple, you might need to handle.
+                val hashBytes = md.digest(signatures[0].toByteArray())
+                return hashBytes.joinToString("") { "%02x".format(it.and(0xff.toByte())) }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+    
+      /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * @return true if the signature hash matches, false otherwise.
+     */
+
+    /**
+     * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
+     * Kept for reference or if needed for other purposes.
+     *
+     * Calculates the SHA-256 hash of the application's APK file.
+     * This can be used to detect if the APK has been tampered with.
+     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     */
+    fun getApkSha256Hash_UNUSED(): String? {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return null
+            val file = File(apkPath)
+            if (file.exists()) {
+                val bytes = file.readBytes()
+                val digest = MessageDigest.getInstance("SHA-256")
+                val hashBytes = digest.digest(bytes)
+                return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+    
+     /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * @return true if the signature hash matches, false otherwise.
+     */
+     
+       /**
+     * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
+     * for known files, installed packages, or system properties.
+     * This is not exhaustive and can be bypassed, but adds a layer of defense.
+     * @return true if a hooking framework is likely detected, false otherwise.
+     */
+    
+    
     fun isHookingFrameworkDetected(): Boolean {
-        // Check for common Xposed files/directories
-        if (File("/data/data/de.robv.android.xposed.installer").exists() ||
-            File("/system/lib/libxposed_art.so").exists() ||
-            File("/system/framework/XposedBridge.jar").exists()) {
-            return true
+        // 1. Check for common Xposed/Magisk/Frida related files/directories
+        val knownHookFiles = arrayOf(
+            "/system/app/XposedInstaller.apk",
+            "/system/bin/app_process_xposed",
+            "/system/lib/libxposed_art.so",
+            "/data/app/de.robv.android.xposed.installer",
+            "/data/data/de.robv.android.xposed.installer",
+            "/dev/frida", // Frida device file
+            "/data/local/tmp/frida-agent.so", // Common Frida agent path
+            "/data/local/frida/frida-server", // Frida server path
+            "/sbin/magisk", // Magisk detection
+            "/system/xbin/magisk"
+        )
+        for (path in knownHookFiles) {
+            if (File(path).exists()) return true
         }
 
-        // Basic check for Frida (might be running as a separate process or injected)
-        // This is highly unreliable for proper Frida detection.
-        // A more advanced check would involve examining /proc/self/maps or
-        // looking for specific Frida-related strings in memory.
+        // 2. Check for common system properties (related to Xposed)
+        val props = listOf("xposed.active", "xposed.api_level", "xposed.installed")
         try {
-            val command = "ps" // or "ps -A" on some devices
-            val process = Runtime.getRuntime().exec(command)
+            val process = Runtime.getRuntime().exec("getprop")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             while (reader.readLine().also { line = it } != null) {
-                if (line!!.contains("frida-server") || line!!.contains("frida-agent")) {
-                    return true
+                for (prop in props) {
+                    if (line?.contains("[$prop]:") == true) return true
                 }
             }
             process.destroy()
         } catch (e: Exception) {
-            // Log.e("SecurityManager", "Error checking for Frida: ${e.message}")
+            // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
         }
+
+        // 3. Check for common packages (Xposed installer)
+        try {
+            context.packageManager.getPackageInfo("de.robv.android.xposed.installer", PackageManager.GET_ACTIVITIES)
+            return true
+        } catch (e: PackageManager.NameNotFoundException) {
+            // Package not found, which is good
+        } catch (e: Exception) {
+            // Log.e("SecurityCheck", "Error checking Xposed installer package: ${e.message}")
+        }
+
+        // 4. Check for suspicious loaded libraries (less reliable, but adds another layer)
+        // This would require reading /proc/self/maps and checking for known hooking library names.
+        // This is more complex and might lead to false positives, so omitted for brevity.
 
         return false
     }
 
-
     /**
-     * Placeholder for APK tampering detection.
-     * In a real app, you would compare the APK's signature hash
-     * with a known, trusted hash embedded in the app.
+     * Checks if the APK hash matches the expected hash.
+     * @return true if the hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
-        // Example: Compare app's actual signature hash with a stored hash
-        // val actualSignature = getAppSignatureHash(context)
-        // val expectedSignature = "YOUR_APP_RELEASE_SIGNATURE_HASH"
-        // return actualSignature != expectedSignature
-
-        // For demonstration, always return false or implement a dummy check
-        return false
+        val currentSignatureHash = getSignatureSha256Hash()
+        // Compare with the signature SHA-256 hash provided by you.
+        return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
     }
 
-    /**
-     * Checks if a VPN connection is currently active.
-     */
-    fun isVpnActive(): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        return connectivityManager.allNetworks.any { network ->
-            val capabilities = connectivityManager.getNetworkCapabilities(network)
-            capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN) == false // Exclude built-in VPNs if any
-        }
-    }
+    // ... (getAppSize and isAppSizeModified_UNUSED remain the same) ...
 
     /**
-     * Registers a network callback to detect VPN status changes.
+     * Aggregates all security checks to determine if the app environment is secure.
+     * @return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
      */
-    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkRequest = NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
-            .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN) // Only interested in user-level VPNs
-            .build()
-
-        val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                super.onAvailable(network)
-                onVpnStatusChanged(true)
-            }
-
-            override fun onLost(network: Network) {
-                super.onLost(network)
-                onVpnStatusChanged(false)
-            }
-
-            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-                super.onCapabilitiesChanged(network, networkCapabilities)
-                val isVpn = networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
-                        !networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
-                onVpnStatusChanged(isVpn)
-            }
-        }
-        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
-        return networkCallback
-    }
 
     /**
-     * Unregisters the VPN detection network callback.
+     * Gets the size of the installed application (APK + data).
+     * This can be used as a very basic indicator of tampering if the size changes unexpectedly.
+     * @return The app size in bytes, or -1 if unable to retrieve.
      */
-    fun unregisterVpnDetectionCallback(networkCallback: ConnectivityManager.NetworkCallback) {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        connectivityManager.unregisterNetworkCallback(networkCallback)
-    }
-
-    /**
-     * This checks if the application is being traced by a debugger.
-     * The `isTracerAttached()` is a more reliable and robust way to detect a debugger
-     * than `Debug.isDebuggerConnected()` on some Android versions/devices.
-     * This function checks for the presence of `TracerPid` in `/proc/self/status`.
-     * A non-zero `TracerPid` indicates that a process is tracing the current process.
-     */
-    fun isTracerAttached(): Boolean {
+    fun getAppSize(): Long {
         try {
-            val statusFile = File("/proc/self/status")
-            if (statusFile.exists()) {
-                statusFile.bufferedReader().useLines { lines ->
-                    val tracerPidLine = lines.firstOrNull { it.startsWith("TracerPid:") }
-                    if (tracerPidLine != null) {
-                        val pid = tracerPidLine.substringAfter("TracerPid:").trim().toInt()
-                        return pid != 0
-                    }
-                }
-            }
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            // Safely access applicationInfo.sourceDir as applicationInfo can be null
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return -1L
+            val file = File(apkPath)
+            return file.length()
         } catch (e: Exception) {
-            // Log.e("SecurityManager", "Error checking TracerPid: ${e.message}")
+            e.printStackTrace()
         }
-        return false
+        return -1L
     }
 
     // You could also add a check for expected app size and compare.
     // private val EXPECTED_APP_SIZE_BYTES = 12345678L // Example size
     // fun isAppSizeModified(): Boolean {
-    //      return getAppSize() != -1L && getAppSize() != EXPECTED_APP_SIZE_BYTES
+    //     return getAppSize() != -1L && getAppSize() != EXPECTED_APP_SIZE_BYTES
     // }
+    
+    fun isTracerAttached(): Boolean {
+        try {
+            val statusFile = "/proc/self/status"
+            File(statusFile).forEachLine { line ->
+                if (line.startsWith("TracerPid:")) {
+                    val tracerPid = line.substringAfter("TracerPid:").trim().toInt()
+                    return tracerPid != 0 // TracerPid > 0 means a debugger is attached
+                }
+            }
+        } catch (e: Exception) {
+            // Log.e("SecurityCheck", "Error checking TracerPid: ${e.message}")
+        }
+        return false
+    }
 
     /**
      * Aggregates all security checks to determine if the app environment is secure.
@@ -662,10 +768,10 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
             AnimatedContent(
                 targetState = selectedDestination,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
-                            slideInHorizontally(initialOffsetX = { if (targetState == Screen.Dashboard) it else -it }, animationSpec = tween(300)) togetherWith
-                            fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
-                            slideOutHorizontally(targetOffsetX = { if (initialState == Screen.Dashboard) -it else it }, animationSpec = tween(300))
+                    fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                            slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(300)) togetherWith
+                            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
+                            slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -300 else 300 }, animationSpec = tween(300))
                 }, label = "nav_rail_content_transition"
             ) { targetDestination ->
                 Box(modifier = Modifier.padding(paddingValues)) {
@@ -691,7 +797,6 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
  * Features a more professional UI/UX with gradients, animations, and improved error handling.
  * @param onLoginSuccess Callback invoked on successful login, providing the username.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
     var usernameInput by rememberSaveable { mutableStateOf("") }
@@ -702,6 +807,10 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current   // Use application context for Toast
+
+    // ... rest of your LoginScreen code ...
+
+    // Inside your Button onClick or KeyboardActions onDone:
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -763,7 +872,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                 )
                 Text(
                     text = stringResource(id = R.string.app_name),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium, // CHANGED from headlineLarge
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
@@ -856,7 +965,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                         // Simulate network delay
                         // 'context' here is now guaranteed to be a ComponentActivity for lifecycleScope
                         val scope = (context as ComponentActivity).lifecycleScope // Cast now safe
-                        scope.launch { // This block will now execute
+                        scope?.launch { // This block will now execute
                             delay(1000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -937,7 +1046,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                         radius = 120f
                     )
                 )
-                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape), // <-- FIXED HERE: 'border' modifier
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -1075,7 +1184,6 @@ fun ProfileOptionItem(
 }
 
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavigationRail(
     selectedDestination: Screen,
@@ -1340,7 +1448,6 @@ fun SettingItem(
 }
 
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
@@ -1430,8 +1537,3 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         }
     }
 }
-
-
-// --- DUMMY CLASSES FOR COMPILATION ---
-// You will need to replace these with your actual implementations
-// if they reside in separate files in your project.
