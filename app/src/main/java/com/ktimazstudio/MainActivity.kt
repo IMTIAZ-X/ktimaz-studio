@@ -431,7 +431,6 @@ class SecurityManager(private val context: Context) {
             val process = Runtime.getRuntime().exec("getprop")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
-            var line: String?
             while (true) {
             line = reader.readLine()
            if (line == null) break
