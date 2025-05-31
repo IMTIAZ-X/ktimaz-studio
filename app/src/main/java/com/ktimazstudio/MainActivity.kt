@@ -80,6 +80,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
+import androidx.compose.foundation.border // <-- ADDED THIS IMPORT
 
 // --- SharedPreferencesManager ---
 /**
@@ -319,7 +320,8 @@ class SecurityManager(private val context: Context) {
     fun getApkSha256Hash(): String? {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val apkPath = packageInfo.applicationInfo.sourceDir
+            // Safely access applicationInfo.sourceDir as applicationInfo can be null
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return null
             val file = File(apkPath)
             if (file.exists()) {
                 val bytes = file.readBytes()
@@ -352,7 +354,8 @@ class SecurityManager(private val context: Context) {
     fun getAppSize(): Long {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val apkPath = packageInfo.applicationInfo.sourceDir
+            // Safely access applicationInfo.sourceDir as applicationInfo can be null
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return -1L
             val file = File(apkPath)
             return file.length()
         } catch (e: Exception) {
@@ -886,7 +889,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                         radius = 120f
                     )
                 )
-                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape), // <-- FIXED HERE: 'border' modifier
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -1377,4 +1380,3 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         }
     }
 }
-
