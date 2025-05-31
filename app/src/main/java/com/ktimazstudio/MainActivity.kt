@@ -176,7 +176,19 @@ class SecurityManager(private val context: Context) {
     // Known good hash of the APK (replace with your actual app's release APK hash)
     // You would typically calculate this hash for your *release* APK and hardcode it here.
     // For demonstration, this is a placeholder.
-    private val EXPECTED_APK_HASH = "7db625092ff54f66b069137ffde62abfe717fd893643b3e24f4a7ea1f9e7b5e2".lowercase() // Example: "a1b2c3d4e5f6..."
+    // --- IMPORTANT: UPDATE THIS HASH TO YOUR APP'S RELEASE SIGNATURE SHA-256 HASH ---
+    // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425
+    private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
+
+    // ... (isVpnActive, registerVpnDetectionCallback, unregisterVpnDetectionCallback remain the same) ...
+    // ... (isDebuggerConnected, isRunningOnEmulator, isDeviceRooted remain the same) ...
+    
+     /**
+     * Calculates the SHA-256 hash of the application's *signing certificate*.
+     * This is a more robust integrity check than file hash as it remains constant
+     * for signed APKs regardless of minor build variations.
+     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     */
 
     /**
      * Checks if a VPN connection is active.
@@ -317,43 +329,81 @@ class SecurityManager(private val context: Context) {
      * This can be used to detect if the APK has been tampered with.
      * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
-    fun getApkSha256Hash(): String? {
+     fun getSignatureSha256Hash(): String? {
+        try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            }
+
+            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.signingInfo?.apkContentsSigners
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.signatures
+            }
+
+            if (signatures != null && signatures.isNotEmpty()) {
+                val md = MessageDigest.getInstance("SHA-256")
+                // For most apps, there's only one signing certificate. If multiple, you might need to handle.
+                val hashBytes = md.digest(signatures[0].toByteArray())
+                return hashBytes.joinToString("") { "%02x".format(it.and(0xff.toByte())) }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+
+    /**
+     * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
+     * Kept for reference or if needed for other purposes.
+     *
+     * Calculates the SHA-256 hash of the application's APK file.
+     * This can be used to detect if the APK has been tampered with.
+     * @return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     */
+    fun getApkSha256Hash_UNUSED(): String? {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            // Safely access applicationInfo.sourceDir as applicationInfo can be null
             val apkPath = packageInfo.applicationInfo?.sourceDir ?: return null
             val file = File(apkPath)
             if (file.exists()) {
                 val bytes = file.readBytes()
                 val digest = MessageDigest.getInstance("SHA-256")
                 val hashBytes = digest.digest(bytes)
-                val calculatedHash = hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
-
-                // --- ADD THIS LINE FOR DEBUGGING ---
-                Toast.makeText(context, "Calculated APK Hash: $calculatedHash", Toast.LENGTH_LONG).show()
-                // ------------------------------------
-
-                return calculatedHash
+                return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            // --- ADD THIS LINE FOR DEBUGGING ---
-            Toast.makeText(context, "Error calculating hash: ${e.message}", Toast.LENGTH_LONG).show()
-            // ------------------------------------
         }
         return null
     }
+    
+     /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * @return true if the signature hash matches, false otherwise.
+     */
 
     /**
      * Checks if the APK hash matches the expected hash.
      * @return true if the hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
-        val currentHash = getApkSha256Hash()
-        // IMPORTANT: Replace EXPECTED_APK_HASH with the actual SHA-256 hash of your *release* APK.
-        // You can get this by running `sha256sum your_app.apk` on your release build.
-        return currentHash != null && currentHash.lowercase() != EXPECTED_APK_HASH.lowercase()
+        val currentSignatureHash = getSignatureSha256Hash()
+        // Compare with the signature SHA-256 hash provided by you.
+        return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
     }
+
+    // ... (getAppSize and isAppSizeModified_UNUSED remain the same) ...
+
+    /**
+     * Aggregates all security checks to determine if the app environment is secure.
+     * @return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
+     */
 
     /**
      * Gets the size of the installed application (APK + data).
@@ -387,7 +437,7 @@ class SecurityManager(private val context: Context) {
         if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
         if (isRunningOnEmulator()) return SecurityIssue.EMULATOR_DETECTED
         if (isDeviceRooted()) return SecurityIssue.ROOT_DETECTED
-        if (isApkTampered()) return SecurityIssue.APK_TAMPERED
+        if (isApkTampered()) return SecurityIssue.APK_TAMPERED // This now uses signature hash
         // Add other checks here as needed
         return SecurityIssue.NONE
     }
