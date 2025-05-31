@@ -872,8 +872,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                         // Simulate network delay
                         // 'context' here is now guaranteed to be a ComponentActivity for lifecycleScope
                         val scope = (context as ComponentActivity).lifecycleScope // Cast now safe
-            scope.launch { // This block will now execute
-                        scope?.launch {
+                        scope?.launch { // This block will now execute
                             delay(1000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
