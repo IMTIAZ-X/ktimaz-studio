@@ -176,7 +176,7 @@ class SecurityManager(private val context: Context) {
     // Known good hash of the APK (replace with your actual app's release APK hash)
     // You would typically calculate this hash for your *release* APK and hardcode it here.
     // For demonstration, this is a placeholder.
-    private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase() // Example: "a1b2c3d4e5f6..."
+    private val EXPECTED_APK_HASH = "7db625092ff54f66b069137ffde62abfe717fd893643b3e24f4a7ea1f9e7b5e2".lowercase() // Example: "a1b2c3d4e5f6..."
 
     /**
      * Checks if a VPN connection is active.
