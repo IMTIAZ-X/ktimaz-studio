@@ -1279,7 +1279,6 @@ fun AppNavigationRail(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // Add this annotation for SegmentedButton
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     var showAboutDialog by remember { mutableStateOf(false) }
