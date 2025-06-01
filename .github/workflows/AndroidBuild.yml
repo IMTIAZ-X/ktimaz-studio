@@ -1,97 +1,31 @@
-name: ANDROID CI
-
+name: AndroidBuild
 on:
-  push:
-    branches: [ main ]
   pull_request:
+    branches: [ main ]
+  push:
     branches: [ main ]
 
 jobs:
   build:
-    name: Build APKs
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4.1.0
 
-      - name: Set up JDK 23
+      - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
-          java-version: 23
-          distribution: temurin
+          java-version: '23'
+          distribution: 'adopt'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Cache Gradle
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-
-      - name: Inject gradle.properties with AndroidX support
-        run: |
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-
-      - name: Grant execute permission for gradlew
+      - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Run Lint (Debug and Release)
-        run: ./gradlew lintReportDebug lintReportRelease
+      - name: Build with Gradle
+        run: ./gradlew build
 
-      - name: Upload Lint Reports
-        if: always()
+      - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LintReports
-          path: app/build/reports/lint-results-*.html
-
-      - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest
-
-      - name: Enable Gradle Build Scan
-        run: |
-          echo "gradle.enterprise.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
-          echo "gradle.enterprise.buildScan.termsOfServiceAgree=YES" >> gradle.properties
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: App-Debug.apk
-          path: app/build/outputs/apk/debug/**/*.apk
-
-      - name: Build Release APK
-        env:
-          RELEASE_STORE_FILE: ${{ secrets.RELEASE_STORE_FILE }}
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
-
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: App-Release.apk
-         # path: app/build/outputs/apk/release/**/*.apk
-          path: |
-            app/build/outputs/apk/release/**/*.apk
-            app/build/outputs/apk/release/output-metadata.json
-
-      - name: Upload ProGuard Mapping (if exists)
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ProGuardMapping
-          path: app/build/outputs/mapping/release/mapping.txt
-
-
-
+          name: AndroidRelease.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
