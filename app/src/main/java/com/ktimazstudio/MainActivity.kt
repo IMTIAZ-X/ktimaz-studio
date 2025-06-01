@@ -1288,9 +1288,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current // Get context for Toast messages
 
-    // State for theme selection
+    // State for theme selection - Initialize with the current AppThemeMode
     val themeOptions = listOf("System", "Light", "Dark")
-    var selectedTheme by remember { mutableStateOf(themeOptions[0]) } // Default to "System"
+    var selectedTheme by remember { mutableStateOf(AppThemeMode) } // Initialize with current global theme mode
 
     Column(
         modifier = modifier
