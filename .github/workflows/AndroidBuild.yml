@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  lint:
-    name: Run Lint
+  build:
+    name: Build APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -24,25 +24,26 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Cache Gradle wrapper
+      - name: Cache Gradle
         uses: actions/cache@v3
         with:
-          path: ~/.gradle/wrapper
-          key: gradle-wrapper-${{ runner.os }}
-          restore-keys: gradle-wrapper-${{ runner.os }}
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
 
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/caches
-          key: gradle-deps-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: gradle-deps-${{ runner.os }}-
+      - name: Inject gradle.properties with AndroidX support
+        run: |
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
       - name: Run Lint (Debug and Release)
-        run: ./gradlew lintReportDebug lintReportRelease --build-cache
+        run: ./gradlew lintReportDebug lintReportRelease
 
       - name: Upload Lint Reports
         if: always()
@@ -51,88 +52,16 @@ jobs:
           name: LintReports
           path: app/build/reports/lint-results-*.html
 
-  test:
-    name: Run Unit Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 23
-        uses: actions/setup-java@v4
-        with:
-          java-version: 23
-          distribution: temurin
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Cache Gradle wrapper
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/wrapper
-          key: gradle-wrapper-${{ runner.os }}
-          restore-keys: gradle-wrapper-${{ runner.os }}
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/caches
-          key: gradle-deps-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: gradle-deps-${{ runner.os }}-
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --build-cache
+        run: ./gradlew testDebugUnitTest
 
-  build:
-    name: Build APKs
-    needs: [lint, test]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 23
-        uses: actions/setup-java@v4
-        with:
-          java-version: 23
-          distribution: temurin
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Cache Gradle wrapper
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/wrapper
-          key: gradle-wrapper-${{ runner.os }}
-          restore-keys: gradle-wrapper-${{ runner.os }}
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/caches
-          key: gradle-deps-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: gradle-deps-${{ runner.os }}-
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
-      - name: Enable Gradle Build Scan & Build Cache
+      - name: Enable Gradle Build Scan
         run: |
-          echo "org.gradle.caching=true" >> gradle.properties
-          echo "org.gradle.parallel=true" >> gradle.properties
-          echo "org.gradle.configureondemand=true" >> gradle.properties
           echo "gradle.enterprise.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
           echo "gradle.enterprise.buildScan.termsOfServiceAgree=YES" >> gradle.properties
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --build-cache
+        run: ./gradlew assembleDebug
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -146,12 +75,13 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --build-cache
+        run: ./gradlew assembleRelease
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: App-Release.apk
+         # path: app/build/outputs/apk/release/**/*.apk
           path: |
             app/build/outputs/apk/release/**/*.apk
             app/build/outputs/apk/release/output-metadata.json
