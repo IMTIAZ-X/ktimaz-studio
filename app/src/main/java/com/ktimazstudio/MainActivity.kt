@@ -49,9 +49,6 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -78,7 +75,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext // Needed for Toast inside SettingsScreen
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
@@ -87,12 +83,6 @@ import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
 import androidx.compose.foundation.border // <-- ADDED THIS IMPORT
-import androidx.compose.material3.ExperimentalMaterial3Api // Required for SegmentedButton
-import androidx.compose.material3.HorizontalDivider // Or Divider if using older Material
-
-// ADDED: Global state for AppThemeMode. This should ideally be managed in your Theme.kt or a ViewModel.
-// For now, placing it here to resolve the 'unresolved reference' error.
-var AppThemeMode: String by mutableStateOf("System") // Default theme mode
 
 // --- SharedPreferencesManager ---
 /**
@@ -155,7 +145,7 @@ fun isConnected(context: Context): Boolean {
     val activeNetwork = cm.activeNetwork ?: return false
     val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
     return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 }
 
 /**
@@ -194,24 +184,24 @@ class SecurityManager(private val context: Context) {
 
     // ... (isVpnActive, registerVpnDetectionCallback, unregisterVpnDetectionCallback remain the same) ...
     // ... (isDebuggerConnected, isRunningOnEmulator, isDeviceRooted remain the same) ...
-
-    /**
+    
+     /**
      * Calculates the SHA-256 hash of the application's *signing certificate*.
      * This is a more robust integrity check than file hash as it remains constant
      * for signed APKs regardless of minor build variations.
      * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
-
-    /**
+     
+      /**
      * Checks if a debugger is currently attached to the application process.
      * This now combines Android's built-in check with a more robust procfs check.
      * return true if a debugger is connected, false otherwise.
      */
     fun isDebuggerConnected(): Boolean {
-        return Debug.isDebuggerConnected() || isTracerAttached()
+    return Debug.isDebuggerConnected() || isTracerAttached()
     }
     // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
-
+     
     /**
      * Checks if a VPN connection is active.
      * This method iterates through all active networks and checks for the VPN transport.
@@ -280,7 +270,7 @@ class SecurityManager(private val context: Context) {
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 
-
+  
     /**
      * Attempts to detect if the application is running on an emulator.
      * This check is not exhaustive and can be bypassed.
@@ -344,7 +334,7 @@ class SecurityManager(private val context: Context) {
      * This can be used to detect if the APK has been tampered with.
      * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
-    fun getSignatureSha256Hash(): String? {
+     fun getSignatureSha256Hash(): String? {
         try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
@@ -371,8 +361,8 @@ class SecurityManager(private val context: Context) {
         }
         return null
     }
-
-    /**
+    
+      /**
      * Checks if the APK's *signature hash* matches the expected hash.
      * This is now the primary integrity check.
      * return true if the signature hash matches, false otherwise.
@@ -402,21 +392,21 @@ class SecurityManager(private val context: Context) {
         }
         return null
     }
-
-    /**
+    
+     /**
      * Checks if the APK's *signature hash* matches the expected hash.
      * This is now the primary integrity check.
      * return true if the signature hash matches, false otherwise.
      */
-
-    /**
+     
+       /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, or system properties.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
      * return true if a hooking framework is likely detected, false otherwise.
      */
-
-
+    
+    
     fun isHookingFrameworkDetected(): Boolean {
         // 1. Check for common Xposed/Magisk/Frida related files/directories
         val knownHookFiles = arrayOf(
@@ -442,12 +432,12 @@ class SecurityManager(private val context: Context) {
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             while (true) {
-                line = reader.readLine()
-                if (line == null) break
-                for (prop in props) {
-                    if (line.contains("[$prop]:")) return true
-                }
-            }
+            line = reader.readLine()
+           if (line == null) break
+            for (prop in props) {
+            if (line.contains("[$prop]:")) return true
+    }
+}
             process.destroy()
         } catch (e: Exception) {
             // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
@@ -508,9 +498,9 @@ class SecurityManager(private val context: Context) {
     // You could also add a check for expected app size and compare.
     // private val EXPECTED_APP_SIZE_BYTES = 12345678L // Example size
     // fun isAppSizeModified(): Boolean {
-    //      return getAppSize() != -1L && getAppSize() != EXPECTED_APP_SIZE_BYTES
+    //     return getAppSize() != -1L && getAppSize() != EXPECTED_APP_SIZE_BYTES
     // }
-
+    
     fun isTracerAttached(): Boolean {
         try {
             val statusFile = File("/proc/self/status")
@@ -582,7 +572,7 @@ class MainActivity : ComponentActivity() {
         val initialSecurityIssue = securityManager.getSecurityIssue()
         if (initialSecurityIssue != SecurityIssue.NONE) {
             setContent {
-                ktimaz(darkTheme = false, dynamicColor = true, themeMode = AppThemeMode) { // Pass AppThemeMode
+                ktimaz {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
                 }
             }
@@ -590,9 +580,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            // Observe the global AppThemeMode here.
-            val currentAppThemeMode = AppThemeMode // Access the global state
-            ktimaz(darkTheme = currentAppThemeMode == "Dark", dynamicColor = true, themeMode = currentAppThemeMode) { // Pass AppThemeMode
+            ktimaz {
                 var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
                 var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
                 var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
@@ -1110,7 +1098,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                 ) {
                     Toast.makeText(context, "Edit Profile Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
+                Divider(modifier = Modifier.padding(horizontal = 24.dp))
                 ProfileOptionItem(
                     icon = Icons.Filled.Lock,
                     title = "Change Password",
@@ -1118,7 +1106,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                 ) {
                     Toast.makeText(context, "Change Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
+                Divider(modifier = Modifier.padding(horizontal = 24.dp))
                 ProfileOptionItem(
                     icon = Icons.Filled.Settings,
                     title = "Privacy Settings",
@@ -1158,8 +1146,8 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
 fun ProfileOptionItem(
     icon: ImageVector,
     title: String,
-    description: String? = null,
-    onClick: (() -> Unit)
+    description: String,
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -1168,17 +1156,24 @@ fun ProfileOptionItem(
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (leadingIcon != null) {
-            Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
-                leadingIcon()
-            }
-        }
-        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            if (description != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        Icon(
+            imageVector = icon,
+            contentDescription = null, // Icon is decorative here
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(28.dp)
+        )
+        Spacer(modifier = Modifier.width(20.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Icon(
             imageVector = Icons.Filled.ChevronRight,
@@ -1285,12 +1280,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current // Get context for Toast messages
-
-    // State for theme selection - Initialize with the current AppThemeMode
-    val themeOptions = listOf("System", "Light", "Dark")
-    var selectedTheme: String by remember { mutableStateOf(AppThemeMode) } // Initialize with current global theme mode
 
     Column(
         modifier = modifier
@@ -1305,39 +1294,19 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
         )
 
-        // NEW: Themes SettingItem with SegmentedButton
+        var notificationsEnabled by remember { mutableStateOf(true) }
         SettingItem(
-            title = "App Theme",
-            description = "Change the application's visual theme.",
+            title = "Enable Notifications",
+            description = "Receive updates and alerts.",
             leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier.width(200.dp) // Adjust width as needed
-                ) {
-                    themeOptions.forEachIndexed { index, theme ->
-                        SegmentedButton(
-                            selected = selectedTheme == theme,
-                            onClick = {
-                                selectedTheme = theme
-                                AppThemeMode = theme // <-- Line 1322 will be this one (now line ~1200)
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                Toast.makeText(
-                                    context,
-                                    "Theme set to: $theme",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            },
-                            shape = SegmentedButtonDefaults.shape // <-- Line 1333 will be this one (now line ~1210)
-                        ) {
-                            Text(theme)
-                        }
-                    }
-                }
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = { notificationsEnabled = it }
+                )
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-        // The "Enable Notifications" SettingItem has been removed from here.
 
         var showAccountDialog by remember { mutableStateOf(false) }
         SettingItem(
@@ -1345,10 +1314,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Manage your account details.",
             leadingIcon = { Icon(Icons.Filled.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "Go to account preferences", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                showAccountDialog = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Added haptic feedback
-            }
+            onClick = { showAccountDialog = true }
         )
         if (showAccountDialog) {
             AlertDialog(
@@ -1366,13 +1332,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Information about this application.",
             leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View About", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                showAboutDialog = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Added haptic feedback
-            }
+            onClick = { showAboutDialog = true }
         )
         if (showAboutDialog) {
-            // ADDED: Import BuildConfig for version info
             AlertDialog(
                 onDismissRequest = { showAboutDialog = false },
                 icon = { Icon(Icons.Filled.Info, contentDescription = "About App Icon")},
@@ -1388,10 +1350,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Read our privacy policy.",
             leadingIcon = { Icon(Icons.Filled.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Privacy Policy", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                showPrivacyDialog = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Added haptic feedback
-            }
+            onClick = { showPrivacyDialog = true }
         )
         if (showPrivacyDialog) {
             AlertDialog(
@@ -1410,13 +1369,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "See what's new in this version.",
             leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Changelog", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                showChangelogDialog = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Added haptic feedback
-            }
+            onClick = { showChangelogDialog = true }
         )
         if (showChangelogDialog) {
-            // ADDED: Import BuildConfig for version info
             AlertDialog(
                 onDismissRequest = { showChangelogDialog = false },
                 icon = { Icon(Icons.Filled.HistoryEdu, contentDescription = "Changelog Icon", modifier = Modifier.size(28.dp))},
