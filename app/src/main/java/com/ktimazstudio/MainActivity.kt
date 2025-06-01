@@ -49,6 +49,9 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -75,6 +78,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext // Needed for Toast inside SettingsScreen
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
@@ -1275,11 +1279,18 @@ fun AppNavigationRail(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class) // Add this annotation for SegmentedButton
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current // Get context for Toast messages
+
+    // State for theme selection
+    val themeOptions = listOf("System", "Light", "Dark")
+    var selectedTheme by remember { mutableStateOf(themeOptions[0]) } // Default to "System"
 
     Column(
         modifier = modifier
@@ -1294,19 +1305,43 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
         )
 
-        var notificationsEnabled by remember { mutableStateOf(true) }
+        // NEW: Themes SettingItem with SegmentedButton
         SettingItem(
-            title = "Enable Notifications",
-            description = "Receive updates and alerts.",
+            title = "App Theme",
+            description = "Change the application's visual theme.",
             leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = {
-                Switch(
-                    checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it }
-                )
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.width(200.dp) // Adjust width as needed
+                ) {
+                    themeOptions.forEachIndexed { index, theme ->
+                        SegmentedButton(
+                            selected = selectedTheme == theme,
+                            onClick = {
+                                selectedTheme = theme
+                                // This is the crucial line to update the global theme mode
+                                AppThemeMode = theme // <--- Connects to the variable in Theme.kt
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                // TODO: Implement actual theme change logic here
+                                // This would typically involve updating a theme preference and
+                                // recomposing the entire application with the new theme.
+                                Toast.makeText(
+                                    context,
+                                    "Theme set to: $theme (Placeholder)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            shape = SegmentedButtonDefaults.shape // Uses default segmented button shape
+                        ) {
+                            Text(theme)
+                        }
+                    }
+                }
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+        // The "Enable Notifications" SettingItem has been removed from here.
 
         var showAccountDialog by remember { mutableStateOf(false) }
         SettingItem(
@@ -1314,7 +1349,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Manage your account details.",
             leadingIcon = { Icon(Icons.Filled.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "Go to account preferences", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = { showAccountDialog = true }
+            onClick = {
+                showAccountDialog = true
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Added haptic feedback
+            }
         )
         if (showAccountDialog) {
             AlertDialog(
@@ -1332,7 +1370,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Information about this application.",
             leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View About", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = { showAboutDialog = true }
+            onClick = {
+                showAboutDialog = true
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Added haptic feedback
+            }
         )
         if (showAboutDialog) {
             AlertDialog(
@@ -1350,7 +1391,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Read our privacy policy.",
             leadingIcon = { Icon(Icons.Filled.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Privacy Policy", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = { showPrivacyDialog = true }
+            onClick = {
+                showPrivacyDialog = true
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Added haptic feedback
+            }
         )
         if (showPrivacyDialog) {
             AlertDialog(
@@ -1369,7 +1413,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "See what's new in this version.",
             leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Changelog", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = { showChangelogDialog = true }
+            onClick = {
+                showChangelogDialog = true
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Added haptic feedback
+            }
         )
         if (showChangelogDialog) {
             AlertDialog(
