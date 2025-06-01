@@ -87,6 +87,8 @@ import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
 import androidx.compose.foundation.border // <-- ADDED THIS IMPORT
+import androidx.compose.material3.ExperimentalMaterial3Api // Required for SegmentedButton
+import androidx.compose.material3.HorizontalDivider // Or Divider if using older Material
 
 // --- SharedPreferencesManager ---
 /**
@@ -1289,7 +1291,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 
     // State for theme selection - Initialize with the current AppThemeMode
     val themeOptions = listOf("System", "Light", "Dark")
-    var selectedTheme by remember { mutableStateOf(AppThemeMode) } // Initialize with current global theme mode
+    var selectedTheme: String by remember { mutableStateOf(AppThemeMode) }  // Initialize with current global theme mode
 
     Column(
         modifier = modifier
@@ -1318,19 +1320,15 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             selected = selectedTheme == theme,
                             onClick = {
                                 selectedTheme = theme
-                                // This is the crucial line to update the global theme mode
-                                AppThemeMode = theme // <--- Connects to the variable in Theme.kt
+                                AppThemeMode = theme // <-- Line 1322 will be this one
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                // TODO: Implement actual theme change logic here
-                                // This would typically involve updating a theme preference and
-                                // recomposing the entire application with the new theme.
                                 Toast.makeText(
                                     context,
-                                    "Theme set to: $theme (Placeholder)",
+                                    "Theme set to: $theme",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             },
-                            shape = SegmentedButtonDefaults.shape // Uses default segmented button shape
+                            shape = SegmentedButtonDefaults.shape // <-- Line 1333 will be this one
                         ) {
                             Text(theme)
                         }
@@ -1339,7 +1337,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
+        
         // The "Enable Notifications" SettingItem has been removed from here.
 
         var showAccountDialog by remember { mutableStateOf(false) }
