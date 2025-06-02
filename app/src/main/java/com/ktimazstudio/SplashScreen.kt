@@ -36,13 +36,7 @@ class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Removed: WindowCompat.setDecorFitsSystemWindows(window, false)
-        // This line is removed to disable drawing behind system bars.
-
         setContent {
-            // Removed: System UI Controller setup for transparent system bars.
-            // The system bars will now use the default theme colors.
-
             // Your main splash screen composable
             SplashScreenContent()
         }
@@ -52,24 +46,31 @@ class SplashScreen : ComponentActivity() {
 @Composable
 fun SplashScreenContent() {
     val context = LocalContext.current
+    // MutableTransitionState helps orchestrate multiple animations based on a single state
     val splashScreenState = remember { MutableTransitionState(false) }
 
     LaunchedEffect(Unit) {
+        // Trigger the animations
         splashScreenState.targetState = true
-        delay(4000)
+        // Delay for animations to play out (adjust as needed)
+        delay(4000) // Total animation duration + buffer
+        // Navigate to MainActivity and finish this activity
         context.startActivity(Intent(context, MainActivity::class.java))
         if (context is ComponentActivity) context.finish()
     }
 
+    // Define the transition for the entire splash screen animation
     val transition = updateTransition(splashScreenState, label = "SplashScreenTransition")
 
+    // Logo scale animation with a spring effect for a more dynamic pop
     val logoScale by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 1000, easing = EaseOutBounce) },
         label = "logoScale"
     ) { state ->
-        if (state) 1.2f else 0.5f
+        if (state) 1.2f else 0.5f // Start slightly smaller, then pop larger
     }
 
+    // Logo rotation animation
     val logoRotation by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 2000, easing = FastOutSlowInEasing) },
         label = "logoRotation"
@@ -77,6 +78,7 @@ fun SplashScreenContent() {
         if (state) 720f else 0f
     }
 
+    // Logo alpha animation for initial fade-in
     val logoAlpha by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 800, delayMillis = 200) },
         label = "logoAlpha"
@@ -84,8 +86,9 @@ fun SplashScreenContent() {
         if (state) 1f else 0f
     }
 
+    // Powered By text alpha animation
     val poweredByAlpha by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 800, delayMillis = 2500) },
+        transitionSpec = { tween(durationMillis = 800, delayMillis = 2500) }, // Fade in after logo
         label = "poweredByAlpha"
     ) { state ->
         if (state) 1f else 0f
@@ -94,8 +97,6 @@ fun SplashScreenContent() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            // Removed: .padding(WindowInsets.systemBars.asPaddingValues())
-            // This padding is no longer needed as content will not draw behind system bars.
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -105,16 +106,17 @@ fun SplashScreenContent() {
                 )
             )
     ) {
-        // Enhanced Ripple Wave Effect
-        EnhancedRippleWaveAnimation(transition)
+        // Enhanced Ripple Wave Effect now uses its own InfiniteTransition
+        EnhancedRippleWaveAnimation()
 
         // Center Logo with blur behind
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 100.dp),
+                .padding(bottom = 100.dp), // Adjust padding to center visually
             contentAlignment = Alignment.Center
         ) {
+            // Blurred background circle for the logo
             Box(
                 modifier = Modifier
                     .size(220.dp)
@@ -123,6 +125,7 @@ fun SplashScreenContent() {
                     .blur(30.dp)
             )
 
+            // Logo container with scale, rotation, and alpha animations
             Box(
                 modifier = Modifier
                     .size(150.dp)
@@ -133,25 +136,25 @@ fun SplashScreenContent() {
                         alpha = logoAlpha
                     }
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(MaterialTheme.colorScheme.primary), // Changed to primary for better contrast
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher),
+                    painter = painterResource(id = R.mipmap.ic_launcher), // Ensure you have your app icon here
                     contentDescription = "App Logo",
                     modifier = Modifier.size(120.dp)
                 )
             }
         }
 
-        // Advanced Loading Dots under logo
+        // Advanced Loading Dots under logo now uses its own InfiniteTransition
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 170.dp),
+                .padding(bottom = 170.dp), // Adjust padding
             contentAlignment = Alignment.BottomCenter
         ) {
-            AdvancedLoadingDots(transition)
+            AdvancedLoadingDots()
         }
 
         // Powered By Text with fade-in animation
@@ -178,39 +181,43 @@ fun SplashScreenContent() {
  * Creates an enhanced ripple wave animation with multiple expanding circles.
  */
 @Composable
-fun EnhancedRippleWaveAnimation(transition: Transition<Boolean>) {
-    val rippleCount = 3
-    val maxRippleRadius = 400.dp
-    val rippleDuration = 3000
+fun EnhancedRippleWaveAnimation() { // Removed 'transition: Transition<Boolean>' parameter
+    val rippleCount = 3 // Number of ripples
+    val maxRippleRadius = 400.dp // Maximum radius for a ripple
+    val rippleDuration = 3000 // Duration for one ripple cycle in ms
 
-    val rippleProgress by transition.animateFloat(
-        transitionSpec = { infiniteRepeatable(
+    val infiniteTransition = rememberInfiniteTransition(label = "RippleInfiniteTransition")
+
+    // Animate the progress of the overall ripple effect
+    val rippleProgress by infiniteTransition.animateFloat( // Use rememberInfiniteTransition
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
             animation = tween(rippleDuration, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
-        )},
+        ),
         label = "rippleProgress"
-    ) { state ->
-        if (state) 1f else 0f
-    }
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 100.dp),
+            .padding(bottom = 100.dp), // Align with logo
         contentAlignment = Alignment.Center
     ) {
         repeat(rippleCount) { index ->
+            // Calculate delay for each ripple
             val delayFraction = index.toFloat() / rippleCount
             val currentProgress = (rippleProgress + (1f - delayFraction)) % 1f
 
             val radius = maxRippleRadius * currentProgress
-            val alpha = (1f - currentProgress).coerceIn(0f, 1f)
+            val alpha = (1f - currentProgress).coerceIn(0f, 1f) // Fade out as it expands
 
             Box(
                 modifier = Modifier
                     .size(radius)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.08f * alpha))
+                    .background(Color.White.copy(alpha = 0.08f * alpha)) // Adjust alpha for visibility
             )
         }
     }
@@ -220,54 +227,50 @@ fun EnhancedRippleWaveAnimation(transition: Transition<Boolean>) {
  * Creates an advanced loading dots animation where dots pulse in sequence.
  */
 @Composable
-fun AdvancedLoadingDots(transition: Transition<Boolean>) {
+fun AdvancedLoadingDots() { // Removed 'transition: Transition<Boolean>' parameter
     val dotCount = 3
     val dotSize = 10.dp
-    val animationDuration = 800
-    val delayBetweenDots = 200
+    val animationDuration = 800 // Duration for one dot's pulse
+    val delayBetweenDots = 200 // Delay before the next dot starts its pulse
+
+    val infiniteTransition = rememberInfiniteTransition(label = "LoadingDotsInfiniteTransition")
 
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         repeat(dotCount) { index ->
-            val dotTransition = updateTransition(transition.currentState, label = "DotTransition_$index")
-
-            val dotScale by dotTransition.animateFloat(
-                transitionSpec = {
-                    infiniteRepeatable(
-                        animation = keyframes {
-                            durationMillis = animationDuration * dotCount + delayBetweenDots * (dotCount - 1)
-                            0.7f at (index * delayBetweenDots).toLong()
-                            1.2f at (index * delayBetweenDots + animationDuration / 2).toLong() easing LinearEasing
-                            0.7f at (index * delayBetweenDots + animationDuration).toLong() easing LinearEasing
-                            0.7f at durationMillis.toLong()
-                        },
-                        repeatMode = RepeatMode.Restart
-                    )
-                },
+            val dotScale by infiniteTransition.animateFloat( // Use rememberInfiniteTransition
+                initialValue = 0.7f, // Initial value for the animation
+                targetValue = 0.7f, // Target value (will be overridden by keyframes)
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = animationDuration * dotCount + delayBetweenDots * (dotCount - 1) // Total cycle duration
+                        0.7f at (index * delayBetweenDots).toLong() // Start slightly smaller
+                        1.2f at (index * delayBetweenDots + animationDuration / 2).toLong() with LinearEasing // Grow
+                        0.7f at (index * delayBetweenDots + animationDuration).toLong() with LinearEasing // Shrink
+                        0.7f at durationMillis.toLong() // Hold
+                    },
+                    repeatMode = RepeatMode.Restart
+                ),
                 label = "dotScale_$index"
-            ) { state ->
-                if (state) 1f else 0.7f
-            }
+            )
 
-            val dotAlpha by dotTransition.animateFloat(
-                transitionSpec = {
-                    infiniteRepeatable(
-                        animation = keyframes {
-                            durationMillis = animationDuration * dotCount + delayBetweenDots * (dotCount - 1)
-                            0.5f at (index * delayBetweenDots).toLong()
-                            1f at (index * delayBetweenDots + animationDuration / 2).toLong() easing LinearEasing
-                            0.5f at (index * delayBetweenDots + animationDuration).toLong() easing LinearEasing
-                            0.5f at durationMillis.toLong()
-                        },
-                        repeatMode = RepeatMode.Restart
-                    )
-                },
+            val dotAlpha by infiniteTransition.animateFloat( // Use rememberInfiniteTransition
+                initialValue = 0.5f, // Initial value for the animation
+                targetValue = 0.5f, // Target value (will be overridden by keyframes)
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = animationDuration * dotCount + delayBetweenDots * (dotCount - 1)
+                        0.5f at (index * delayBetweenDots).toLong()
+                        1f at (index * delayBetweenDots + animationDuration / 2).toLong() with LinearEasing
+                        0.5f at (index * delayBetweenDots + animationDuration).toLong() with LinearEasing
+                        0.5f at durationMillis.toLong()
+                    },
+                    repeatMode = RepeatMode.Restart
+                ),
                 label = "dotAlpha_$index"
-            ) { state ->
-                if (state) 1f else 0.5f
-            }
+            )
 
             Box(
                 modifier = Modifier
@@ -286,9 +289,6 @@ fun AdvancedLoadingDots(transition: Transition<Boolean>) {
 }
 
 // Helper function to determine luminance for icon color adjustment
-// This function is still useful if you want to manually set status bar icon colors
-// even without full edge-to-edge, but it's not directly used for the primary
-// edge-to-edge setup anymore. Keeping it for potential future use or manual control.
 private fun Color.luminance(): Float {
     return (0.2126f * red + 0.7152f * green + 0.0722f * blue)
 }
