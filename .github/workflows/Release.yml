@@ -135,15 +135,11 @@ jobs:
           if [[ -z "$LAST" ]]; then
             echo "ready=true" >> $GITHUB_OUTPUT
           else
-            DAYS=$(
-              python3 - <<EOF
-from datetime import datetime
-fmt = "%Y-%m-%dT%H:%M:%SZ"
-d1 = datetime.strptime("$NOW", fmt)
-d2 = datetime.strptime("$LAST", fmt)
-print((d1 - d2).days)
-EOF
-            )
+            # Convert both datetimes to UNIX timestamps and compute the day difference
+            NOW_TS=$(date -u -d "$NOW" +"%s")
+            LAST_TS=$(date -u -d "$LAST" +"%s")
+            DIFF_SEC=$((NOW_TS - LAST_TS))
+            DAYS=$((DIFF_SEC / 86400))
             if [[ $DAYS -ge 7 ]]; then
               echo "ready=true" >> $GITHUB_OUTPUT
             else
