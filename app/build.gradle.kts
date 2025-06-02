@@ -131,6 +131,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
+    implementation("androidx.navigation:navigation-compose:2.9.0")
 
     // Optional
    // implementation("androidx.navigation:navigation-compose:2.7.7")
