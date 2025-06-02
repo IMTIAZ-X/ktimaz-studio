@@ -132,12 +132,6 @@ dependencies {
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
 
-
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.14.0-alpha01")
-    implementation("com.airbnb.android:lottie:6.5.2")
-    implementation("com.android.volley:volley:1.2.1")
-
     // Optional
    // implementation("androidx.navigation:navigation-compose:2.7.7")
    // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
