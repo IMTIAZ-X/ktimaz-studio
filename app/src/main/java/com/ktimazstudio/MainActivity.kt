@@ -47,8 +47,6 @@ import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.CheckCircle // New icon for SendMoneySuccess
-import androidx.compose.material.icons.filled.GraphicEq // New icon for Spectrum Analyzer (example)
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
@@ -557,8 +555,6 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
     object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
-        // New route for SendMoneySuccessScreen
-    object SendMoneySuccess : Screen("sendMoneySuccess", "Send Money Success", Icons.Filled.CheckCircle)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -784,15 +780,12 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
                         Screen.Dashboard -> AnimatedCardGrid { title ->
                             if (title == "System Config") {
                                 context.startActivity(Intent(context, SettingsActivity::class.java))
-                            } else if (title == "Generate Image") { // New condition for Spectrum Analyzer
-                            navController.navigate(Screen.SendMoneySuccess.route) // Navigate to SendMoneySuccessScreen
                             } else {
                                 context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
                             }
                         }
                         Screen.AppSettings -> SettingsScreen()
                         Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout)
-                        composable(Screen.SendMoneySuccess.route) { SendMoneySuccessScreen() } // New composable route
                     }
                 }
             }
@@ -1458,7 +1451,7 @@ fun SettingItem(
 
 @Composable
 fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
-    val cards = listOf("Generate Image", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
+    val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
     // Consider adding specific icons for each card for better visual distinction
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Placeholder: replace with distinct icons
     val haptic = LocalHapticFeedback.current
