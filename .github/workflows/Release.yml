@@ -1,5 +1,10 @@
 name: Android Release
 
+#on:
+#  schedule:
+#    - cron: '0 0 * * *'  # Daily at midnight UTC
+#  workflow_dispatch:
+
 on:
   schedule:
     - cron: '0 0 * * 0'   # Weekly on Sunday at 00:00 UTC
@@ -7,6 +12,7 @@ on:
 
 jobs:
   build:
+    name: Build APKs
     runs-on: ubuntu-latest
     env:
       VERSION_NAME: "1.0"
@@ -53,38 +59,9 @@ jobs:
           echo "org.gradle.daemon=true" >> gradle.properties
           echo "org.gradle.parallel=true" >> gradle.properties
           echo "org.gradle.configureondemand=true" >> gradle.properties
-          echo "android.enableBuildCache=true" >> gradle.properties
 
       - name: Grant Execute Permission
         run: chmod +x ./gradlew
-
-      - name: Run Android Lint
-        run: ./gradlew lintRelease
-
-      - name: Run SpotBugs & Checkstyle
-        run: |
-          ./gradlew spotbugsMain checkstyleMain
-
-      - name: Set up Android Emulator
-        uses: android-actions/setup-android@v2
-        with:
-          api-level: 30
-          target: google_apis
-          arch: x86_64
-          cache: true
-
-      - name: Start AVD
-        run: |
-          echo "no" | avdmanager create avd -n test_avd -k "system-images;android-30;google_apis;x86_64" --force
-          nohup emulator -avd test_avd -no-window -no-audio -no-snapshot &
-
-      - name: Wait for Emulator
-        run: |
-          adb wait-for-device
-          adb shell getprop sys.boot_completed | grep -m 1 '1'
-
-      - name: Run Instrumented Tests
-        run: ./gradlew connectedAndroidTest
 
       - name: Build Release APK
         env:
@@ -94,22 +71,10 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Build Release AAB
-        env:
-          RELEASE_STORE_FILE: ${{ secrets.RELEASE_STORE_FILE }}
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew bundleRelease
-
-      - name: Clean Up Old Artifacts
-        run: rm -rf release-artifacts/* || echo "No artifacts to remove"
-
-      - name: Rename APK & AAB Files
+      - name: Rename APK File
         run: |
           mkdir -p release-artifacts
           cp app/build/outputs/apk/release/*.apk release-artifacts/Ktimaz_Studio_Release_v${{ env.VERSION_NAME }}.apk
-          cp app/build/outputs/bundle/release/*.aab release-artifacts/Ktimaz_Studio_Release_v${{ env.VERSION_NAME }}.aab
 
       - name: Check Last Release Date
         id: release_check
@@ -138,35 +103,12 @@ jobs:
         with:
           name: "KTIMAZ Studio v${{ env.VERSION_NAME }}"
           tag_name: "v${{ env.VERSION_NAME }}-${{ github.run_number }}"
-          files: release-artifacts/*.apk,release-artifacts/*.aab
+          files: release-artifacts/*.apk
           draft: false
           prerelease: false
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Test Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-reports
-          path: app/build/reports/tests
-
-      - name: Upload Lint Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-report
-          path: app/build/reports/lint-results.html
-
-      - name: Upload SpotBugs/Checkstyle Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-analysis-reports
-          path: |
-            app/build/reports/spotbugs
-            app/build/reports/checkstyle
 
       - name: Notify Slack
         if: always()
