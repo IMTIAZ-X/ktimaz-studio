@@ -28,8 +28,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// Removed: import androidx.core.view.WindowCompat // Not needed for non-edge-to-edge
-// Removed: import com.google.accompanist.systemuicontroller.rememberSystemUiController // Not needed for non-edge-to-edge
 import kotlinx.coroutines.delay
 
 class SplashScreen : ComponentActivity() {
@@ -181,7 +179,7 @@ fun SplashScreenContent() {
  * Creates an enhanced ripple wave animation with multiple expanding circles.
  */
 @Composable
-fun EnhancedRippleWaveAnimation() { // Removed 'transition: Transition<Boolean>' parameter
+fun EnhancedRippleWaveAnimation() {
     val rippleCount = 3 // Number of ripples
     val maxRippleRadius = 400.dp // Maximum radius for a ripple
     val rippleDuration = 3000 // Duration for one ripple cycle in ms
@@ -189,7 +187,7 @@ fun EnhancedRippleWaveAnimation() { // Removed 'transition: Transition<Boolean>'
     val infiniteTransition = rememberInfiniteTransition(label = "RippleInfiniteTransition")
 
     // Animate the progress of the overall ripple effect
-    val rippleProgress by infiniteTransition.animateFloat( // Use rememberInfiniteTransition
+    val rippleProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -227,7 +225,7 @@ fun EnhancedRippleWaveAnimation() { // Removed 'transition: Transition<Boolean>'
  * Creates an advanced loading dots animation where dots pulse in sequence.
  */
 @Composable
-fun AdvancedLoadingDots() { // Removed 'transition: Transition<Boolean>' parameter
+fun AdvancedLoadingDots() {
     val dotCount = 3
     val dotSize = 10.dp
     val animationDuration = 800 // Duration for one dot's pulse
@@ -240,32 +238,34 @@ fun AdvancedLoadingDots() { // Removed 'transition: Transition<Boolean>' paramet
         verticalAlignment = Alignment.CenterVertically
     ) {
         repeat(dotCount) { index ->
-            val dotScale by infiniteTransition.animateFloat( // Use rememberInfiniteTransition
-                initialValue = 0.7f, // Initial value for the animation
-                targetValue = 0.7f, // Target value (will be overridden by keyframes)
+            val dotScale by infiniteTransition.animateFloat(
+                initialValue = 0.7f,
+                targetValue = 0.7f,
                 animationSpec = infiniteRepeatable(
                     animation = keyframes {
-                        durationMillis = animationDuration * dotCount + delayBetweenDots * (dotCount - 1) // Total cycle duration
-                        0.7f at (index * delayBetweenDots).toLong() // Start slightly smaller
-                        1.2f at (index * delayBetweenDots + animationDuration / 2).toLong() with LinearEasing // Grow
-                        0.7f at (index * delayBetweenDots + animationDuration).toLong() with LinearEasing // Shrink
-                        0.7f at durationMillis.toLong() // Hold
+                        // All timestamps passed to 'at' must be Int
+                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1)).toInt()
+                        0.7f at (index * delayBetweenDots) with LinearEasing
+                        1.2f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
+                        0.7f at (index * delayBetweenDots + animationDuration) with LinearEasing
+                        0.7f at durationMillis // Use durationMillis directly, which is already Int
                     },
                     repeatMode = RepeatMode.Restart
                 ),
                 label = "dotScale_$index"
             )
 
-            val dotAlpha by infiniteTransition.animateFloat( // Use rememberInfiniteTransition
-                initialValue = 0.5f, // Initial value for the animation
-                targetValue = 0.5f, // Target value (will be overridden by keyframes)
+            val dotAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.5f,
+                targetValue = 0.5f,
                 animationSpec = infiniteRepeatable(
                     animation = keyframes {
-                        durationMillis = animationDuration * dotCount + delayBetweenDots * (dotCount - 1)
-                        0.5f at (index * delayBetweenDots).toLong()
-                        1f at (index * delayBetweenDots + animationDuration / 2).toLong() with LinearEasing
-                        0.5f at (index * delayBetweenDots + animationDuration).toLong() with LinearEasing
-                        0.5f at durationMillis.toLong()
+                        // All timestamps passed to 'at' must be Int
+                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1)).toInt()
+                        0.5f at (index * delayBetweenDots) with LinearEasing
+                        1f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
+                        0.5f at (index * delayBetweenDots + animationDuration) with LinearEasing
+                        0.5f at durationMillis // Use durationMillis directly, which is already Int
                     },
                     repeatMode = RepeatMode.Restart
                 ),
