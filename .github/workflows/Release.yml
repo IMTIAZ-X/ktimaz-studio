@@ -2,20 +2,42 @@ name: Android Release
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Daily at midnight UTC
+    - cron: '0 0 * * 0'   # Weekly (Sunday 00:00 UTC)
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build APKs
     runs-on: ubuntu-latest
     env:
       VERSION_NAME: "1.0"
 
     steps:
+      # 1. Checkout
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 2. Cache Gradle wrappers + deps
+      - name: Cache Gradle Wrapper
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/wrapper
+          key: gradle-wrapper-${{ runner.os }}-v${{ env.VERSION_NAME }}
+          restore-keys: |
+            gradle-wrapper-${{ runner.os }}-
+
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/caches/modules-2
+            ~/.gradle/caches/journal-1
+          key: gradle-deps-${{ runner.os }}-v${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-deps-${{ runner.os }}-
+
+      # 3. Setup JDK / Gradle
       - name: Setup JDK 23
         uses: actions/setup-java@v4
         with:
@@ -25,16 +47,57 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Configure Gradle
+      # 4. Configure gradle.properties (parallel, daemon, etc.)
+      - name: Configure Gradle Properties
         run: |
           echo "android.useAndroidX=true" >> gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
           echo "org.gradle.jvmargs=-Xmx8g -Dfile.encoding=UTF-8 -XX:+UseParallelGC" >> gradle.properties
           echo "android.enableR8.fullMode=true" >> gradle.properties
+          echo "org.gradle.daemon=true" >> gradle.properties
+          echo "org.gradle.parallel=true" >> gradle.properties
+          echo "org.gradle.configureondemand=true" >> gradle.properties
+          echo "android.enableBuildCache=true" >> gradle.properties
 
+      # 5. Grant Execute Permissions
       - name: Grant Execute Permission
         run: chmod +x ./gradlew
 
+      # 6. Run Unit Tests
+      - name: Run Unit Tests
+        run: ./gradlew test
+
+      # 7. Run Static Analysis / Lint
+      - name: Run Android Lint
+        run: ./gradlew lintRelease
+
+      - name: Run SpotBugs & Checkstyle
+        run: |
+          ./gradlew spotbugsMain checkstyleMain
+
+      # 8. Start emulator & run instrumented tests (optional)
+      - name: Set up Android Emulator
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          cache: true
+
+      - name: Start AVD
+        run: |
+          echo "no" | avdmanager create avd -n test_avd -k "system-images;android-30;google_apis;x86_64" --force
+          nohup emulator -avd test_avd -no-window -no-audio -no-snapshot &
+
+      - name: Wait for Emulator
+        run: |
+          adb wait-for-device
+          adb shell getprop sys.boot_completed | grep -m 1 '1'
+
+      - name: Run Instrumented Tests
+        run: ./gradlew connectedAndroidTest
+
+      # 9. Build APK & AAB
       - name: Build Release APK
         env:
           RELEASE_STORE_FILE: ${{ secrets.RELEASE_STORE_FILE }}
@@ -43,11 +106,25 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Rename APK File
+      - name: Build Release AAB
+        env:
+          RELEASE_STORE_FILE: ${{ secrets.RELEASE_STORE_FILE }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+
+      # 10. Clean old artifacts & copy new ones
+      - name: Clean Up Old Artifacts
+        run: rm -rf release-artifacts/* || echo "No artifacts to remove"
+
+      - name: Rename APK & AAB Files
         run: |
           mkdir -p release-artifacts
           cp app/build/outputs/apk/release/*.apk release-artifacts/Ktimaz_Studio_Release_v${{ env.VERSION_NAME }}.apk
+          cp app/build/outputs/bundle/release/*.aab release-artifacts/Ktimaz_Studio_Release_v${{ env.VERSION_NAME }}.aab
 
+      # 11. (Optional) Check last release date
       - name: Check Last Release Date
         id: release_check
         run: |
@@ -58,21 +135,64 @@ jobs:
           if [[ -z "$LAST" ]]; then
             echo "ready=true" >> $GITHUB_OUTPUT
           else
-            DAYS=$(python3 -c "from datetime import datetime; print((datetime.strptime('$NOW','%Y-%m-%dT%H:%M:%SZ') - datetime.strptime('$LAST','%Y-%m-%dT%H:%M:%SZ')).days)")
-            echo "ready=$([[ $DAYS -ge 7 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+            DAYS=$(
+              python3 - <<EOF
+from datetime import datetime
+fmt = "%Y-%m-%dT%H:%M:%SZ"
+d1 = datetime.strptime("$NOW", fmt)
+d2 = datetime.strptime("$LAST", fmt)
+print((d1 - d2).days)
+EOF
+            )
+            if [[ $DAYS -ge 7 ]]; then
+              echo "ready=true" >> $GITHUB_OUTPUT
+            else
+              echo "ready=false" >> $GITHUB_OUTPUT
+            fi
           fi
 
+      # 12. Publish GitHub Release (only if ≥7 days since last)
       - name: Publish GitHub Release
         if: steps.release_check.outputs.ready == 'true'
         uses: softprops/action-gh-release@v1
         with:
           name: "KTIMAZ Studio v${{ env.VERSION_NAME }}"
           tag_name: "v${{ env.VERSION_NAME }}-${{ github.run_number }}"
-          files: release-artifacts/*.apk
-            # app/build/outputs/apk/release/output-metadata.json
-            # app/build/outputs/mapping/release/mapping.txt
+          files: release-artifacts/*.apk,release-artifacts/*.aab
           draft: false
           prerelease: false
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 13. Upload reports as artifacts (always)
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: junit-reports
+          path: app/build/reports/tests
+
+      - name: Upload Lint Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results.html
+
+      - name: Upload SpotBugs/Checkstyle Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-analysis-reports
+          path: app/build/reports/spotbugs,app/build/reports/checkstyle
+
+      # 14. Notify via Slack (optional)
+      - name: Notify Slack
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,name,commit,author
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
