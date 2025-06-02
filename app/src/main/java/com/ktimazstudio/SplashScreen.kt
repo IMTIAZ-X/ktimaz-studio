@@ -6,10 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,27 +18,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.graphicsLayer // Required for graphicsLayer modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.delay
 
 class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
-            // Your main splash screen composable
-            SplashScreenContent()
+            SplashScreenV2()
         }
     }
 }
 
 @Composable
-fun SplashScreenContent() {
+fun SplashScreenV2() {
     val context = LocalContext.current
     // MutableTransitionState helps orchestrate multiple animations based on a single state
     val splashScreenState = remember { MutableTransitionState(false) }
@@ -104,17 +98,16 @@ fun SplashScreenContent() {
                 )
             )
     ) {
-        // Enhanced Ripple Wave Effect now uses its own InfiniteTransition
-        EnhancedRippleWaveAnimation()
+        // Ripple Wave Effect
+        RippleWaveAnimation()
 
         // Center Logo with blur behind
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 100.dp), // Adjust padding to center visually
+                .padding(bottom = 100.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Blurred background circle for the logo
             Box(
                 modifier = Modifier
                     .size(220.dp)
@@ -123,39 +116,38 @@ fun SplashScreenContent() {
                     .blur(30.dp)
             )
 
-            // Logo container with scale, rotation, and alpha animations
             Box(
                 modifier = Modifier
                     .size(150.dp)
-                    .graphicsLayer {
+                    .graphicsLayer { // Apply graphicsLayer for scale, rotation, and alpha
                         scaleX = logoScale
                         scaleY = logoScale
                         rotationZ = logoRotation
                         alpha = logoAlpha
                     }
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary), // Changed to primary for better contrast
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher), // Ensure you have your app icon here
+                    painter = painterResource(id = R.mipmap.ic_launcher),
                     contentDescription = "App Logo",
                     modifier = Modifier.size(120.dp)
                 )
             }
         }
 
-        // Advanced Loading Dots under logo now uses its own InfiniteTransition
+        // Advanced Loading Dots under logo
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 170.dp), // Adjust padding
+                .padding(bottom = 170.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            AdvancedLoadingDots()
+            AdvancedLoadingDots() // Call the advanced version
         }
 
-        // Powered By Text with fade-in animation
+        // Powered By Text
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -168,56 +160,37 @@ fun SplashScreenContent() {
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                 modifier = Modifier.graphicsLayer {
-                    alpha = poweredByAlpha
+                    alpha = poweredByAlpha // Apply alpha animation
                 }
             )
         }
     }
 }
 
-/**
- * Creates an enhanced ripple wave animation with multiple expanding circles.
- */
 @Composable
-fun EnhancedRippleWaveAnimation() {
-    val rippleCount = 3 // Number of ripples
-    val maxRippleRadius = 400.dp // Maximum radius for a ripple
-    val rippleDuration = 3000 // Duration for one ripple cycle in ms
-
-    val infiniteTransition = rememberInfiniteTransition(label = "RippleInfiniteTransition")
-
-    // Animate the progress of the overall ripple effect
-    val rippleProgress by infiniteTransition.animateFloat(
+fun RippleWaveAnimation() {
+    val infiniteTransition = rememberInfiniteTransition(label = "RippleWaveAnimation")
+    val rippleRadius by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 1f,
+        targetValue = 400f,
         animationSpec = infiniteRepeatable(
-            animation = tween(rippleDuration, easing = LinearEasing),
+            animation = tween(3000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "rippleProgress"
+        label = "rippleRadius"
     )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 100.dp), // Align with logo
+            .padding(bottom = 100.dp),
         contentAlignment = Alignment.Center
     ) {
-        repeat(rippleCount) { index ->
-            // Calculate delay for each ripple
-            val delayFraction = index.toFloat() / rippleCount
-            val currentProgress = (rippleProgress + (1f - delayFraction)) % 1f
-
-            val radius = maxRippleRadius * currentProgress
-            val alpha = (1f - currentProgress).coerceIn(0f, 1f) // Fade out as it expands
-
-            Box(
-                modifier = Modifier
-                    .size(radius)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.08f * alpha)) // Adjust alpha for visibility
-            )
-        }
+        Box(
+            modifier = Modifier
+                .size(rippleRadius.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.08f))
+        )
     }
 }
 
@@ -243,12 +216,11 @@ fun AdvancedLoadingDots() {
                 targetValue = 0.7f,
                 animationSpec = infiniteRepeatable(
                     animation = keyframes {
-                        // All timestamps passed to 'at' must be Int
-                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1)).toInt()
+                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1))
                         0.7f at (index * delayBetweenDots) with LinearEasing
                         1.2f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
                         0.7f at (index * delayBetweenDots + animationDuration) with LinearEasing
-                        0.7f at durationMillis // Use durationMillis directly, which is already Int
+                        0.7f at durationMillis
                     },
                     repeatMode = RepeatMode.Restart
                 ),
@@ -260,12 +232,11 @@ fun AdvancedLoadingDots() {
                 targetValue = 0.5f,
                 animationSpec = infiniteRepeatable(
                     animation = keyframes {
-                        // All timestamps passed to 'at' must be Int
-                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1)).toInt()
+                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1))
                         0.5f at (index * delayBetweenDots) with LinearEasing
                         1f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
                         0.5f at (index * delayBetweenDots + animationDuration) with LinearEasing
-                        0.5f at durationMillis // Use durationMillis directly, which is already Int
+                        0.5f at durationMillis
                     },
                     repeatMode = RepeatMode.Restart
                 ),
@@ -286,9 +257,4 @@ fun AdvancedLoadingDots() {
             )
         }
     }
-}
-
-// Helper function to determine luminance for icon color adjustment
-private fun Color.luminance(): Float {
-    return (0.2126f * red + 0.7152f * green + 0.0722f * blue)
 }
