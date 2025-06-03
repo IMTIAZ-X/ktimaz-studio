@@ -230,20 +230,17 @@ class SecurityManager(private val context: Context) {
      */
     fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        // Build a NetworkRequest specifically for VPN transport
         val networkRequest = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_VPN) // Explicitly look for VPN
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
 
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 super.onAvailable(network)
-                val capabilities = connectivityManager.getNetworkCapabilities(network)
-                if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true) {
-                    onVpnStatusChanged(true)
-                } else {
-                    // Re-check overall VPN status as other networks might be available
-                    onVpnStatusChanged(isVpnActive())
-                }
+                // When a network becomes available, re-check overall VPN status
+                onVpnStatusChanged(isVpnActive())
             }
 
             override fun onLost(network: Network) {
@@ -254,6 +251,7 @@ class SecurityManager(private val context: Context) {
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
                 super.onCapabilitiesChanged(network, networkCapabilities)
+                // When network capabilities change, re-check VPN status
                 onVpnStatusChanged(isVpnActive())
             }
         }
@@ -590,10 +588,11 @@ class MainActivity : ComponentActivity() {
                 DisposableEffect(Unit) {
                     vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
                         liveVpnDetected = isVpn
+                        // If VPN is detected, set it as the current issue.
+                        // Otherwise, re-evaluate all security issues.
                         if (isVpn) {
                             currentSecurityIssue = SecurityIssue.VPN_ACTIVE
                         } else {
-                            // Re-evaluate overall security if VPN goes down
                             currentSecurityIssue = securityManager.getSecurityIssue()
                         }
                     }
@@ -602,15 +601,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Check for other security issues periodically or on resume (for more robust detection)
-                // For demonstration, we'll rely on the initial check and VPN callback.
-                // In a real app, you might have a background service or periodic checks.
-                LaunchedEffect(liveVpnDetected) {
-                    if (!liveVpnDetected) { // Only re-check if VPN is not the current issue
-                        currentSecurityIssue = securityManager.getSecurityIssue()
+                // Periodic security checks for other issues (debugger, root, emulator, tampering, hooking)
+                // This runs every 5 seconds to catch issues that might appear after app launch.
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        delay(5000) // Check every 5 seconds
+                        val issue = securityManager.getSecurityIssue()
+                        // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
+                        if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
+                            currentSecurityIssue = issue
+                        } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
+                            // If VPN was active and now no issue is found, clear the alert
+                            currentSecurityIssue = SecurityIssue.NONE
+                        }
                     }
                 }
 
+                // Observe currentSecurityIssue and display alert if needed
                 if (currentSecurityIssue != SecurityIssue.NONE) {
                     SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
                 } else {
