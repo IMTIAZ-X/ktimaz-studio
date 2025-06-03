@@ -924,15 +924,15 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                         // Simulate network delay
                         val scope = (context as? ComponentActivity)?.lifecycleScope
                         scope?.launch {
-                            delay(1000) // Simulate network request
+                            delay(2000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onLoginSuccess(usernameInput)
-                                Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
+                                //Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
                             } else {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 errorMessage = "Invalid username or password. Please try again."
-                                Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
+                                //Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
                             }
                             isLoading = false
                         }
@@ -974,15 +974,15 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                         // 'context' here is now guaranteed to be a ComponentActivity for lifecycleScope
                         val scope = (context as ComponentActivity).lifecycleScope // Cast now safe
                         scope?.launch { // This block will now execute
-                            delay(1000) // Simulate network request
+                            delay(2000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onLoginSuccess(usernameInput)
-                                Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
+                                //Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
                             } else {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 errorMessage = "Invalid username or password. Please try again."
-                                Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
+                                //Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
                             }
                             isLoading = false
                         }
@@ -1103,7 +1103,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                     title = "Edit Profile",
                     description = "Update your personal information."
                 ) {
-                    Toast.makeText(context, "Edit Profile Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
+                    //Toast.makeText(context, "Edit Profile Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
                 Divider(modifier = Modifier.padding(horizontal = 24.dp))
                 ProfileOptionItem(
@@ -1111,7 +1111,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                     title = "Change Password",
                     description = "Secure your account with a new password."
                 ) {
-                    Toast.makeText(context, "Change Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
+                    //Toast.makeText(context, "Change Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
                 Divider(modifier = Modifier.padding(horizontal = 24.dp))
                 ProfileOptionItem(
@@ -1119,7 +1119,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                     title = "Privacy Settings",
                     description = "Manage your data and privacy preferences."
                 ) {
-                    Toast.makeText(context, "Privacy Settings Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
+                    //Toast.makeText(context, "Privacy Settings Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
             }
         }
