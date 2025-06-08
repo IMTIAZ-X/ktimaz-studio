@@ -5,8 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.Animatable
+import androidx.compose.animation.Animatable // Needed for animateColor if used as a standalone Animatable
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColor // IMPORTANT: Added this import
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,14 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.ParagraphStyle
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.ExperimentalTextApi // Still needed for Brush.linearGradient for Text.style
+import androidx.compose.ui.graphics.Shadow // For text shadow
+import androidx.compose.ui.geometry.Offset // For shadow offset
 import androidx.compose.ui.unit.TextUnit
 import kotlinx.coroutines.delay
 
@@ -43,18 +39,18 @@ class SplashScreen : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            SplashScreen()
+            SplashScreenV2()
         }
     }
 }
 
 @Composable
-fun SplashScreen() {
+fun SplashScreenV2() {
     val context = LocalContext.current
     val splashScreenState = remember { MutableTransitionState(false) }
 
     val logoAnimationFinished = remember { mutableStateOf(false) }
-    val poweredByTextAnimationStarted = remember { mutableStateOf(false) } // New state to trigger text anim
+    val poweredByTextAnimationStarted = remember { mutableStateOf(false) }
 
     val minimumDisplayTime = 2000L
 
@@ -62,16 +58,17 @@ fun SplashScreen() {
         val startTime = System.currentTimeMillis()
         splashScreenState.targetState = true
 
-        // Wait for logo animations to finish
+        // Wait for logo animations to finish OR minimum display time to pass
         while (!logoAnimationFinished.value && (System.currentTimeMillis() - startTime < minimumDisplayTime)) {
             delay(50)
         }
-        poweredByTextAnimationStarted.value = true // Trigger text animation after logo
+        poweredByTextAnimationStarted.value = true // Trigger text animation after logo/min time
 
-        // Adjust this delay based on how long the text animations are
-        // Typewriter (70ms * 23 chars) + any subsequent glows/shifts. Let's estimate
-        // a total text animation duration.
-        delay(1800 + (70L * "Powered by KTiMAZ Studio".length) + 1000) // Approx 1.8s delay + typewriter + a bit more for glow/shift
+        // Calculate total delay including text animations:
+        // 1800ms (previous delay until text starts)
+        // + (70ms * "Powered by KTiMAZ Studio".length) (Typewriter effect duration)
+        // + 1000ms (buffer for glow/gradient/shadow animations to run for a bit)
+        delay(1800L + (70L * "Powered by KTiMAZ Studio".length) + 1000L)
 
         context.startActivity(Intent(context, MainActivity::class.java))
         if (context is ComponentActivity) context.finish()
@@ -171,7 +168,7 @@ fun SplashScreen() {
                 .padding(bottom = 24.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            AnimatedVisibility(visible = poweredByTextAnimationStarted.value) { // Only show once triggered
+            AnimatedVisibility(visible = poweredByTextAnimationStarted.value) {
                 AnimatedPoweredByText(
                     text = "Powered by KTiMAZ Studio",
                     initialDelayMillis = 0L // Delay is handled by the parent AnimatedVisibility
@@ -270,9 +267,7 @@ fun AdvancedLoadingDots() {
     }
 }
 
-// --- NEW ANIMATED TEXT COMPOSABLE ---
-
-@OptIn(ExperimentalTextApi::class) // For Brush.linearGradient and graphicsLayer blend mode
+@OptIn(ExperimentalTextApi::class)
 @Composable
 fun AnimatedPoweredByText(
     text: String,
@@ -281,29 +276,34 @@ fun AnimatedPoweredByText(
     textColor: Color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
     fontSize: TextUnit = 14.sp,
     fontWeight: FontWeight = FontWeight.Medium,
-    shadowColor: Color = Color.Black.copy(alpha = 0.6f) // Base shadow color
+    shadowBaseColor: Color = Color.Black // Base color for the shadow
 ) {
     var typedText by remember { mutableStateOf("") }
     val isTypingFinished = remember { mutableStateOf(false) }
 
     // State for shadow animation
-    val shadowOffsetX by animateDpAsState(
-        targetValue = if (isTypingFinished.value) 4.dp else 0.dp,
+    val shadowOffsetX by animateFloatAsState(
+        targetValue = if (isTypingFinished.value) 4f else 0f,
         animationSpec = tween(durationMillis = 500), label = "shadowOffsetX"
     )
-    val shadowOffsetY by animateDpAsState(
-        targetValue = if (isTypingFinished.value) 4.dp else 0.dp,
+    val shadowOffsetY by animateFloatAsState(
+        targetValue = if (isTypingFinished.value) 4f else 0f,
         animationSpec = tween(durationMillis = 500), label = "shadowOffsetY"
     )
-    val shadowAlpha by animateFloatAsState(
+    val shadowBlurRadius by animateFloatAsState(
+        targetValue = if (isTypingFinished.value) 8f else 0f,
+        animationSpec = tween(durationMillis = 500), label = "shadowBlurRadius"
+    )
+    val shadowColorAlpha by animateFloatAsState(
         targetValue = if (isTypingFinished.value) 0.6f else 0.0f,
-        animationSpec = tween(durationMillis = 500), label = "shadowAlpha"
+        animationSpec = tween(durationMillis = 500), label = "shadowColorAlpha"
     )
 
-    // State for Pulsing Glow (main color)
-    val glowPulseColor1 = MaterialTheme.colorScheme.primary // Use primary color for glow
-    val glowPulseColor2 = MaterialTheme.colorScheme.primaryContainer // Use primaryContainer for glow
-    val animatedColor by rememberInfiniteTransition(label = "textGlow").animateColor(
+
+    // State for Pulsing Glow (main text color)
+    val glowPulseColor1 = MaterialTheme.colorScheme.primary
+    val glowPulseColor2 = MaterialTheme.colorScheme.primaryContainer
+    val animatedTextColor by rememberInfiniteTransition(label = "textGlow").animateColor(
         initialValue = glowPulseColor1,
         targetValue = glowPulseColor2,
         animationSpec = infiniteRepeatable(
@@ -313,82 +313,55 @@ fun AnimatedPoweredByText(
     )
 
     // State for Gradient Shift (overlay brush)
-    val gradientShiftX by rememberInfiniteTransition(label = "gradientShift").animateFloat(
+    // The gradient will shift across the text
+    val gradientShiftProgress by rememberInfiniteTransition(label = "gradientShift").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(2000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
-        ), label = "gradientShiftX"
+        ), label = "gradientShiftProgress"
     )
 
     LaunchedEffect(text) {
-        delay(initialDelayMillis) // Initial delay before typing starts
-        val typingSpeedMillis = 70L // milliseconds per character
+        delay(initialDelayMillis)
+        val typingSpeedMillis = 70L
 
         text.forEachIndexed { index, char ->
             typedText = text.substring(0, index + 1)
             delay(typingSpeedMillis)
         }
-        isTypingFinished.value = true // Signal that typing is done
+        isTypingFinished.value = true
     }
 
-    // This Text Composable will combine all the effects
+    val currentShadowColor = shadowBaseColor.copy(alpha = shadowColorAlpha)
+
     Text(
         text = typedText,
-        modifier = modifier
-            .graphicsLayer {
-                // Apply shadow dynamically
-                val currentShadowColor = shadowColor.copy(alpha = shadowAlpha)
-                renderWithLayer {
-                    drawText(
-                        typedText,
-                        color = currentShadowColor,
-                        style = TextStyle(
-                            fontSize = fontSize,
-                            fontWeight = fontWeight,
-                            shadow = androidx.compose.ui.graphics.Shadow(
-                                color = currentShadowColor,
-                                offset = androidx.compose.ui.geometry.Offset(shadowOffsetX.toPx(), shadowOffsetY.toPx()),
-                                blurRadius = 8.dp.toPx()
-                            )
-                        )
-                    )
-                }
-            },
-        // Apply the base text style with animated color and gradient
+        modifier = modifier,
         style = TextStyle(
             fontSize = fontSize,
             fontWeight = fontWeight,
-            brush = if (isTypingFinished.value) { // Apply brush only after typing is finished
+            // Apply pulsating glow and gradient shift as a brush after typing is finished
+            brush = if (isTypingFinished.value) {
                 Brush.linearGradient(
-                    colors = listOf(animatedColor, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)),
-                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(typedText.length * fontSize.value * gradientShiftX, 0f) // Shift based on text length and animation
+                    colors = listOf(animatedTextColor, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)),
+                    // Adjust start/end to make the gradient shift
+                    // We'll use a larger width for the gradient to sweep across the text
+                    start = Offset(typedText.length * fontSize.value * -0.5f + typedText.length * fontSize.value * gradientShiftProgress, 0f),
+                    end = Offset(typedText.length * fontSize.value * 0.5f + typedText.length * fontSize.value * gradientShiftProgress, 0f)
                 )
             } else {
-                Brush.linearGradient(listOf(textColor, textColor)) // Solid color during typing
-            }
+                // During typing, just use a solid color
+                Brush.linearGradient(listOf(textColor, textColor))
+            },
+            // Apply animated shadow
+            shadow = Shadow(
+                color = currentShadowColor,
+                offset = Offset(shadowOffsetX, shadowOffsetY),
+                blurRadius = shadowBlurRadius
+            )
         ),
-        color = Color.Unspecified // Must be Unspecified if using Brush
+        color = Color.Unspecified // Must be Unspecified if using Brush for TextStyle
     )
-
-    // --- CONCEPTUAL/ADVANCED PART (Not directly implemented for brevity and complexity) ---
-
-    // Staggered Fade/Slide & Bouncing Letters:
-    // These would typically involve breaking the `text` string into individual characters or words
-    // and animating each one independently. This would conflict heavily with the Typewriter effect
-    // if run concurrently.
-    // To combine:
-    // 1. Typewriter finishes.
-    // 2. Then, the fully formed text could have a *brief* secondary animation where letters bounce slightly
-    //    into place or stagger-fade in if the typewriter wasn't a hard reveal.
-    //    Example for individual letters: A `LazyRow` of `Text` composables, each with its own `graphicsLayer` and `LaunchedEffect` for offset/alpha/scale.
-
-    // Particle Effects:
-    // This is significantly more complex and often requires:
-    // a) A custom `Canvas` drawing where you manage particle positions, sizes, colors, and lifecycles.
-    // b) Using a third-party particle library for Compose (if available).
-    // You'd typically have particles emanating from the text as it appears or when it's fully formed.
-    // This would likely be a separate Composable placed on top of or behind the text.
 }
