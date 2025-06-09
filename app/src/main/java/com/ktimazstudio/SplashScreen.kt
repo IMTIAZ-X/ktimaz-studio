@@ -293,7 +293,7 @@ fun AnimatedPoweredByText(
 ) {
     val textAlpha by animateFloatAsState(
         targetValue = 1f,
-        animationSpec = tween(durationMillis = 300, delayMillis = initialDelayMillis), // Quick fade-in
+        animationSpec = tween(durationMillis = 300, delayMillis = initialDelayMillis.toInt()), // FIX IS HERE
         label = "textAlpha"
     )
 
