@@ -15,6 +15,7 @@ import android.os.Debug
 import android.widget.Toast
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
@@ -562,6 +563,7 @@ class MainActivity : ComponentActivity() {
     private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
         securityManager = SecurityManager(applicationContext)
