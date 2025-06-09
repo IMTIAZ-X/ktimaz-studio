@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColor // For pulsing color
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -17,18 +16,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.*
+import androidx.compose.ui.draw.* // Keep for .clip()
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.graphicsLayer // Keep for scale, rotation, alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.ExperimentalTextApi // Still needed if you use Brush in TextStyle later, but not for this version
+import androidx.compose.ui.graphics.Shadow // Still needed if you want a *static* shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.TextUnit
 import kotlinx.coroutines.delay
@@ -49,32 +48,24 @@ fun SplashScreenV2() {
     val splashScreenState = remember { MutableTransitionState(false) }
 
     val logoAnimationFinished = remember { mutableStateOf(false) }
-    val poweredByTextAnimationStarted = remember { mutableStateOf(false) }
-    val poweredByTextAnimationFinished = remember { mutableStateOf(false) } // Track text animation completion
+    val poweredByTextAnimationFinished = remember { mutableStateOf(false) }
 
-    val minimumDisplayTime = 1500L // Reduced minimum display time for faster app open
+    // Crucial: Keep minimum display time short for perceived speed
+    val minimumDisplayTime = 1000L // 1 second
 
     LaunchedEffect(Unit) {
         val startTime = System.currentTimeMillis()
-        splashScreenState.targetState = true
+        splashScreenState.targetState = true // Start all animations
 
-        // Wait for logo animations to finish
-        // We'll trust that the logo animation is fast enough (1.8s for rotation)
-        // This will be the main bottleneck for when the text animation can start
-        delay(1800L) // Wait for logo rotation to finish
+        // Determine when to navigate:
+        // Wait for logo animation to complete, OR until minimumDisplayTime is met, whichever is later.
+        // We'll make logo animation very fast.
+        val logoFinishTime = startTime + 600L // Approx time for quick logo anim
+        val textFinishTime = logoFinishTime + 300L // Approx time for quick text anim
 
-        poweredByTextAnimationStarted.value = true // Trigger text animation
-
-        // Wait for text animation to finish OR minimum display time to pass
-        val textAnimationEstimatedDuration = (70L * "Powered by KTiMAZ Studio".length) + 800L // Typewriter + a bit for gradient
-        val totalAnimationTime = System.currentTimeMillis() - startTime
-
-        if (!poweredByTextAnimationFinished.value && totalAnimationTime < minimumDisplayTime) {
-            delay(minimumDisplayTime - totalAnimationTime) // Wait for remaining min time if needed
-        }
-        if (!poweredByTextAnimationFinished.value) { // Ensure text animation also has time to complete
-             delay(textAnimationEstimatedDuration) // Wait for the text animation to fully complete
-        }
+        // Wait until all main animations have had a chance to start and finish
+        // (This assumes the durations below are quick)
+        delay(maxOf(minimumDisplayTime, textFinishTime - startTime)) // Wait for essential animations + min time
 
         context.startActivity(Intent(context, MainActivity::class.java))
         if (context is ComponentActivity) context.finish()
@@ -82,29 +73,33 @@ fun SplashScreenV2() {
 
     val transition = updateTransition(splashScreenState, label = "SplashScreenTransition")
 
+    // Logo scale: Quick pop
     val logoScale by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 800, easing = EaseOutBounce) },
+        transitionSpec = { tween(durationMillis = 600, easing = EaseOutBounce) }, // Faster
         label = "logoScale"
     ) { state ->
         if (state) 1.2f else 0.5f
     }
 
+    // Logo rotation: Quick 360 spin
     val logoRotation by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 1800, easing = FastOutSlowInEasing) },
+        transitionSpec = { tween(durationMillis = 800, easing = FastOutSlowInEasing) }, // Much Faster
         label = "logoRotation"
     ) { state ->
-        if (state) 720f else 0f
+        if (state) 360f else 0f // Only one full spin
     }
 
+    // Logo alpha: Quick fade in
     val logoAlpha by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 600, delayMillis = 100) },
+        transitionSpec = { tween(durationMillis = 400, delayMillis = 50) }, // Faster
         label = "logoAlpha"
     ) { state ->
         if (state) 1f else 0f
     }
 
+    // Mark logo animation as finished quickly for subsequent actions (like text)
     LaunchedEffect(logoScale, logoRotation, logoAlpha) {
-        if (logoScale == 1.2f && logoRotation == 720f && logoAlpha == 1f) {
+        if (logoScale == 1.2f && logoRotation == 360f && logoAlpha == 1f) {
             logoAnimationFinished.value = true
         }
     }
@@ -121,7 +116,7 @@ fun SplashScreenV2() {
                 )
             )
     ) {
-        // Ripple Wave is moderately expensive due to size change and alpha blend. Keep its duration balanced.
+        // Ripple Wave: Make it much faster and simpler
         RippleWaveAnimation()
 
         Box(
@@ -130,13 +125,13 @@ fun SplashScreenV2() {
                 .padding(bottom = 100.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Blur is expensive. Keep its radius moderate.
+            // REMOVED THE BLURRED CIRCLE - THIS IS A HUGE PERFORMANCE GAIN
+            // Instead, just a solid translucent circle if you want something behind the logo
             Box(
                 modifier = Modifier
-                    .size(220.dp)
+                    .size(200.dp) // Slightly smaller
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.12f))
-                    .blur(30.dp)
+                    .background(Color.White.copy(alpha = 0.12f)) // Simple translucent background
             )
 
             Box(
@@ -160,7 +155,7 @@ fun SplashScreenV2() {
             }
         }
 
-        // Loading Dots are relatively cheap.
+        // Loading Dots: Keep, they are relatively cheap
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -170,19 +165,19 @@ fun SplashScreenV2() {
             AdvancedLoadingDots()
         }
 
-        // Animated "Powered By" Text
+        // "Powered By" Text: Simple fade in
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 24.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            AnimatedVisibility(visible = poweredByTextAnimationStarted.value) {
-                AnimatedPoweredByText(
-                    text = "Powered by KTiMAZ Studio",
-                    onAnimationFinish = { poweredByTextAnimationFinished.value = true }
-                )
-            }
+            // Trigger text fade in after logo is mostly visible
+            AnimatedPoweredByText(
+                text = "Powered by KTiMAZ Studio",
+                initialDelayMillis = 600L, // Start shortly after logo
+                onAnimationFinish = { poweredByTextAnimationFinished.value = true }
+            )
         }
     }
 }
@@ -194,10 +189,19 @@ fun RippleWaveAnimation() {
         initialValue = 0f,
         targetValue = 400f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing), // Consider reducing if still laggy
+            animation = tween(1500, easing = LinearEasing), // Much faster ripple
             repeatMode = RepeatMode.Restart
         ),
         label = "rippleRadius"
+    )
+    val rippleAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0f, // Fade out as it expands
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing), // Match ripple speed
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rippleAlpha"
     )
     Box(
         modifier = Modifier
@@ -209,7 +213,7 @@ fun RippleWaveAnimation() {
             modifier = Modifier
                 .size(rippleRadius.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.08f))
+                .background(Color.White.copy(alpha = rippleAlpha)) // Use animated alpha
         )
     }
 }
@@ -276,85 +280,46 @@ fun AdvancedLoadingDots() {
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 fun AnimatedPoweredByText(
     text: String,
     modifier: Modifier = Modifier,
-    // Removed initialDelayMillis as it's handled by AnimatedVisibility parent
+    initialDelayMillis: Long = 0L,
     textColor: Color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
     fontSize: TextUnit = 14.sp,
     fontWeight: FontWeight = FontWeight.Medium,
-    staticShadowColor: Color = Color.Black.copy(alpha = 0.5f), // Static shadow for performance
-    onAnimationFinish: () -> Unit // Callback to notify parent
+    staticShadowColor: Color = Color.Black.copy(alpha = 0.5f), // Static shadow, if desired
+    onAnimationFinish: () -> Unit
 ) {
-    var typedText by remember { mutableStateOf("") }
-    val isTypingFinished = remember { mutableStateOf(false) }
-
-    // Pulsing Glow colors (using theme colors for consistency)
-    val glowColorStart = MaterialTheme.colorScheme.primary
-    val glowColorEnd = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-
-    val animatedGlowColor by rememberInfiniteTransition(label = "textGlow").animateColor(
-        initialValue = glowColorStart,
-        targetValue = glowColorEnd,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ), label = "textGlowColor"
-    )
-
-    // Gradient Shift progress (for the shimmer effect)
-    val gradientShiftProgress by rememberInfiniteTransition(label = "gradientShift").animateFloat(
-        initialValue = 0f,
+    val textAlpha by animateFloatAsState(
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing), // Longer duration for smooth shimmer
-            repeatMode = RepeatMode.Restart
-        ), label = "gradientShiftProgress"
+        animationSpec = tween(durationMillis = 300, delayMillis = initialDelayMillis), // Quick fade-in
+        label = "textAlpha"
     )
 
-    LaunchedEffect(text) {
-        val typingSpeedMillis = 70L // milliseconds per character
-
-        text.forEachIndexed { index, char ->
-            typedText = text.substring(0, index + 1)
-            delay(typingSpeedMillis)
+    // Notify parent when animation is complete.
+    // We'll consider it "finished" shortly after its fade-in animation, not after a long typewriter.
+    LaunchedEffect(textAlpha) {
+        if (textAlpha == 1f) {
+            onAnimationFinish()
         }
-        isTypingFinished.value = true
-        delay(800L) // Allow gradient/glow to play for a bit after typing
-        onAnimationFinish() // Notify parent that text animation is complete
     }
 
     Text(
-        text = typedText,
-        modifier = modifier,
+        text = text, // Full text instantly
+        modifier = modifier.graphicsLayer {
+            alpha = textAlpha
+        },
         style = TextStyle(
             fontSize = fontSize,
             fontWeight = fontWeight,
-            // Apply a combined brush for pulsating glow and gradient shift after typing
-            brush = if (isTypingFinished.value) {
-                Brush.linearGradient(
-                    colors = listOf(
-                        animatedGlowColor.copy(alpha = 0.2f), // Start with a lighter, more transparent glow part
-                        animatedGlowColor, // Main glow color
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f) // Original text color part
-                    ),
-                    // Adjust start/end to make the gradient sweep across the text, creating a shimmer/glow effect
-                    start = Offset(typedText.length * fontSize.value * -0.5f + typedText.length * fontSize.value * gradientShiftProgress, 0f),
-                    end = Offset(typedText.length * fontSize.value * 0.5f + typedText.length * fontSize.value * gradientShiftProgress, 0f)
-                )
-            } else {
-                // During typing, just use a solid color
-                Brush.linearGradient(listOf(textColor, textColor))
-            },
-            // Static shadow for performance - if animated shadow is critical, it will add lag.
+            color = textColor,
+            // Keep a static shadow if it's crucial for the look, but it's an extra draw call
             shadow = Shadow(
                 color = staticShadowColor,
-                offset = Offset(4f, 4f), // Fixed offset
-                blurRadius = 8f // Fixed blur
+                offset = Offset(2f, 2f), // Smaller offset
+                blurRadius = 4f // Smaller blur
             )
-        ),
-        color = Color.Unspecified // Must be Unspecified if using Brush for TextStyle
+        )
     )
 }
