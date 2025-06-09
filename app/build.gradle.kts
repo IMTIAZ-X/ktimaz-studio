@@ -2,9 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
 
-   // Existing plugins
-  alias(libs.plugins.compose.compiler)
-
+    // Existing plugins
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -22,8 +21,9 @@ android {
     }
 
     buildFeatures {
-        buildConfig = true 
-}
+        buildConfig = true
+        compose = true // Ensure compose is enabled for buildFeatures
+    }
 
     // Git command helper
     fun String.runCommand(): String? =
@@ -67,6 +67,20 @@ android {
         }
     }
 
+    // THIS IS THE KEY CHANGE FOR UNCOMPRESSED DEX FILES IN GRADLE
+    // এটি গ্র্যাডলে আনকম্প্রেসড ডিইএক্স ফাইলের জন্য মূল পরিবর্তন
+    aaptOptions {
+        noCompress("dex") // Explicitly tells AAPT not to compress .dex files
+    }
+
+    // Keep this as per Android Developers documentation for useEmbeddedDex
+    // Android ডেভেলপার্স ডকুমেন্টেশন অনুযায়ী useEmbeddedDex এর জন্য এটি রাখুন
+    packagingOptions {
+        dex {
+            useLegacyPackaging = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_23
         targetCompatibility = JavaVersion.VERSION_23
@@ -76,10 +90,7 @@ android {
         jvmToolchain(23)
     }
 
-    buildFeatures {
-        compose = true
-    }
-
+    // composeOptions should be inside android block
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
@@ -134,11 +145,11 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.9.0")
 
     // Optional
-   // implementation("androidx.navigation:navigation-compose:2.7.7")
-   // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-   // implementation("androidx.datastore:datastore-preferences:1.1.1")
-   // implementation("androidx.work:work-runtime-ktx:2.9.0")
-   // implementation("androidx.startup:startup-runtime:1.1.1")
+    // implementation("androidx.navigation:navigation-compose:2.7.7")
+    // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    // implementation("androidx.datastore:datastore-preferences:1.1.1")
+    // implementation("androidx.work:work-runtime-ktx:2.9.0")
+    // implementation("androidx.startup:startup-runtime:1.1.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
