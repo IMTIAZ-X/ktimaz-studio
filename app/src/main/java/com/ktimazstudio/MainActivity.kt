@@ -175,62 +175,59 @@ fun SetSystemBarsLightStyle(backgroundColor: Color) {
 
     val useDarkIcons = backgroundColor.luminance() > 0.5f
 
-    // Corrected DisposableEffect structure
     DisposableEffect(view, window, useDarkIcons, backgroundColor) {
         if (window == null) {
-            // Return an empty DisposableEffectResult if window is null
             onDispose { /* Nothing to do if window is null */ }
-            return@DisposableEffect
-        }
-
-        val insetsController = WindowCompat.getInsetsController(window, view)
-
-        val originalStatusBarColor = window.statusBarColor
-        val originalNavigationBarColor = window.navigationBarColor
-        val originalIsAppearanceLightStatusBars = insetsController.isAppearanceLightStatusBars
-        val originalIsAppearanceLightNavigationBars = insetsController.isAppearanceLightNavigationBars
-
-        window.statusBarColor = backgroundColor.toArgb()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            insetsController.isAppearanceLightStatusBars = useDarkIcons
         } else {
-            @Suppress("DEPRECATION")
-            if (useDarkIcons) {
-                window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-            } else {
-                window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
-            }
-        }
+            val insetsController = WindowCompat.getInsetsController(window, view)
 
-        window.navigationBarColor = backgroundColor.toArgb()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            insetsController.isAppearanceLightNavigationBars = useDarkIcons
-        } else {
-            @Suppress("DEPRECATION")
-            if (useDarkIcons) {
-                window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-            } else {
-                window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
-            }
-        }
+            val originalStatusBarColor = window.statusBarColor
+            val originalNavigationBarColor = window.navigationBarColor
+            val originalIsAppearanceLightStatusBars = insetsController.isAppearanceLightStatusBars
+            val originalIsAppearanceLightNavigationBars = insetsController.isAppearanceLightNavigationBars
 
-        onDispose {
-            window.statusBarColor = originalStatusBarColor
-            window.navigationBarColor = originalNavigationBarColor
+            window.statusBarColor = backgroundColor.toArgb()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                insetsController.isAppearanceLightStatusBars = originalIsAppearanceLightStatusBars
-                insetsController.isAppearanceLightNavigationBars = originalIsAppearanceLightNavigationBars
+                insetsController.isAppearanceLightStatusBars = useDarkIcons
             } else {
                 @Suppress("DEPRECATION")
-                if (originalIsAppearanceLightStatusBars) {
+                if (useDarkIcons) {
                     window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
                 } else {
                     window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
                 }
-                if (originalIsAppearanceLightNavigationBars) {
+            }
+
+            window.navigationBarColor = backgroundColor.toArgb()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                insetsController.isAppearanceLightNavigationBars = useDarkIcons
+            } else {
+                @Suppress("DEPRECATION")
+                if (useDarkIcons) {
                     window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
                 } else {
                     window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
+                }
+            }
+
+            onDispose {
+                window.statusBarColor = originalStatusBarColor
+                window.navigationBarColor = originalNavigationBarColor
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    insetsController.isAppearanceLightStatusBars = originalIsAppearanceLightStatusBars
+                    insetsController.isAppearanceLightNavigationBars = originalIsAppearanceLightNavigationBars
+                } else {
+                    @Suppress("DEPRECATION")
+                    if (originalIsAppearanceLightStatusBars) {
+                        window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    } else {
+                        window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+                    }
+                    if (originalIsAppearanceLightNavigationBars) {
+                        window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                    } else {
+                        window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
+                    }
                 }
             }
         }
@@ -882,6 +879,7 @@ fun AnimatedCardGrid() {
             Icons.Filled.Widgets,
             Icons.Filled.Wifi,
             Icons.Filled.Work,
+            Icons.Default.Add, // Corrected from Icons.Filled.Add
         )
     }
 
@@ -892,7 +890,7 @@ fun AnimatedCardGrid() {
         "Flashlight", "Games", "Health", "Ideas", "Design", "Pets",
         "Power Control", "Privacy", "Recommendations", "Research", "Security",
         "Stargazer", "Storage", "Likes", "Trends", "Verification",
-        "Visibility", "Widgets", "Wi-Fi Tools", "Workflows"
+        "Visibility", "Widgets", "Wi-Fi Tools", "Workflows", "Add New"
     )
 
     val density = LocalDensity.current // Get LocalDensity for toPx() conversion
@@ -960,9 +958,9 @@ fun AnimatedCardGrid() {
                                 contentDescription = title,
                                 modifier = Modifier.size(60.dp)
                             )
-                        } else if (icon is Icons.Filled.Add.javaClass) { // If it's an ImageVector (like Icons.Filled.Analytics)
+                        } else if (icon is androidx.compose.ui.graphics.vector.ImageVector) { // If it's an ImageVector
                             Icon(
-                                imageVector = icon as androidx.compose.ui.graphics.vector.ImageVector,
+                                imageVector = icon, // Directly use the ImageVector
                                 contentDescription = title,
                                 modifier = Modifier.size(60.dp),
                                 tint = MaterialTheme.colorScheme.primary // Example tint
