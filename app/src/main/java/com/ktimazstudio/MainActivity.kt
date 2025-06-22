@@ -1462,41 +1462,6 @@ fun SecurityInfoScreen(securityManager: SecurityManager) {
 }
 
 @Composable
-fun SecurityCheckItem(title: String, status: Boolean, description: String) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Icon(
-                    imageVector = if (status) Icons.Filled.Warning else Icons.Filled.CheckCircle,
-                    contentDescription = null,
-                    tint = if (status) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 fun SecurityStatusRow(label: String, isIssue: Boolean) {
     Row(
         modifier = Modifier.fillMaxWidth(),
