@@ -37,7 +37,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -63,6 +62,12 @@ import android.app.Activity
 import androidx.compose.ui.platform.LocalView
 import java.io.File
 import java.security.MessageDigest
+import java.net.ServerSocket // Added import
+import java.io.IOException // Added import
+import kotlinx.coroutines.delay // Added import
+import androidx.compose.ui.platform.LocalDensity // Added import
+import androidx.compose.ui.graphics.vector.rememberVectorPainter // Added import
+
 
 class MainActivity : ComponentActivity() {
 
@@ -170,8 +175,10 @@ fun SetSystemBarsLightStyle(backgroundColor: Color) {
 
     val useDarkIcons = backgroundColor.luminance() > 0.5f
 
+    // Corrected DisposableEffect structure
     DisposableEffect(view, window, useDarkIcons, backgroundColor) {
         if (window == null) {
+            // Return an empty DisposableEffectResult if window is null
             onDispose { /* Nothing to do if window is null */ }
             return@DisposableEffect
         }
@@ -565,6 +572,18 @@ class SecurityManager(private val context: Context) {
     }
 
     /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * @return true if the signature hash matches, false otherwise.
+     */
+    fun isApkTampered(): Boolean {
+        val currentSignatureHash = getSignatureSha256Hash()
+        // Compare with the signature SHA-256 hash provided by you.
+        return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
+    }
+
+
+    /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, system properties, and environment variables.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
@@ -831,38 +850,41 @@ fun HomeScreen() {
 
 @Composable
 fun AnimatedCardGrid() {
-    val icons = listOf(
-        painterResource(id = R.drawable.ic_launcher_foreground), // Replace with actual icons
-        Icons.Filled.Analytics,
-        Icons.Filled.BugReport,
-        Icons.Filled.Cloud,
-        Icons.Filled.Code,
-        Icons.Filled.DataUsage,
-        Icons.Filled.Devices,
-        Icons.Filled.Face,
-        Icons.Filled.Favorite,
-        Icons.Filled.FilterNone,
-        Icons.Filled.FlashOn,
-        Icons.Filled.Games,
-        Icons.Filled.Healing,
-        Icons.Filled.Lightbulb,
-        Icons.Filled.Palette,
-        Icons.Filled.Pets,
-        Icons.Filled.Power,
-        Icons.Filled.PrivacyTip,
-        Icons.Filled.Recommend,
-        Icons.Filled.Science,
-        Icons.Filled.Security,
-        Icons.Filled.Star,
-        Icons.Filled.Storage,
-        Icons.Filled.ThumbUp,
-        Icons.Filled.TrendingUp,
-        Icons.Filled.Verified,
-        Icons.Filled.Visibility,
-        Icons.Filled.Widgets,
-        Icons.Filled.Wifi,
-        Icons.Filled.Work,
-    )
+    val icons = remember {
+        listOf(
+            R.drawable.ic_launcher_foreground, // Replace with actual icons
+            Icons.Filled.Analytics,
+            Icons.Filled.BugReport,
+            Icons.Filled.Cloud,
+            Icons.Filled.Code,
+            Icons.Filled.DataUsage,
+            Icons.Filled.Devices,
+            Icons.Filled.Face,
+            Icons.Filled.Favorite,
+            Icons.Filled.FilterNone,
+            Icons.Filled.FlashOn,
+            Icons.Filled.Games,
+            Icons.Filled.Healing,
+            Icons.Filled.Lightbulb,
+            Icons.Filled.Palette,
+            Icons.Filled.Pets,
+            Icons.Filled.Power,
+            Icons.Filled.PrivacyTip,
+            Icons.Filled.Recommend,
+            Icons.Filled.Science,
+            Icons.Filled.Security,
+            Icons.Filled.Star,
+            Icons.Filled.Storage,
+            Icons.Filled.ThumbUp,
+            Icons.Filled.TrendingUp,
+            Icons.Filled.Verified,
+            Icons.Filled.Visibility,
+            Icons.Filled.Widgets,
+            Icons.Filled.Wifi,
+            Icons.Filled.Work,
+        )
+    }
+
 
     val cardTitles = listOf(
         "Dashboard", "Analytics", "Reports", "Cloud Sync", "Coding Hub",
@@ -872,6 +894,8 @@ fun AnimatedCardGrid() {
         "Stargazer", "Storage", "Likes", "Trends", "Verification",
         "Visibility", "Widgets", "Wi-Fi Tools", "Workflows"
     )
+
+    val density = LocalDensity.current // Get LocalDensity for toPx() conversion
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -916,7 +940,7 @@ fun AnimatedCardGrid() {
                         .graphicsLayer(
                             scaleX = scale,
                             scaleY = scale,
-                            translationY = offsetY.toPx(),
+                            translationY = with(density) { offsetY.toPx() }, // Corrected toPx() usage
                             alpha = alpha
                         )
                         // Removed blur here as it was identified as a performance bottleneck
@@ -928,11 +952,23 @@ fun AnimatedCardGrid() {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Image(
-                            painter = icons[index % icons.size], // Using placeholder icon
-                            contentDescription = title,
-                            modifier = Modifier.size(60.dp)
-                        )
+                        // Correctly handle Painter and ImageVector
+                        val icon = icons[index % icons.size]
+                        if (icon is Int) { // If it's a drawable resource ID
+                            Image(
+                                painter = painterResource(id = icon),
+                                contentDescription = title,
+                                modifier = Modifier.size(60.dp)
+                            )
+                        } else if (icon is Icons.Filled.Add.javaClass) { // If it's an ImageVector (like Icons.Filled.Analytics)
+                            Icon(
+                                imageVector = icon as androidx.compose.ui.graphics.vector.ImageVector,
+                                contentDescription = title,
+                                modifier = Modifier.size(60.dp),
+                                tint = MaterialTheme.colorScheme.primary // Example tint
+                            )
+                        }
+
                         Spacer(Modifier.height(10.dp))
                         Text(
                             text = title,
@@ -1095,8 +1131,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
         )
 
+        // Corrected type for settingsItems to be a list of Composable functions
         val settingsItems = remember {
-            listOf(
+            listOf<@Composable () -> Unit>( // Added @Composable
                 {
                     SettingItem(
                         title = "Enable Notifications",
@@ -1404,7 +1441,7 @@ fun SecurityInfoScreen(securityManager: SecurityManager) {
             status = securityManager.isHookingFrameworkDetected(),
             description = "Checks for tools like Xposed or Frida."
         )
-        SecurityCheckItem(
+        SecurityCheckItem( // Corrected call
             title = "APK Tampered",
             status = securityManager.isApkTampered(),
             description = "Verifies the app's integrity using its signature."
