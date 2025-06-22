@@ -650,9 +650,9 @@ class MainActivity : ComponentActivity() {
                         // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
                         if (issue != SecurityManager.SecurityIssue.NONE && issue != currentSecurityIssue) {
                             currentSecurityIssue = issue
-                        } else if (currentSecurityIssue == SecurityManager.SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
+                        } else if (currentSecurityIssue == SecurityManager.SecurityIssue.VPN_ACTIVE && issue == SecurityManager.SecurityIssue.NONE) {
                             // If VPN was active and now no issue is found, clear the alert
-                            currentSecurityIssue = SecurityIssue.NONE
+                            currentSecurityIssue = SecurityManager.SecurityIssue.NONE
                         }
                     }
                 }
