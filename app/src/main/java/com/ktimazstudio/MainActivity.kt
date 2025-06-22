@@ -665,7 +665,7 @@ class SecurityManager(private val context: Context) {
         if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
         if (isRunningOnEmulator()) return SecurityIssue.EMULATOR_DETECTED
         if (isDeviceRooted()) return SecurityIssue.ROOT_DETECTED
-        if (isHookingFrameworkDetected()) return SecurityIssue.HOOKING_FRAMEWORK_DETECTED
+       // if (isHookingFrameworkDetected()) return SecurityIssue.HOOKING_FRAMEWORK_DETECTED
         if (isApkTampered()) return SecurityIssue.APK_TAMPERED
         if (isVpnActive()) return SecurityIssue.VPN_ACTIVE
         // Add other checks here as needed
