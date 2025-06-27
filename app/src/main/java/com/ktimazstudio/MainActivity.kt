@@ -56,6 +56,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver // Added import for Saver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -581,6 +582,44 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object SecurityInfo : Screen("security_info", "Security Info", Icons.Filled.Lock)
 }
 
+// Define the enum for WideNavigationRailValue
+enum class WideNavigationRailValue { Collapsed, Expanded }
+
+// Define the interface for WideNavigationRailState
+interface WideNavigationRailState {
+    val currentValue: WideNavigationRailValue
+    fun expand()
+    fun collapse()
+
+    companion object {
+        // Define a Saver for WideNavigationRailState
+        fun Saver(initialValue: WideNavigationRailValue): Saver<WideNavigationRailState, WideNavigationRailValue> =
+            Saver(
+                save = { it.currentValue },
+                restore = { value -> WideNavigationRailStateImpl(value) } // Restore with concrete implementation
+            )
+    }
+}
+
+// Concrete implementation of WideNavigationRailState
+@OptIn(ExperimentalMaterial3Api::class)
+class WideNavigationRailStateImpl(
+    initialValue: WideNavigationRailValue = WideNavigationRailValue.Collapsed
+) : WideNavigationRailState {
+    private val _currentValue = mutableStateOf(initialValue)
+    override val currentValue: WideNavigationRailValue
+        get() = _currentValue.value
+
+    override fun expand() {
+        _currentValue.value = WideNavigationRailValue.Expanded
+    }
+
+    override fun collapse() {
+        _currentValue.value = WideNavigationRailValue.Collapsed
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
@@ -859,18 +898,14 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
     }
 }
 
-// Placeholder for rememberWideNavigationRailState assuming it's a Material3 function
+// rememberWideNavigationRailState now uses the concrete implementation
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun rememberWideNavigationRailState(initialValue: WideNavigationRailValue = WideNavigationRailValue.Collapsed): WideNavigationRailState {
     return rememberSaveable(saver = WideNavigationRailState.Saver(initialValue)) {
-        WideNavigationRailState(initialValue)
+        WideNavigationRailStateImpl(initialValue)
     }
 }
-
-// Ensure the `WideNavigationRailState` and `WideNavigationRailValue` are correctly defined if not part of Material3
-// Assuming these are part of Material3 library
-// If they are custom, their implementation needs to be present in the file or external library.
 
 // Placeholder for AppNavigationRail if it's a custom composable and not directly part of Material3
 @Composable
