@@ -663,7 +663,7 @@ class MainActivity : ComponentActivity() {
                                     fadeOut(animationSpec = tween(200)) +
                                             scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                                 )
-                                .using(SizeTransform(clip = false))
+                                // Removed .using(SizeTransform(clip = false))
                         },
                         label = "LoginScreenTransition"
                     ) { targetIsLoggedIn ->
@@ -731,15 +731,11 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit, securityManager: S
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
-    var isRailExpanded by remember { mutableStateOf(false) }
+    var isRailExpanded by remember { mutableStateOf(false) } // Keep for AppNavigationRail
     val sharedPrefsManager = remember { SharedPreferencesManager(context) }
     // Get instance
     val animateCardsEnabled by remember { mutableStateOf(sharedPrefsManager.getAnimateCards()) } // Read the state
 
-    // **FIXED WIDE NAVIGATION RAIL CALL**
-    // Remove the custom wideRailState and its LaunchedEffect.
-    // Assuming WideNavigationRail takes 'expanded' and 'onExpandedChange' like NavigationRail.
-    // If this is a different WideNavigationRail (e.g., from adaptive), its parameters may vary.
 
     // Check for internet connectivity on app launch
     LaunchedEffect(Unit) {
@@ -774,34 +770,12 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit, securityManager: S
         AppNavigationRail(
             selectedDestination = selectedDestination,
             onDestinationSelected = { selectedDestination = it },
-            isExpanded = isRailExpanded,
-            onMenuClick = { isRailExpanded = !isRailExpanded }
+            isExpanded = isRailExpanded, // This controls how AppNavigationRail behaves, not the Material3 NavigationRail directly
+            onMenuClick = { isRailExpanded = !isRailExpanded } // Toggle expansion state for AppNavigationRail
         )
-        // **MODIFIED WIDE NAVIGATION RAIL CALL**
-        // Assuming WideNavigationRail has an `expanded` parameter to control its state.
-        // If this is part of the Material3 adaptive layout suite, its parameters might be different (e.g., state: NavigationSuiteScaffoldState)
-        // If this component isn't meant to be used this way, it might need to be removed or replaced with an appropriate adaptive layout.
-        // For now, based on the error, we're removing the custom state and assuming direct boolean control.
-        WideNavigationRail(
-            expanded = isRailExpanded,
-            onExpandedChange = { isRailExpanded = it } // Allow collapsing/expanding
-            // You might need to add other required parameters depending on the actual WideNavigationRail API.
-            // header = { /* Composable for rail header */ },
-            // content = { /* Composable for rail items like NavigationRailItem */ },
-            // modifier = Modifier,
-        ) {
-            // Content of the rail, e.g., NavigationRailItems or custom composables
-            // Example:
-            // NavigationRailItem(
-            // selected = selectedDestination == Screen.Dashboard,
-            // onClick = { onDestinationSelected(Screen.Dashboard) },
-            // icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
-            // label = { Text("Dashboard") }
-            // )
-            // ... more items
-        }
-        // The rest of your application's content (e.g., the main screen content)
-        // This would typically be a Box or Column that takes up the remaining space
+        // Removed WideNavigationRail component as it caused compilation errors and requires adaptive layout setup
+        // It does not accept 'expanded' and 'onExpandedChange' directly.
+
         Box(modifier = Modifier.weight(1f)) { // Takes remaining space
             // Your main screen content (e.g., AnimatedCardGrid, etc.)
             Scaffold(
@@ -863,15 +837,13 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit, securityManager: S
     }
 }
 
-// Removed rememberWideNavigationRailState as it's for custom WideNavigationRailState
-
 
 // Placeholder for AppNavigationRail if it's a custom composable and not directly part of Material3
 @Composable
 fun AppNavigationRail(
     selectedDestination: Screen,
     onDestinationSelected: (Screen) -> Unit,
-    isExpanded: Boolean,
+    isExpanded: Boolean, // Kept this parameter, but it doesn't directly expand the Material3 NavigationRail
     onMenuClick: () -> Unit
 ) {
     NavigationRail(
