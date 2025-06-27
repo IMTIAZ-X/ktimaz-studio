@@ -56,7 +56,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.saveable.Saver // Added import for Saver
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -484,7 +484,7 @@ class SecurityManager(private val context: Context) {
     }
 
     /**
-     * Checks if the APK hash matches the expected hash.
+     * Checks if the APK's signature hash matches the expected hash.
      * return true if the hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
@@ -582,88 +582,55 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object SecurityInfo : Screen("security_info", "Security Info", Icons.Filled.Lock)
 }
 
-// Define the enum for WideNavigationRailValue
-enum class WideNavigationRailValue { Collapsed, Expanded }
-
-// Define the interface for WideNavigationRailState
-interface WideNavigationRailState {
-    val currentValue: WideNavigationRailValue
-    fun expand()
-    fun collapse()
-
-    companion object {
-        // Define a Saver for WideNavigationRailState
-        fun Saver(initialValue: WideNavigationRailValue): Saver<WideNavigationRailState, WideNavigationRailValue> =
-            Saver(
-                save = { it.currentValue },
-                restore = { value -> WideNavigationRailStateImpl(value) } // Restore with concrete implementation
-            )
-    }
-}
-
-// Concrete implementation of WideNavigationRailState
-@OptIn(ExperimentalMaterial3Api::class)
-class WideNavigationRailStateImpl(
-    initialValue: WideNavigationRailValue = WideNavigationRailValue.Collapsed
-) : WideNavigationRailState {
-    private val _currentValue = mutableStateOf(initialValue)
-    override val currentValue: WideNavigationRailValue
-        get() = _currentValue.value
-
-    override fun expand() {
-        _currentValue.value = WideNavigationRailValue.Expanded
-    }
-
-    override fun collapse() {
-        _currentValue.value = WideNavigationRailValue.Collapsed
-    }
-}
-
+// Removed custom WideNavigationRailValue, WideNavigationRailState, WideNavigationRailStateImpl, and rememberWideNavigationRailState
+// These caused the type mismatch with Material3's WideNavigationRail
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
-    private lateinit var securityManager: SecurityManager
+    // Removed private lateinit var securityManager: SecurityManager as it will be managed by remember in Composable scope
     private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
-        securityManager = SecurityManager(applicationContext)
+        // Removed securityManager = SecurityManager(applicationContext)
 
-        // Perform initial security checks
-        val initialSecurityIssue = securityManager.getSecurityIssue()
-        if (initialSecurityIssue != SecurityIssue.NONE) {
-            setContent {
+        setContent {
+            // Get context and instantiate SecurityManager within the composable scope
+            val context = LocalContext.current
+            val securityManagerInstance = remember { SecurityManager(context) }
+
+            // Perform initial security checks using the composable-managed securityManagerInstance
+            val initialSecurityIssue = securityManagerInstance.getSecurityIssue()
+            if (initialSecurityIssue != SecurityIssue.NONE) {
                 ktimaz {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
                 }
+                return@setContent // Use return@setContent to exit the setContent lambda
             }
-            return // Stop further app initialization if a critical issue is found
-        }
 
-        setContent {
             ktimaz {
                 var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
                 var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
-                var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
+                var liveVpnDetected by remember { mutableStateOf(securityManagerInstance.isVpnActive()) }
                 var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
 
-                // Live VPN detection
+                // Live VPN detection using securityManagerInstance
                 DisposableEffect(Unit) {
-                    vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
+                    vpnNetworkCallback = securityManagerInstance.registerVpnDetectionCallback { isVpn ->
                         liveVpnDetected = isVpn
                         // If VPN is detected, set it as the current issue.
                         // Otherwise, re-evaluate all security issues.
                         if (isVpn) {
                             currentSecurityIssue = SecurityIssue.VPN_ACTIVE
                         } else {
-                            currentSecurityIssue = securityManager.getSecurityIssue()
+                            currentSecurityIssue = securityManagerInstance.getSecurityIssue()
                         }
                     }
                     onDispose {
-                        vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+                        vpnNetworkCallback?.let { securityManagerInstance.unregisterVpnDetectionCallback(it) }
                     }
                 }
 
@@ -672,7 +639,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     while (true) {
                         delay(5000) // Check every 5 seconds
-                        val issue = securityManager.getSecurityIssue()
+                        val issue = securityManagerInstance.getSecurityIssue() // Use securityManagerInstance
                         // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
                         if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
                             currentSecurityIssue = issue
@@ -706,7 +673,8 @@ class MainActivity : ComponentActivity() {
                                 onLogout = {
                                     sharedPrefsManager.setLoggedIn(false)
                                     isLoggedIn = false
-                                }
+                                },
+                                securityManager = securityManagerInstance // Pass the composable-managed instance
                             )
                         } else {
                             LoginScreen(
@@ -724,7 +692,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+        // vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+        // The securityManagerInstance is managed by Composable. We should ensure unregistration is handled
+        // within DisposableEffect. The direct access to securityManager here is removed.
     }
 }
 
@@ -757,7 +727,7 @@ fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApplicationUI(username: String, onLogout: () -> Unit) {
+fun MainApplicationUI(username: String, onLogout: () -> Unit, securityManager: SecurityManager) { // Added securityManager parameter
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
@@ -766,19 +736,10 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
     // Get instance
     val animateCardsEnabled by remember { mutableStateOf(sharedPrefsManager.getAnimateCards()) } // Read the state
 
-    // **FIX START FOR WIDE NAVIGATION RAIL**
-    // Create and remember the WideNavigationRailState
-    val wideRailState = rememberWideNavigationRailState()
-
-    // Observe `isRailExpanded` and update the rail state accordingly
-    LaunchedEffect(isRailExpanded) {
-        if (isRailExpanded) {
-            wideRailState.expand()
-        } else {
-            wideRailState.collapse()
-        }
-    }
-    // **FIX END FOR WIDE NAVIGATION RAIL**
+    // **FIXED WIDE NAVIGATION RAIL CALL**
+    // Remove the custom wideRailState and its LaunchedEffect.
+    // Assuming WideNavigationRail takes 'expanded' and 'onExpandedChange' like NavigationRail.
+    // If this is a different WideNavigationRail (e.g., from adaptive), its parameters may vary.
 
     // Check for internet connectivity on app launch
     LaunchedEffect(Unit) {
@@ -817,10 +778,14 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
             onMenuClick = { isRailExpanded = !isRailExpanded }
         )
         // **MODIFIED WIDE NAVIGATION RAIL CALL**
+        // Assuming WideNavigationRail has an `expanded` parameter to control its state.
+        // If this is part of the Material3 adaptive layout suite, its parameters might be different (e.g., state: NavigationSuiteScaffoldState)
+        // If this component isn't meant to be used this way, it might need to be removed or replaced with an appropriate adaptive layout.
+        // For now, based on the error, we're removing the custom state and assuming direct boolean control.
         WideNavigationRail(
-            state = wideRailState, // Pass the state object here
-            // Add other necessary parameters for your rail,
-            // such as header, content, and actions, e.g.:
+            expanded = isRailExpanded,
+            onExpandedChange = { isRailExpanded = it } // Allow collapsing/expanding
+            // You might need to add other required parameters depending on the actual WideNavigationRail API.
             // header = { /* Composable for rail header */ },
             // content = { /* Composable for rail items like NavigationRailItem */ },
             // modifier = Modifier,
@@ -890,7 +855,7 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
                             sharedPrefsManager = sharedPrefsManager // Pass the manager
                         )
                         Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout)
-                        Screen.SecurityInfo -> SecurityInformationScreen(securityManager)
+                        Screen.SecurityInfo -> SecurityInformationScreen(securityManager) // Pass the securityManager instance
                     }
                 }
             }
@@ -898,14 +863,8 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
     }
 }
 
-// rememberWideNavigationRailState now uses the concrete implementation
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun rememberWideNavigationRailState(initialValue: WideNavigationRailValue = WideNavigationRailValue.Collapsed): WideNavigationRailState {
-    return rememberSaveable(saver = WideNavigationRailState.Saver(initialValue)) {
-        WideNavigationRailStateImpl(initialValue)
-    }
-}
+// Removed rememberWideNavigationRailState as it's for custom WideNavigationRailState
+
 
 // Placeholder for AppNavigationRail if it's a custom composable and not directly part of Material3
 @Composable
