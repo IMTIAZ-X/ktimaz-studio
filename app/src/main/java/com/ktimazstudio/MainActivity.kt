@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.ktimazstudio
 
 import android.content.Context
@@ -1381,7 +1379,6 @@ fun SecurityCheckItem(label: String, isDetected: Boolean) {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AnimatedCardGrid(animateCardsEnabled: Boolean) {
     val titles = listOf(
