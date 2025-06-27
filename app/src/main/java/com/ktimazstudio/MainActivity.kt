@@ -657,13 +657,11 @@ class MainActivity : ComponentActivity() {
                     AnimatedContent(
                         targetState = isLoggedIn,
                         transitionSpec = {
-                            (fadeIn(animationSpec = tween(400, delayMillis = 200)) +
-                                    scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)))
-                                .togetherWith(
-                                    fadeOut(animationSpec = tween(200)) +
-                                            scaleOut(targetScale = 0.92f, animationSpec = tween(200))
-                                )
-                                // Removed .using(SizeTransform(clip = false))
+                            val enter = fadeIn(animationSpec = tween(400, delayMillis = 200)) +
+                                    scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200))
+                            val exit = fadeOut(animationSpec = tween(200)) +
+                                    scaleOut(targetScale = 0.92f, animationSpec = tween(200))
+                            enter togetherWith exit
                         },
                         label = "LoginScreenTransition"
                     ) { targetIsLoggedIn ->
@@ -818,7 +816,11 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit, securityManager: S
                 AnimatedContent(
                     targetState = selectedDestination,
                     transitionSpec = {
-                        fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) + slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(300, easing = LinearOutSlowInEasing))
+                        val enter = fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                                slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(300, easing = LinearOutSlowInEasing))
+                        val exit = fadeOut(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                                slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -300 else 300 }, animationSpec = tween(300, easing = LinearOutSlowInEasing))
+                        enter togetherWith exit
                     },
                     label = "MainContentTransition"
                 ) { currentScreen ->
