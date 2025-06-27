@@ -48,6 +48,8 @@ import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning // Add this line
+import androidx.compose.material.icons.filled.CheckCircle // Add this line
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
@@ -760,6 +762,31 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
             isExpanded = isRailExpanded,
             onMenuClick = { isRailExpanded = !isRailExpanded }
         )
+        
+        WideNavigationRail(
+            state = if (isRailExpanded) WideNavigationRailValue.Expanded else WideNavigationRailValue.Collapsed,
+            // Add other necessary parameters for your rail,
+            // such as header, content, and actions, e.g.:
+            // header = { /* Composable for rail header */ },
+            // content = { /* Composable for rail items like NavigationRailItem */ },
+            // modifier = Modifier,
+        ) {
+            // Content of the rail, e.g., NavigationRailItems or custom composables
+            // Example:
+            // NavigationRailItem(
+            //     selected = selectedDestination == Screen.Dashboard,
+            //     onClick = { onDestinationSelected(Screen.Dashboard) },
+            //     icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
+            //     label = { Text("Dashboard") }
+            // )
+            // ... more items
+        }
+
+        // The rest of your application's content (e.g., the main screen content)
+        // This would typically be a Box or Column that takes up the remaining space
+        Box(modifier = Modifier.weight(1f)) { // Takes remaining space
+            // Your main screen content (e.g., AnimatedCardGrid, etc.)
+        }
 
         Scaffold(
             modifier = Modifier
@@ -1652,7 +1679,7 @@ fun SettingItem(
 
 
 @Composable
-fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
+fun AnimatedCardGrid(animateCardsEnabled: Boolean,modifier: Modifier = Modifier,onCardClick: (String) -> Unit) {
     val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
     // Consider adding specific icons for each card for better visual distinction
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Placeholder: replace with distinct icons
