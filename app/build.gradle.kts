@@ -56,6 +56,7 @@ android {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            isCrunchPngs = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -66,20 +67,6 @@ android {
             versionNameSuffix = "-alpha-$shortCommitHash"
         }
     }
-
-    // THIS IS THE KEY CHANGE FOR UNCOMPRESSED DEX FILES IN GRADLE
-    // এটি গ্র্যাডলে আনকম্প্রেসড ডিইএক্স ফাইলের জন্য মূল পরিবর্তন
-   // aaptOptions {
-   //     noCompress("dex") // Explicitly tells AAPT not to compress .dex files
-   // }
-
-    // Keep this as per Android Developers documentation for useEmbeddedDex
-    // Android ডেভেলপার্স ডকুমেন্টেশন অনুযায়ী useEmbeddedDex এর জন্য এটি রাখুন
-   // packagingOptions {
-   //     dex {
-    //        useLegacyPackaging = false
-     //   }
-   // }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_23
