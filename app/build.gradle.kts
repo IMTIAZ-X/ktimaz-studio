@@ -70,7 +70,7 @@ android {
     // THIS IS THE KEY CHANGE FOR UNCOMPRESSED DEX FILES IN GRADLE
     // এটি গ্র্যাডলে আনকম্প্রেসড ডিইএক্স ফাইলের জন্য মূল পরিবর্তন
     aaptOptions {
-        noCompress("dex") // Explicitly tells AAPT not to compress .dex files
+       // noCompress("dex") // Explicitly tells AAPT not to compress .dex files
     }
 
     // Keep this as per Android Developers documentation for useEmbeddedDex
