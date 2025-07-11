@@ -16,25 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Define your colors here. It's good practice to have these in a separate Colors.kt file
-// or directly in this Theme.kt if they are only used for the theme.
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
-
-// Corrected hex color literals for surface containers
-val DarkSurfaceContainerHigh = Color(0xFF2D2C30)
-val DarkSurfaceContainer = Color(0xFF242327)
-val DarkSurfaceContainerLow = Color(0xFF3A393D)
-
-val LightSurfaceContainerHigh = Color(0xFFEFEFEF)
-val LightSurfaceContainer = Color(0xFFF7F7F7)
-val LightSurfaceContainerLow = Color(0xFFFFFFFF)
-
+// Colors are now imported from Color.kt - DO NOT define them here.
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
