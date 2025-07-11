@@ -5,7 +5,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
-import android.net.LinkProperties // Import added
+import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
@@ -80,19 +80,24 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType // Corrected import for HapticFeedbackType
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.ktimazstudio.ui.theme.ktimaz
-import com.ktimazstudio.R // Ensure R is imported for resources
+import com.ktimazstudio.R
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Loop
 import androidx.compose.material.icons.filled.ModeNight
-import androidx.compose.material.icons.filled.PermStorage // Corrected import for PermStorage
+import androidx.compose.material.icons.filled.PermStorage
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.ui.draw.blur // Import for blur modifier
+import androidx.compose.ui.draw.blur
+
+// NEW IMPORTS FOR ICONS
+import androidx.compose.material.icons.filled.Delete // Added
+import androidx.compose.material.icons.filled.Share // Added
+
 
 // ---------------------------------------------------------------------------------------------
 // SharedPreferences Manager
@@ -688,10 +693,10 @@ fun LoginScreen(onLoginSuccess: (String) -> Unit) {
                         scope.launch {
                             delay(2000) // Simulate network delay
                             if (username == "user" && password == "password") {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Corrected HapticFeedbackType
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onLoginSuccess(username)
                             } else {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) // Corrected HapticFeedbackType
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 errorMessage = "Invalid username or password"
                             }
                             isLoading = false
@@ -892,9 +897,6 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             Icons.Filled.Share // Placeholder for Share (requires import)
         )
     }
-    // Add missing imports for Icons.Filled.Delete and Icons.Filled.Share
-    // import androidx.compose.material.icons.filled.Delete
-    // import androidx.compose.material.icons.filled.Share
 
     Column(
         modifier = modifier
@@ -915,7 +917,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             icons = cardIcons,
             onCardClick = { title ->
                 Toast.makeText(context, "$title clicked!", Toast.LENGTH_SHORT).show()
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Corrected HapticFeedbackType
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             }
         )
     }
@@ -928,7 +930,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 @Composable
 fun AnimatedCardGrid(
     titles: List<String>,
-    icons: List<ImageVector>, // Changed type to ImageVector
+    icons: List<ImageVector>,
     onCardClick: (String) -> Unit
 ) {
     LazyVerticalGrid(
@@ -984,7 +986,7 @@ fun AnimatedCardGrid(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            imageVector = icons[index % icons.size], // Changed to imageVector
+                            imageVector = icons[index % icons.size],
                             contentDescription = title,
                             modifier = Modifier.size(60.dp)
                         )
@@ -1312,7 +1314,7 @@ fun ConfigureScreen(
                                         selectedThemeMode = 0
                                         onThemeModeChanged(0)
                                     },
-                                    shape = RoundedCornerShape(8.dp) // Fixed: Used RoundedCornerShape
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Tune,
@@ -1326,7 +1328,7 @@ fun ConfigureScreen(
                                         selectedThemeMode = 1
                                         onThemeModeChanged(1)
                                     },
-                                    shape = RoundedCornerShape(8.dp) // Fixed: Used RoundedCornerShape
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Palette,
@@ -1340,7 +1342,7 @@ fun ConfigureScreen(
                                         selectedThemeMode = 2
                                         onThemeModeChanged(2)
                                     },
-                                    shape = RoundedCornerShape(8.dp) // Fixed: Used RoundedCornerShape
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.ModeNight,
@@ -1436,7 +1438,7 @@ fun ConfigureScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Filled.PermStorage, // Corrected PermStorage icon
+                                    imageVector = Icons.Filled.PermStorage,
                                     contentDescription = "Storage Icon",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(28.dp)
@@ -1529,57 +1531,5 @@ fun ConfigureSettingItem(
                 control()
             }
         }
-    }
-}
-
-
-// ---------------------------------------------------------------------------------------------
-// Previews
-// ---------------------------------------------------------------------------------------------
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-fun PreviewLoginScreen() {
-    ktimaz {
-        LoginScreen(onLoginSuccess = {})
-    }
-}
-
-@Preview(showBackground = true, widthDp = 360, heightDp = 720)
-@Composable
-fun PreviewMainApplicationUI() {
-    ktimaz {
-        MainApplicationUI(username = "ktimaz", onLogout = {})
-    }
-}
-
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-fun PreviewDashboardScreen() {
-    ktimaz {
-        DashboardScreen()
-    }
-}
-
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-fun PreviewSettingsScreen() {
-    ktimaz {
-        SettingsScreen()
-    }
-}
-
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-fun PreviewProfileScreen() {
-    ktimaz {
-        ProfileScreen(username = "ktimaz")
-    }
-}
-
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-fun PreviewConfigureScreen() {
-    ktimaz {
-        ConfigureScreen()
     }
 }
