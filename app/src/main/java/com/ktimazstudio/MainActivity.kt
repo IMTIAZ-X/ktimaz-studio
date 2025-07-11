@@ -89,14 +89,14 @@ import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Loop
 import androidx.compose.material.icons.filled.ModeNight
-import androidx.compose.material.icons.filled.PermStorage
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.ui.draw.blur
 
 // NEW IMPORTS FOR ICONS
-import androidx.compose.material.icons.filled.Delete // Added
-import androidx.compose.material.icons.filled.Share // Added
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.PermStorage // Added missing import for PermStorage
 
 
 // ---------------------------------------------------------------------------------------------
@@ -891,7 +891,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             Icons.Filled.Close, // Placeholder for Recent Files
             Icons.Filled.Info, // Placeholder for Favorites
             Icons.Filled.Dashboard, // Placeholder for Categories
-            Icons.Filled.Lock, // Placeholder for Storage
+            Icons.Filled.PermStorage, // Placeholder for Storage
             Icons.Filled.Settings, // Placeholder for Cloud Sync
             Icons.Filled.Delete, // Placeholder for Recycle Bin (requires import)
             Icons.Filled.Share // Placeholder for Share (requires import)
@@ -1531,5 +1531,57 @@ fun ConfigureSettingItem(
                 control()
             }
         }
+    }
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// Previews
+// ---------------------------------------------------------------------------------------------
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+fun PreviewLoginScreen() {
+    ktimaz {
+        LoginScreen(onLoginSuccess = {})
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+fun PreviewMainApplicationUI() {
+    ktimaz {
+        MainApplicationUI(username = "ktimaz", onLogout = {})
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+fun PreviewDashboardScreen() {
+    ktimaz {
+        DashboardScreen()
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+fun PreviewSettingsScreen() {
+    ktimaz {
+        SettingsScreen()
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+fun PreviewProfileScreen() {
+    ktimaz {
+        ProfileScreen(username = "ktimaz")
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+fun PreviewConfigureScreen() {
+    ktimaz {
+        ConfigureScreen()
     }
 }
