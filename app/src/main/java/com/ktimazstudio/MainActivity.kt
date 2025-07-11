@@ -891,7 +891,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             Icons.Filled.Close, // Placeholder for Recent Files
             Icons.Filled.Info, // Placeholder for Favorites
             Icons.Filled.Dashboard, // Placeholder for Categories
-            Icons.Filled.PermStorage, // Placeholder for Storage
+            Icons.Filled.PermStorage, // Placeholder for Storage - THIS IS WHERE PERMSTORAGE IS USED
             Icons.Filled.Settings, // Placeholder for Cloud Sync
             Icons.Filled.Delete, // Placeholder for Recycle Bin (requires import)
             Icons.Filled.Share // Placeholder for Share (requires import)
@@ -930,7 +930,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 @Composable
 fun AnimatedCardGrid(
     titles: List<String>,
-    icons: List<ImageVector>,
+    icons: List<ImageVector>, // Changed to ImageVector
     onCardClick: (String) -> Unit
 ) {
     LazyVerticalGrid(
@@ -986,7 +986,7 @@ fun AnimatedCardGrid(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            imageVector = icons[index % icons.size],
+                            imageVector = icons[index % icons.size], // Changed from 'painter' to 'imageVector'
                             contentDescription = title,
                             modifier = Modifier.size(60.dp)
                         )
@@ -1438,7 +1438,7 @@ fun ConfigureScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Filled.PermStorage,
+                                    imageVector = Icons.Filled.PermStorage, // THIS IS WHERE PERMSTORAGE IS USED
                                     contentDescription = "Storage Icon",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(28.dp)
