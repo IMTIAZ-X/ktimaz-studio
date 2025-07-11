@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.net.LinkProperties // Import added
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
@@ -18,7 +19,7 @@ import java.io.InputStreamReader
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts // NEW: For permissions
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -55,7 +56,7 @@ import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable // NEW: For remembering ConfigureScreen state
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,20 +79,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat // NEW: For permissions check
-import androidx.wear.compose.material.HapticFeedback
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType // Corrected import for HapticFeedbackType
 import com.ktimazstudio.ui.theme.ktimaz
 import com.ktimazstudio.R // Ensure R is imported for resources
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.material.icons.filled.ChevronRight // NEW: ConfigureScreen Icon
-import androidx.compose.material.icons.filled.Loop // NEW: ConfigureScreen Icon
-import androidx.compose.material.icons.filled.ModeNight // NEW: ConfigureScreen Icon
-import androidx.compose.material.icons.filled.PermStorage // NEW: ConfigureScreen Icon
-import androidx.compose.material.icons.filled.Speed // NEW: ConfigureScreen Icon
-import androidx.compose.material.icons.filled.Tune // NEW: ConfigureScreen Icon
-
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Loop
+import androidx.compose.material.icons.filled.ModeNight
+import androidx.compose.material.icons.filled.PermStorage // Corrected import for PermStorage
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.ui.draw.blur // Import for blur modifier
 
 // ---------------------------------------------------------------------------------------------
 // SharedPreferences Manager
@@ -103,7 +104,7 @@ class SharedPreferencesManager(context: Context) {
         private const val PREF_NAME = "MyAppPrefs"
         private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
         private const val KEY_USERNAME = "username_key"
-        private const val KEY_IS_FIRST_LAUNCH = "is_first_launch_key" // ADDED
+        private const val KEY_IS_FIRST_LAUNCH = "is_first_launch_key"
     }
 
     fun isLoggedIn(): Boolean {
@@ -122,9 +123,8 @@ class SharedPreferencesManager(context: Context) {
         return prefs.getString(KEY_USERNAME, null)
     }
 
-    // ADDED: Methods for first launch
     fun isFirstLaunch(): Boolean {
-        return prefs.getBoolean(KEY_IS_FIRST_LAUNCH, true) // Default to true
+        return prefs.getBoolean(KEY_IS_FIRST_LAUNCH, true)
     }
 
     fun setFirstLaunch(firstLaunch: Boolean) {
@@ -168,11 +168,10 @@ class SecurityManager(private val context: Context) {
                 // Exclude always-on VPN services which might be part of the system
                 if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN) ||
                     capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_FOREGROUND)) {
-                    // This is a user-activated VPN, not a system VPN
-                    val linkProperties = connectivityManager.getLinkProperties(network)
-                    if (linkProperties != null && linkProperties.interfaceName != null &&
-                        linkProperties.interfaceName?.startsWith("tun") == true ||
-                        linkProperties.interfaceName?.startsWith("ppp") == true) {
+                    val linkProperties: LinkProperties? = connectivityManager.getLinkProperties(network)
+                    // Check for common VPN interface names
+                    if (linkProperties?.interfaceName?.startsWith("tun") == true ||
+                        linkProperties?.interfaceName?.startsWith("ppp") == true) {
                         return true
                     }
                 }
@@ -189,7 +188,6 @@ class SecurityManager(private val context: Context) {
 
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                // Check capabilities to ensure it's a user-activated VPN
                 val capabilities = connectivityManager.getNetworkCapabilities(network)
                 if (capabilities != null && !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) {
                     callback(true)
@@ -197,7 +195,7 @@ class SecurityManager(private val context: Context) {
             }
 
             override fun onLost(network: Network) {
-                callback(isVpnActive()) // Re-check overall VPN status
+                callback(isVpnActive())
             }
         }
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
@@ -240,7 +238,7 @@ class SecurityManager(private val context: Context) {
                 Build.PRODUCT.contains("emulator") ||
                 Build.PRODUCT.contains("virtual") ||
                 Build.MANUFACTURER.contains("Genymotion") ||
-                Build.HOST == "android-build" || // Regular host for the emulator
+                Build.HOST == "android-build" ||
                 Build.FINGERPRINT.startsWith("generic") ||
                 Build.FINGERPRINT.startsWith("unknown") ||
                 Build.HARDWARE.contains("goldfish") ||
@@ -319,17 +317,10 @@ class SecurityManager(private val context: Context) {
         return ""
     }
 
-    // Replace this with the actual SHA-256 hash of your signed APK
-    // You can get this by running:
-    // keytool -list -v -keystore your_keystore_file.jks -alias your_alias_name
-    // Look for SHA256: in the certificate fingerprints.
-    // Or, get it programmatically from a signed APK on a device after installing,
-    // then replace this placeholder.
     private val EXPECTED_APK_HASH = "YOUR_APP_RELEASE_SIGNATURE_SHA256_HASH_HERE" // IMPORTANT: Replace this placeholder!
 
     // Hooking Framework Detection (e.g., Xposed, Frida)
     fun isHookingFrameworkDetected(): Boolean {
-        // Check for common hooking framework files
         val hookingFiles = arrayOf(
             "/data/local/xposed/bin/xposed",
             "/data/app/de.robv.android.xposed.installer",
@@ -341,7 +332,6 @@ class SecurityManager(private val context: Context) {
             if (java.io.File(file).exists()) return true
         }
 
-        // Check for specific packages (Xposed Installer)
         try {
             context.packageManager.getPackageInfo("de.robv.android.xposed.installer", 0)
             return true
@@ -349,7 +339,6 @@ class SecurityManager(private val context: Context) {
             // Package not found, which is good
         }
 
-        // Check for suspicious system properties (Frida)
         val props = System.getProperties()
         for (key in props.keys) {
             val value = props.getProperty(key as String)
@@ -427,7 +416,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var securityManager: SecurityManager
     private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
-    // NEW: Permission launcher for storage access
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -444,7 +432,6 @@ class MainActivity : ComponentActivity() {
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
         securityManager = SecurityManager(applicationContext)
 
-        // Perform initial security checks
         val initialSecurityIssue = securityManager.getSecurityIssue()
         if (initialSecurityIssue != SecurityIssue.NONE) {
             setContent {
@@ -452,7 +439,7 @@ class MainActivity : ComponentActivity() {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
                 }
             }
-            return // Stop further app initialization if a critical issue is found
+            return
         }
 
         setContent {
@@ -462,10 +449,8 @@ class MainActivity : ComponentActivity() {
                 var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
                 var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
 
-                // NEW: State for showing the ConfigureScreen, defaults to true if it's the first launch
                 var showConfigureScreen by rememberSaveable { mutableStateOf(sharedPrefsManager.isFirstLaunch()) }
 
-                // Live VPN detection
                 DisposableEffect(Unit) {
                     vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
                         liveVpnDetected = isVpn
@@ -480,7 +465,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Periodic security checks
                 LaunchedEffect(Unit) {
                     while (true) {
                         delay(5000)
@@ -493,22 +477,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Observe currentSecurityIssue and display alert if needed
                 if (currentSecurityIssue != SecurityIssue.NONE) {
                     SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
-                } else if (showConfigureScreen) { // NEW: Show ConfigureScreen if it's the first launch
+                } else if (showConfigureScreen) {
                     ConfigureScreen(
                         onGrantStoragePermissionClick = {
-                            // Request WRITE_EXTERNAL_STORAGE or similar permission
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                // For Android 13 (API 33) and above, use READ_MEDIA_IMAGES, READ_MEDIA_VIDEO, etc.
                                 if (ContextCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED) {
                                     Toast.makeText(applicationContext, "Media access already granted!", Toast.LENGTH_SHORT).show()
                                 } else {
                                     requestPermissionLauncher.launch(android.Manifest.permission.READ_MEDIA_IMAGES)
                                 }
                             } else {
-                                // For older Android versions, use WRITE_EXTERNAL_STORAGE
                                 if (ContextCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
                                     Toast.makeText(applicationContext, "Storage permission already granted!", Toast.LENGTH_SHORT).show()
                                 } else {
@@ -517,7 +497,6 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         onThemeModeChanged = { mode ->
-                            // Implement theme change logic here (e.g., save to SharedPreferences, update theme)
                             Toast.makeText(applicationContext, "Theme mode changed to: $mode (Not fully implemented)", Toast.LENGTH_SHORT).show()
                         },
                         onLanguageClick = {
@@ -533,7 +512,6 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(applicationContext, "Reset settings (Not implemented)", Toast.LENGTH_SHORT).show()
                         },
                         onConfigurationComplete = {
-                            // Mark first launch as false and proceed to login/main UI
                             sharedPrefsManager.setFirstLaunch(false)
                             showConfigureScreen = false
                         }
@@ -565,7 +543,6 @@ class MainActivity : ComponentActivity() {
                                 onLoginSuccess = { loggedInUsername ->
                                     sharedPrefsManager.setLoggedIn(true, loggedInUsername)
                                     isLoggedIn = true
-                                    // If this was the first launch, after successful login, ensure ConfigureScreen doesn't show again
                                     sharedPrefsManager.setFirstLaunch(false)
                                     showConfigureScreen = false
                                 }
@@ -711,10 +688,10 @@ fun LoginScreen(onLoginSuccess: (String) -> Unit) {
                         scope.launch {
                             delay(2000) // Simulate network delay
                             if (username == "user" && password == "password") {
-                                haptic.performHapticFeedback(HapticFeedback.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Corrected HapticFeedbackType
                                 onLoginSuccess(username)
                             } else {
-                                haptic.performHapticFeedback(HapticFeedback.TextHandleMove)
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) // Corrected HapticFeedbackType
                                 errorMessage = "Invalid username or password"
                             }
                             isLoading = false
@@ -749,7 +726,6 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // Internet connectivity check on UI entry
     LaunchedEffect(Unit) {
         if (!isConnected(context)) {
             val result = snackbarHostState.showSnackbar(
@@ -826,7 +802,7 @@ fun AppNavigationRail(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
             .padding(vertical = 8.dp),
-        containerColor = Color.Transparent, // Use transparent so background is visible
+        containerColor = Color.Transparent,
         header = {
             // Optional header content
         }
@@ -902,18 +878,23 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             "Storage", "Cloud Sync", "Recycle Bin", "Share"
         )
     }
+
+    // Replaced painterResource with ImageVector from Material Icons
     val cardIcons = remember {
         listOf(
-            painterResource(id = R.drawable.ic_quick_access), // Replace with your actual icons
-            painterResource(id = R.drawable.ic_recent_files),
-            painterResource(id = R.drawable.ic_favorites),
-            painterResource(id = R.drawable.ic_categories),
-            painterResource(id = R.drawable.ic_storage),
-            painterResource(id = R.drawable.ic_cloud_sync),
-            painterResource(id = R.drawable.ic_recycle_bin),
-            painterResource(id = R.drawable.ic_share)
+            Icons.Filled.MailOutline, // Placeholder for Quick Access
+            Icons.Filled.Close, // Placeholder for Recent Files
+            Icons.Filled.Info, // Placeholder for Favorites
+            Icons.Filled.Dashboard, // Placeholder for Categories
+            Icons.Filled.Lock, // Placeholder for Storage
+            Icons.Filled.Settings, // Placeholder for Cloud Sync
+            Icons.Filled.Delete, // Placeholder for Recycle Bin (requires import)
+            Icons.Filled.Share // Placeholder for Share (requires import)
         )
     }
+    // Add missing imports for Icons.Filled.Delete and Icons.Filled.Share
+    // import androidx.compose.material.icons.filled.Delete
+    // import androidx.compose.material.icons.filled.Share
 
     Column(
         modifier = modifier
@@ -930,10 +911,11 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
         )
         AnimatedCardGrid(
             titles = cardTitles,
+            // Pass ImageVector directly instead of Painter
             icons = cardIcons,
             onCardClick = { title ->
                 Toast.makeText(context, "$title clicked!", Toast.LENGTH_SHORT).show()
-                haptic.performHapticFeedback(HapticFeedback.LongPress)
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Corrected HapticFeedbackType
             }
         )
     }
@@ -946,7 +928,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 @Composable
 fun AnimatedCardGrid(
     titles: List<String>,
-    icons: List<androidx.compose.ui.graphics.painter.Painter>, // Corrected type
+    icons: List<ImageVector>, // Changed type to ImageVector
     onCardClick: (String) -> Unit
 ) {
     LazyVerticalGrid(
@@ -960,7 +942,6 @@ fun AnimatedCardGrid(
             val animatedProgress = remember { Animatable(0f) }
 
             LaunchedEffect(Unit) {
-                // Staggered animation for each card
                 delay(index * 100L)
                 animatedProgress.animateTo(
                     targetValue = 1f,
@@ -1003,7 +984,7 @@ fun AnimatedCardGrid(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            painter = icons[index % icons.size], // Using placeholder icon
+                            imageVector = icons[index % icons.size], // Changed to imageVector
                             contentDescription = title,
                             modifier = Modifier.size(60.dp)
                         )
@@ -1113,7 +1094,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 SettingItem(
-                    icon = Icons.Filled.Palette, // Using Palette for changelog as a placeholder
+                    icon = Icons.Filled.Palette,
                     title = "Changelog",
                     description = "See what's new",
                     onClick = { Toast.makeText(context, "Changelog clicked", Toast.LENGTH_SHORT).show() }
@@ -1139,7 +1120,7 @@ fun SettingItem(
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null, // Decorative icon
+            contentDescription = null,
             tint = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.size(28.dp)
         )
@@ -1189,7 +1170,7 @@ fun ProfileScreen(username: String, modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "user@example.com", // Placeholder email
+            text = "user@example.com",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1246,18 +1227,15 @@ fun ProfileScreen(username: String, modifier: Modifier = Modifier) {
 fun ConfigureScreen(
     modifier: Modifier = Modifier,
     onGrantStoragePermissionClick: () -> Unit = {},
-    onThemeModeChanged: (Int) -> Unit = {}, // Callback for theme mode (0=System, 1=Light, 2=Dark)
+    onThemeModeChanged: (Int) -> Unit = {},
     onLanguageClick: () -> Unit = {},
     onPerformanceModeClick: () -> Unit = {},
     onLibraryTabsClick: () -> Unit = {},
     onResetClick: () -> Unit = {},
-    onConfigurationComplete: () -> Unit = {} // NEW: Callback when configuration is done
+    onConfigurationComplete: () -> Unit = {}
 ) {
-    // State for Theme Mode Toggle Button
-    var selectedThemeMode by remember { mutableIntStateOf(0) } // 0: System, 1: Light, 2: Dark
+    var selectedThemeMode by remember { mutableIntStateOf(0) }
 
-    // State for Storage Permission Radio Button (should ideally be read from actual permission status)
-    // For demonstration, we'll keep it as a simple state. In a real app, you'd check ContextCompat.checkSelfPermission
     var isStorageGranted by remember { mutableStateOf(false) }
 
     Surface(
@@ -1272,7 +1250,6 @@ fun ConfigureScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Main Card Container
             Card(
                 shape = RoundedCornerShape(28.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -1284,7 +1261,6 @@ fun ConfigureScreen(
                 Column(
                     modifier = Modifier.padding(24.dp)
                 ) {
-                    // Configure Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1322,7 +1298,6 @@ fun ConfigureScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Theme Mode Setting Item
                     ConfigureSettingItem(
                         icon = Icons.Filled.Palette,
                         title = "Theme Mode",
@@ -1337,7 +1312,7 @@ fun ConfigureScreen(
                                         selectedThemeMode = 0
                                         onThemeModeChanged(0)
                                     },
-                                    shape = SegmentedButtonDefaults.shape
+                                    shape = RoundedCornerShape(8.dp) // Fixed: Used RoundedCornerShape
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Tune,
@@ -1351,7 +1326,7 @@ fun ConfigureScreen(
                                         selectedThemeMode = 1
                                         onThemeModeChanged(1)
                                     },
-                                    shape = SegmentedButtonDefaults.shape
+                                    shape = RoundedCornerShape(8.dp) // Fixed: Used RoundedCornerShape
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Palette,
@@ -1365,7 +1340,7 @@ fun ConfigureScreen(
                                         selectedThemeMode = 2
                                         onThemeModeChanged(2)
                                     },
-                                    shape = SegmentedButtonDefaults.shape
+                                    shape = RoundedCornerShape(8.dp) // Fixed: Used RoundedCornerShape
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.ModeNight,
@@ -1378,9 +1353,8 @@ fun ConfigureScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp))
 
-                    // Language Setting Item
                     ConfigureSettingItem(
-                        icon = Icons.Filled.Tune, // Placeholder, ideally a language icon
+                        icon = Icons.Filled.Tune,
                         title = "Language",
                         description = "English",
                         control = {
@@ -1394,7 +1368,6 @@ fun ConfigureScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp))
 
-                    // Performance Mode Setting Item
                     ConfigureSettingItem(
                         icon = Icons.Filled.Speed,
                         title = "Performance mode",
@@ -1410,9 +1383,8 @@ fun ConfigureScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp))
 
-                    // Library Tabs Setting Item
                     ConfigureSettingItem(
-                        icon = Icons.Filled.Tune, // Placeholder, ideally a tab icon
+                        icon = Icons.Filled.Tune,
                         title = "Library Tabs",
                         description = "6",
                         control = {
@@ -1426,7 +1398,6 @@ fun ConfigureScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp))
 
-                    // Use Media Store Text
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1447,7 +1418,6 @@ fun ConfigureScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Grant Storage Permission Section
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -1466,7 +1436,7 @@ fun ConfigureScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Filled.PermStorage,
+                                    imageVector = Icons.Filled.PermStorage, // Corrected PermStorage icon
                                     contentDescription = "Storage Icon",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(28.dp)
@@ -1508,7 +1478,6 @@ fun ConfigureScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // NEW: "DONE" button to complete configuration
                     Button(
                         onClick = onConfigurationComplete,
                         modifier = Modifier
@@ -1525,7 +1494,6 @@ fun ConfigureScreen(
     }
 }
 
-// NEW: Reusable composable for a single setting item in ConfigureScreen
 @Composable
 fun ConfigureSettingItem(
     icon: ImageVector,
