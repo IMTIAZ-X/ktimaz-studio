@@ -322,7 +322,7 @@ class SecurityManager(private val context: Context) {
         return ""
     }
 
-    private val EXPECTED_APK_HASH = "YOUR_APP_RELEASE_SIGNATURE_SHA256_HASH_HERE" // IMPORTANT: Replace this placeholder!
+    private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425" // IMPORTANT: Replace this placeholder!
 
     // Hooking Framework Detection (e.g., Xposed, Frida)
     fun isHookingFrameworkDetected(): Boolean {
