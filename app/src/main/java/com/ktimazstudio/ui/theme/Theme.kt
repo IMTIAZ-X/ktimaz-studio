@@ -16,7 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Colors are now imported from Color.kt - DO NOT define them here.
+// Import all color variables from Color.kt
+import com.ktimazstudio.ui.theme.*
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
