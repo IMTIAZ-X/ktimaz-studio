@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
-import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
@@ -19,7 +18,6 @@ import java.io.InputStreamReader
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -37,222 +35,262 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Password
-import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import com.ktimazstudio.ui.theme.ktimaz
-import com.ktimazstudio.R
-
+import androidx.lifecycle.lifecycleScope
+import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Loop
-import androidx.compose.material.icons.filled.ModeNight
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.ui.draw.blur
+import java.io.File
+import java.security.MessageDigest
+import kotlin.experimental.and
+import androidx.compose.foundation.border // <-- ADDED THIS IMPORT
 
-// NEW IMPORTS FOR ICONS
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.PermStorage // Added missing import for PermStorage
-
-
-// ---------------------------------------------------------------------------------------------
-// SharedPreferences Manager
-// ---------------------------------------------------------------------------------------------
+// --- SharedPreferencesManager ---
+/**
+ * Manages user login status and username using SharedPreferences for persistent storage.
+ * This class provides a simple way to store and retrieve whether a user is logged in
+ * and their username.
+ */
 class SharedPreferencesManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
 
     companion object {
-        private const val PREF_NAME = "MyAppPrefs"
         private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
         private const val KEY_USERNAME = "username_key"
-        private const val KEY_IS_FIRST_LAUNCH = "is_first_launch_key"
     }
 
+    /**
+     * Checks if a user is currently logged in.
+     * return true if a user is logged in, false otherwise.
+     */
     fun isLoggedIn(): Boolean {
         return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
     }
 
-    fun setLoggedIn(isLoggedIn: Boolean, username: String? = null) {
-        with(prefs.edit()) {
-            putBoolean(KEY_IS_LOGGED_IN, isLoggedIn)
-            putString(KEY_USERNAME, username)
+    /**
+     * Sets the login status of the user. If logging in, the username is also stored.
+     * If logging out, the username is removed.
+     * @param loggedIn The new login status.
+     * @param username The username to store if logging in. Null if logging out.
+     */
+    fun setLoggedIn(loggedIn: Boolean, username: String? = null) {
+        prefs.edit().apply {
+            putBoolean(KEY_IS_LOGGED_IN, loggedIn)
+            if (loggedIn && username != null) {
+                putString(KEY_USERNAME, username)
+            } else if (!loggedIn) {
+                remove(KEY_USERNAME)
+            }
             apply()
         }
     }
 
+    /**
+     * Retrieves the username of the currently logged-in user.
+     * return The username string, or null if no user is logged in.
+     */
     fun getUsername(): String? {
         return prefs.getString(KEY_USERNAME, null)
     }
-
-    fun isFirstLaunch(): Boolean {
-        return prefs.getBoolean(KEY_IS_FIRST_LAUNCH, true)
-    }
-
-    fun setFirstLaunch(firstLaunch: Boolean) {
-        prefs.edit().putBoolean(KEY_IS_FIRST_LAUNCH, firstLaunch).apply()
-    }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Internet Connectivity Utilities
-// ---------------------------------------------------------------------------------------------
+// --- Top-level utility functions ---
+
+/**
+ * Checks if the device has an active and validated internet connection.
+ * @param context The application context.
+ * return true if connected to the internet, false otherwise.
+ */
 fun isConnected(context: Context): Boolean {
-    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    val network = connectivityManager.activeNetwork ?: return false
-    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val activeNetwork = cm.activeNetwork ?: return false
+    val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 }
 
+/**
+ * Opens the Wi-Fi settings panel for the user to connect to a network.
+ * Displays a toast message instructing the user.
+ * @param context The application context.
+ */
 fun openWifiSettings(context: Context) {
-    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        Intent(Settings.Panel.ACTION_WIFI)
+    Toast.makeText(context, "Please enable Wi-Fi or connect to a network.", Toast.LENGTH_LONG).show()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // For Android 10 (Q) and above, use Settings.Panel.ACTION_WIFI for a panel.
+        context.startActivity(Intent(Settings.Panel.ACTION_WIFI))
     } else {
-        Intent(Settings.ACTION_WIFI_SETTINGS)
+        // For older Android versions, use ACTION_WIFI_SETTINGS.
+        @Suppress("DEPRECATION")
+        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
     }
-    context.startActivity(intent)
 }
 
-// ---------------------------------------------------------------------------------------------
-// Security Manager
-// ---------------------------------------------------------------------------------------------
+/**
+ * Utility class for performing various security checks on the application's environment.
+ * These checks are designed to detect common reverse engineering, tampering, and
+ * undesirable network conditions like VPN usage.
+ *
+ * NOTE: Client-side security checks are never foolproof and can be bypassed by
+ * determined attackers. They serve as deterrents and indicators of compromise.
+ */
 class SecurityManager(private val context: Context) {
 
-    // VPN Detection
+    // Known good hash of the APK (replace with your actual app's release APK hash)
+    // You would typically calculate this hash for your *release* APK and hardcode it here.
+    // For demonstration, this is a placeholder.
+    // --- IMPORTANT: UPDATE THIS HASH TO YOUR APP'S RELEASE SIGNATURE SHA-256 HASH ---
+    // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425
+    private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
+
+    // ... (isVpnActive, registerVpnDetectionCallback, unregisterVpnDetectionCallback remain the same) ...
+    // ... (isDebuggerConnected, isRunningOnEmulator, isDeviceRooted remain the same) ...
+    
+     /**
+     * Calculates the SHA-256 hash of the application's *signing certificate*.
+     * This is a more robust integrity check than file hash as it remains constant
+     * for signed APKs regardless of minor build variations.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     */
+     
+      /**
+     * Checks if a debugger is currently attached to the application process.
+     * This now combines Android's built-in check with a more robust procfs check.
+     * return true if a debugger is connected, false otherwise.
+     */
+    fun isDebuggerConnected(): Boolean {
+    return Debug.isDebuggerConnected() || isTracerAttached()
+    }
+    // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
+     
+    /**
+     * Checks if a VPN connection is active.
+     * This method iterates through all active networks and checks for the VPN transport.
+     * return true if a VPN is detected and it has internet capabilities, false otherwise.
+     */
+    @Suppress("DEPRECATION")
     fun isVpnActive(): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networks = connectivityManager.allNetworks
-        for (network in networks) {
+        connectivityManager.allNetworks.forEach { network ->
             val capabilities = connectivityManager.getNetworkCapabilities(network)
             if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-                // Exclude always-on VPN services which might be part of the system
-                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN) ||
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_FOREGROUND)) {
-                    val linkProperties: LinkProperties? = connectivityManager.getLinkProperties(network)
-                    // Check for common VPN interface names
-                    if (linkProperties?.interfaceName?.startsWith("tun") == true ||
-                        linkProperties?.interfaceName?.startsWith("ppp") == true) {
-                        return true
-                    }
+                // Ensure the VPN is actually providing internet
+                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                    return true
                 }
             }
         }
         return false
     }
 
-    fun registerVpnDetectionCallback(callback: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
+    /**
+     * Registers a NetworkCallback to listen for real-time VPN status changes.
+     * @param onVpnStatusChanged Callback to be invoked when VPN status changes.
+     * return The registered NetworkCallback instance, which should be unregistered later.
+     */
+    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        // Build a NetworkRequest specifically for VPN transport
         val networkRequest = NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+            .addTransportType(NetworkCapabilities.TRANSPORT_VPN) // Explicitly look for VPN
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
 
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                val capabilities = connectivityManager.getNetworkCapabilities(network)
-                if (capabilities != null && !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) {
-                    callback(true)
-                }
+                super.onAvailable(network)
+                // When a network becomes available, re-check overall VPN status
+                onVpnStatusChanged(isVpnActive())
             }
 
             override fun onLost(network: Network) {
-                callback(isVpnActive())
+                super.onLost(network)
+                // When a network is lost, re-check if any VPN is still active
+                onVpnStatusChanged(isVpnActive())
+            }
+
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                super.onCapabilitiesChanged(network, networkCapabilities)
+                // When network capabilities change, re-check VPN status
+                onVpnStatusChanged(isVpnActive())
             }
         }
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
         return networkCallback
     }
 
+    /**
+     * Unregisters a previously registered NetworkCallback.
+     * @param networkCallback The callback to unregister.
+     */
     fun unregisterVpnDetectionCallback(networkCallback: ConnectivityManager.NetworkCallback) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 
-
-    // Debugger Detection
-    fun isDebuggerConnected(): Boolean {
-        return Debug.isDebuggerConnected()
-    }
-
-    fun isTracerAttached(): Boolean {
-        try {
-            BufferedReader(InputStreamReader(java.io.FileInputStream("/proc/self/status"))).use { reader ->
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    if (line?.startsWith("TracerPid:") == true) {
-                        val tracerPid = line?.substring(10)?.trim()?.toInt()
-                        return tracerPid != null && tracerPid != 0
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return false
-    }
-
-    // Emulator Detection
+  
+    /**
+     * Attempts to detect if the application is running on an emulator.
+     * This check is not exhaustive and can be bypassed.
+     * return true if an emulator is likely detected, false otherwise.
+     */
     fun isRunningOnEmulator(): Boolean {
-        return (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic") ||
-                Build.PRODUCT.contains("sdk") ||
-                Build.PRODUCT.contains("google_sdk") ||
-                Build.PRODUCT.contains("emulator") ||
-                Build.PRODUCT.contains("virtual") ||
-                Build.MANUFACTURER.contains("Genymotion") ||
-                Build.HOST == "android-build" ||
-                Build.FINGERPRINT.startsWith("generic") ||
-                Build.FINGERPRINT.startsWith("unknown") ||
-                Build.HARDWARE.contains("goldfish") ||
-                Build.HARDWARE.contains("ranchu") ||
-                Build.MODEL.contains("Emulator") ||
-                Build.MODEL.contains("Android SDK built for x86"))
+        return (Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.MANUFACTURER.contains("Genymotion")
+                || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")
+                || "google_sdk" == Build.PRODUCT)
     }
 
-    // Root Detection
+    /**
+     * Attempts to detect if the device is rooted.
+     * This check is not exhaustive and can be bypassed.
+     * return true if root is likely detected, false otherwise.
+     */
     fun isDeviceRooted(): Boolean {
         val paths = arrayOf(
             "/system/app/Superuser.apk",
@@ -267,41 +305,41 @@ class SecurityManager(private val context: Context) {
             "/su/bin/su"
         )
         for (path in paths) {
-            if (java.io.File(path).exists()) return true
+            if (File(path).exists()) return true
         }
 
+        // Check for test-keys in build tags (common for custom ROMs/rooted devices)
+        if (Build.TAGS != null && Build.TAGS.contains("test-keys")) {
+            return true
+        }
+
+        // Check if `su` command can be executed
         var process: Process? = null
         try {
             process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
-            val `in` = BufferedReader(InputStreamReader(process.inputStream))
-            if (`in`.readLine() != null) return true
-            return false
-        } catch (e: Throwable) {
-            return false
+            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+            if (reader.readLine() != null) return true
+        } catch (e: Exception) {
+            // Command not found or other error, likely not rooted
         } finally {
             process?.destroy()
         }
+
+        return false
     }
 
-    // APK Tampering Detection
-    fun isApkTampered(): Boolean {
-        val currentSignatureHash = getSignatureSha256Hash()
-        return currentSignatureHash != EXPECTED_APK_HASH
-    }
-
-    private fun getSignatureSha256Hash(): String {
+    /**
+     * Calculates the SHA-256 hash of the application's APK file.
+     * This can be used to detect if the APK has been tampered with.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     */
+     fun getSignatureSha256Hash(): String? {
         try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
             } else {
                 @Suppress("DEPRECATION")
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.GET_SIGNATURES
-                )
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
             }
 
             val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -311,125 +349,218 @@ class SecurityManager(private val context: Context) {
                 packageInfo.signatures
             }
 
-            signatures?.firstOrNull()?.let { signature ->
-                val md = java.security.MessageDigest.getInstance("SHA-256")
-                md.update(signature.toByteArray())
-                return md.digest().joinToString("") { "%02x".format(it) }
+            if (signatures != null && signatures.isNotEmpty()) {
+                val md = MessageDigest.getInstance("SHA-256")
+                // For most apps, there's only one signing certificate. If multiple, you might need to handle.
+                val hashBytes = md.digest(signatures[0].toByteArray())
+                return hashBytes.joinToString("") { "%02x".format(it.and(0xff.toByte())) }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        return ""
+        return null
     }
+    
+      /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * return true if the signature hash matches, false otherwise.
+     */
 
-    private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425" // IMPORTANT: Replace this placeholder!
-
-    // Hooking Framework Detection (e.g., Xposed, Frida)
+    /**
+     * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
+     * Kept for reference or if needed for other purposes.
+     *
+     * Calculates the SHA-256 hash of the application's APK file.
+     * This can be used to detect if the APK has been tampered with.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     */
+    fun getApkSha256Hash_UNUSED(): String? {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return null
+            val file = File(apkPath)
+            if (file.exists()) {
+                val bytes = file.readBytes()
+                val digest = MessageDigest.getInstance("SHA-256")
+                val hashBytes = digest.digest(bytes)
+                return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+    
+     /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * return true if the signature hash matches, false otherwise.
+     */
+     
+       /**
+     * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
+     * for known files, installed packages, or system properties.
+     * This is not exhaustive and can be bypassed, but adds a layer of defense.
+     * return true if a hooking framework is likely detected, false otherwise.
+     */
+    
+    
     fun isHookingFrameworkDetected(): Boolean {
-        val hookingFiles = arrayOf(
-            "/data/local/xposed/bin/xposed",
-            "/data/app/de.robv.android.xposed.installer",
+        // 1. Check for common Xposed/Magisk/Frida related files/directories
+        val knownHookFiles = arrayOf(
+            "/system/app/XposedInstaller.apk",
+            "/system/bin/app_process_xposed",
             "/system/lib/libxposed_art.so",
-            "/system/framework/XposedBridge.jar",
-            "/data/local/frida-inject"
+            "/data/app/de.robv.android.xposed.installer",
+            "/data/data/de.robv.android.xposed.installer",
+            "/dev/frida", // Frida device file
+            "/data/local/tmp/frida-agent.so", // Common Frida agent path
+            "/data/local/frida/frida-server", // Frida server path
+            "/sbin/magisk", // Magisk detection
+            "/system/xbin/magisk"
         )
-        for (file in hookingFiles) {
-            if (java.io.File(file).exists()) return true
+        for (path in knownHookFiles) {
+            if (File(path).exists()) return true
         }
 
+        // 2. Check for common system properties (related to Xposed)
+        val props = listOf("xposed.active", "xposed.api_level", "xposed.installed")
         try {
-            context.packageManager.getPackageInfo("de.robv.android.xposed.installer", 0)
+            val process = Runtime.getRuntime().exec("getprop")
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            var line: String?
+            while (true) {
+            line = reader.readLine()
+           if (line == null) break
+            for (prop in props) {
+            if (line.contains("[$prop]:")) return true
+    }
+}
+            process.destroy()
+        } catch (e: Exception) {
+            // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
+        }
+
+        // 3. Check for common packages (Xposed installer)
+        try {
+            context.packageManager.getPackageInfo("de.robv.android.xposed.installer", PackageManager.GET_ACTIVITIES)
             return true
         } catch (e: PackageManager.NameNotFoundException) {
             // Package not found, which is good
+        } catch (e: Exception) {
+            // Log.e("SecurityCheck", "Error checking Xposed installer package: ${e.message}")
         }
 
-        val props = System.getProperties()
-        for (key in props.keys) {
-            val value = props.getProperty(key as String)
-            if (key.contains("frida", true) || value.contains("frida", true)) {
-                return true
-            }
-        }
+        // 4. Check for suspicious loaded libraries (less reliable, but adds another layer)
+        // This would require reading /proc/self/maps and checking for known hooking library names.
+        // This is more complex and might lead to false positives, so omitted for brevity.
 
         return false
     }
 
+    /**
+     * Checks if the APK hash matches the expected hash.
+     * return true if the hash matches, false otherwise.
+     */
+    fun isApkTampered(): Boolean {
+        val currentSignatureHash = getSignatureSha256Hash()
+        // Compare with the signature SHA-256 hash provided by you.
+        return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
+    }
+
+    // ... (getAppSize and isAppSizeModified_UNUSED remain the same) ...
+
+    /**
+     * Aggregates all security checks to determine if the app environment is secure.
+     * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
+     */
+
+    /**
+     * Gets the size of the installed application (APK + data).
+     * This can be used as a very basic indicator of tampering if the size changes unexpectedly.
+     * return The app size in bytes, or -1 if unable to retrieve.
+     */
+    fun getAppSize(): Long {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            // Safely access applicationInfo.sourceDir as applicationInfo can be null
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return -1L
+            val file = File(apkPath)
+            return file.length()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return -1L
+    }
+
+    // You could also add a check for expected app size and compare.
+    // private val EXPECTED_APP_SIZE_BYTES = 12345678L // Example size
+    // fun isAppSizeModified(): Boolean {
+    //     return getAppSize() != -1L && getAppSize() != EXPECTED_APP_SIZE_BYTES
+    // }
+    
+    fun isTracerAttached(): Boolean {
+        try {
+            val statusFile = File("/proc/self/status")
+            if (statusFile.exists()) {
+                statusFile.bufferedReader().useLines { lines ->
+                    val tracerPidLine = lines.firstOrNull { it.startsWith("TracerPid:") }
+                    if (tracerPidLine != null) {
+                        val pid = tracerPidLine.substringAfter("TracerPid:").trim().toInt()
+                        return pid != 0
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Log.e("SecurityManager", "Error checking TracerPid: ${e.message}")
+        }
+        return false
+    }
+
+    /**
+     * Aggregates all security checks to determine if the app environment is secure.
+     * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
+     */
     fun getSecurityIssue(): SecurityIssue {
-        if (isVpnActive()) return SecurityIssue.VPN_ACTIVE
         if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
-        if (isTracerAttached()) return SecurityIssue.TRACER_ATTACHED
+        if (isTracerAttached()) return SecurityIssue.DEBUGGER_ATTACHED // More robust debugger check
         if (isRunningOnEmulator()) return SecurityIssue.EMULATOR_DETECTED
-        if (isDeviceRooted()) return SecurityIssue.DEVICE_ROOTED
-        if (isApkTampered()) return SecurityIssue.APK_TAMPERED
+        if (isDeviceRooted()) return SecurityIssue.ROOT_DETECTED
         if (isHookingFrameworkDetected()) return SecurityIssue.HOOKING_FRAMEWORK_DETECTED
+        if (isApkTampered()) return SecurityIssue.APK_TAMPERED
+        if (isVpnActive()) return SecurityIssue.VPN_ACTIVE // Initial VPN check as well
+        // Add other checks here as needed
         return SecurityIssue.NONE
     }
 }
 
+/**
+ * Enum representing different types of security issues that can be detected.
+ */
 enum class SecurityIssue(val message: String) {
     NONE("No security issues detected."),
-    VPN_ACTIVE("A VPN is active. For security reasons, please disable it to continue."),
-    DEBUGGER_ATTACHED("A debugger is detected. Please disconnect it to proceed."),
-    TRACER_ATTACHED("An unauthorized tracer is attached to the application."),
-    EMULATOR_DETECTED("This application cannot run on an emulator."),
-    DEVICE_ROOTED("This application cannot run on a rooted device."),
-    APK_TAMPERED("Application integrity compromised. Please reinstall from a trusted source."),
-    HOOKING_FRAMEWORK_DETECTED("Hooking framework detected. Please remove it to use the app.")
+    VPN_ACTIVE("A VPN connection is active. Please disable it."),
+    DEBUGGER_ATTACHED("Debugger detected. For security, the app cannot run."),
+    EMULATOR_DETECTED("Emulator detected. For security, the app cannot run."),
+    ROOT_DETECTED("Root access detected. For security, the app cannot run."),
+    APK_TAMPERED("Application integrity compromised. Please reinstall."),
+    HOOKING_FRAMEWORK_DETECTED("Hooking framework detected. For security, the app cannot run."),
+    UNKNOWN("An unknown security issue occurred.")
 }
 
-@Composable
-fun SecurityAlertScreen(issue: SecurityIssue, onExit: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = { /* Cannot be dismissed */ },
-        title = {
-            Text(
-                "Security Alert",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.error
-            )
-        },
-        text = {
-            Text(
-                issue.message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = onExit,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text("Exit App")
-            }
-        },
-        properties = androidx.compose.ui.window.DialogProperties(
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false
-        )
-    )
+// --- Navigation Destinations ---
+sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+    object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
+    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
+    object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
-
-// ---------------------------------------------------------------------------------------------
-// MainActivity
-// ---------------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var securityManager: SecurityManager
     private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
-
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            Toast.makeText(applicationContext, "Storage permission granted!", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(applicationContext, "Storage permission denied.", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -437,6 +568,7 @@ class MainActivity : ComponentActivity() {
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
         securityManager = SecurityManager(applicationContext)
 
+        // Perform initial security checks
         val initialSecurityIssue = securityManager.getSecurityIssue()
         if (initialSecurityIssue != SecurityIssue.NONE) {
             setContent {
@@ -444,7 +576,7 @@ class MainActivity : ComponentActivity() {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
                 }
             }
-            return
+            return // Stop further app initialization if a critical issue is found
         }
 
         setContent {
@@ -454,11 +586,12 @@ class MainActivity : ComponentActivity() {
                 var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
                 var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
 
-                var showConfigureScreen by rememberSaveable { mutableStateOf(sharedPrefsManager.isFirstLaunch()) }
-
+                // Live VPN detection
                 DisposableEffect(Unit) {
                     vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
                         liveVpnDetected = isVpn
+                        // If VPN is detected, set it as the current issue.
+                        // Otherwise, re-evaluate all security issues.
                         if (isVpn) {
                             currentSecurityIssue = SecurityIssue.VPN_ACTIVE
                         } else {
@@ -470,57 +603,25 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Periodic security checks for other issues (debugger, root, emulator, tampering, hooking)
+                // This runs every 5 seconds to catch issues that might appear after app launch.
                 LaunchedEffect(Unit) {
                     while (true) {
-                        delay(5000)
+                        delay(5000) // Check every 5 seconds
                         val issue = securityManager.getSecurityIssue()
+                        // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
                         if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
                             currentSecurityIssue = issue
                         } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
+                            // If VPN was active and now no issue is found, clear the alert
                             currentSecurityIssue = SecurityIssue.NONE
                         }
                     }
                 }
 
+                // Observe currentSecurityIssue and display alert if needed
                 if (currentSecurityIssue != SecurityIssue.NONE) {
                     SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
-                } else if (showConfigureScreen) {
-                    ConfigureScreen(
-                        onGrantStoragePermissionClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                if (ContextCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED) {
-                                    Toast.makeText(applicationContext, "Media access already granted!", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    requestPermissionLauncher.launch(android.Manifest.permission.READ_MEDIA_IMAGES)
-                                }
-                            } else {
-                                if (ContextCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                                    Toast.makeText(applicationContext, "Storage permission already granted!", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    requestPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                }
-                            }
-                        },
-                        onThemeModeChanged = { mode ->
-                            Toast.makeText(applicationContext, "Theme mode changed to: $mode (Not fully implemented)", Toast.LENGTH_SHORT).show()
-                        },
-                        onLanguageClick = {
-                            Toast.makeText(applicationContext, "Language settings (Not implemented)", Toast.LENGTH_SHORT).show()
-                        },
-                        onPerformanceModeClick = {
-                            Toast.makeText(applicationContext, "Performance mode settings (Not implemented)", Toast.LENGTH_SHORT).show()
-                        },
-                        onLibraryTabsClick = {
-                            Toast.makeText(applicationContext, "Library tabs settings (Not implemented)", Toast.LENGTH_SHORT).show()
-                        },
-                        onResetClick = {
-                            Toast.makeText(applicationContext, "Reset settings (Not implemented)", Toast.LENGTH_SHORT).show()
-                        },
-                        onConfigurationComplete = {
-                            sharedPrefsManager.setFirstLaunch(false)
-                            showConfigureScreen = false
-                        }
-                    )
                 } else {
                     AnimatedContent(
                         targetState = isLoggedIn,
@@ -548,8 +649,6 @@ class MainActivity : ComponentActivity() {
                                 onLoginSuccess = { loggedInUsername ->
                                     sharedPrefsManager.setLoggedIn(true, loggedInUsername)
                                     isLoggedIn = true
-                                    sharedPrefsManager.setFirstLaunch(false)
-                                    showConfigureScreen = false
                                 }
                             )
                         }
@@ -565,177 +664,47 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Login Screen
-// ---------------------------------------------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * A generic security alert dialog displayed when a critical security issue is detected.
+ * This dialog is non-dismissible, forcing the user to exit the application.
+ * @param issue The SecurityIssue enum indicating the reason for the alert.
+ * @param onExitApp Callback to be invoked when the "Exit Application" button is clicked.
+ */
 @Composable
-fun LoginScreen(onLoginSuccess: (String) -> Unit) {
-    var username by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val focusManager = LocalFocusManager.current
-    val haptic = LocalHapticFeedback.current
-    val scope = rememberCoroutineScope()
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primaryContainer
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .padding(16.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .shadow(elevation = 12.dp, shape = RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(32.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Lock,
-                    contentDescription = "Login Icon",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(72.dp)
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "Welcome Back!",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Sign in to continue",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Username") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.AccountCircle,
-                            contentDescription = "Username Icon"
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Key, contentDescription = "Password Icon") },
-                    trailingIcon = {
-                        val image = if (passwordVisible)
-                            Icons.Filled.Visibility
-                        else Icons.Filled.VisibilityOff
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(imageVector = image, contentDescription = "Toggle password visibility")
-                        }
-                    },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                if (errorMessage != null) {
-                    Text(
-                        text = errorMessage ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-
+fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
+    MaterialTheme {
+        AlertDialog(
+            onDismissRequest = { /* Not dismissible by user action */ },
+            icon = { Icon(Icons.Filled.Lock, contentDescription = "Security Alert Icon", tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Security Alert", color = MaterialTheme.colorScheme.error) },
+            text = { Text(issue.message, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            confirmButton = {
                 Button(
-                    onClick = {
-                        isLoading = true
-                        errorMessage = null
-                        scope.launch {
-                            delay(2000) // Simulate network delay
-                            if (username == "user" && password == "password") {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onLoginSuccess(username)
-                            } else {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                errorMessage = "Invalid username or password"
-                            }
-                            isLoading = false
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    enabled = !isLoading,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    onClick = onExitApp,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
-                    } else {
-                        Text("LOGIN", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    }
+                    Text("Exit Application", color = MaterialTheme.colorScheme.onError)
                 }
-            }
-        }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Main Application UI
-// ---------------------------------------------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainApplicationUI(username: String, onLogout: () -> Unit) {
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
+    var isRailExpanded by remember { mutableStateOf(false) }
 
+    // Check for internet connectivity on app launch
     LaunchedEffect(Unit) {
         if (!isConnected(context)) {
             val result = snackbarHostState.showSnackbar(
                 message = "No Internet Connection!",
-                actionLabel = "Open Wi-Fi",
+                actionLabel = "Wi-Fi Settings",
                 duration = SnackbarDuration.Indefinite
             )
             if (result == SnackbarResult.ActionPerformed) {
@@ -744,234 +713,808 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("ktimaz Studio", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { /* Open drawer */ }) {
-                        Icon(Icons.AutoMirrored.Filled.MenuOpen, contentDescription = "Menu")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                scrollBehavior = scrollBehavior
-            )
-        },
-        content = { paddingValues ->
-            var selectedDestination by rememberSaveable { mutableStateOf(AppDestination.DASHBOARD) }
+    val primaryGradient = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.90f),
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
+            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.6f)
+        )
+    )
 
-            Row(modifier = Modifier.padding(paddingValues)) {
-                AppNavigationRail(
-                    selectedDestination = selectedDestination,
-                    onDestinationSelected = { selectedDestination = it }
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+    val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
+    val scrolledAppBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(primaryGradient)
+    ) {
+        AppNavigationRail(
+            selectedDestination = selectedDestination,
+            onDestinationSelected = { selectedDestination = it },
+            isExpanded = isRailExpanded,
+            onMenuClick = { isRailExpanded = !isRailExpanded }
+        )
+
+        Scaffold(
+            modifier = Modifier
+                .weight(1f)
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            topBar = {
+                val isScrolled = scrollBehavior.state.contentOffset > 0.1f
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(id = R.string.app_name),
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = scrolledAppBarColor,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .graphicsLayer {
+                            shadowElevation = if (isScrolled) 4.dp.toPx() else 0f
+                            shape = topAppBarRoundedShape
+                            clip = true
+                        }
+                        .background(
+                            color = if (isScrolled) scrolledAppBarColor else Color.Transparent
+                        ),
+                    scrollBehavior = scrollBehavior
                 )
-                AnimatedContent(
-                    targetState = selectedDestination,
-                    transitionSpec = {
-                        slideInHorizontally(animationSpec = tween(400)) { fullWidth -> if (targetState.ordinal > initialState.ordinal) fullWidth else -fullWidth } + fadeIn(animationSpec = tween(200, delayMillis = 200)) togetherWith
-                                slideOutHorizontally(animationSpec = tween(400)) { fullWidth -> if (targetState.ordinal < initialState.ordinal) fullWidth else -fullWidth } + fadeOut(animationSpec = tween(200))
-                    }, label = "AppContentTransition"
-                ) { targetDestination ->
+            },
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            containerColor = Color.Transparent
+        ) { paddingValues ->
+            AnimatedContent(
+                targetState = selectedDestination,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                            slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(300)) togetherWith
+                            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
+                            slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -300 else 300 }, animationSpec = tween(300))
+                }, label = "nav_rail_content_transition"
+            ) { targetDestination ->
+                Box(modifier = Modifier.padding(paddingValues)) {
                     when (targetDestination) {
-                        AppDestination.DASHBOARD -> DashboardScreen(modifier = Modifier.fillMaxSize())
-                        AppDestination.SETTINGS -> SettingsScreen(modifier = Modifier.fillMaxSize())
-                        AppDestination.PROFILE -> ProfileScreen(username = username, modifier = Modifier.fillMaxSize())
+                        Screen.Dashboard -> AnimatedCardGrid { title ->
+                            if (title == "System Config") {
+                                context.startActivity(Intent(context, SettingsActivity::class.java))
+                            } else {
+                                context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
+                            }
+                        }
+                        Screen.AppSettings -> SettingsScreen()
+                        Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout)
                     }
                 }
             }
         }
-    )
-}
-
-
-enum class AppDestination {
-    DASHBOARD, SETTINGS, PROFILE
-}
-
-@Composable
-fun AppNavigationRail(
-    selectedDestination: AppDestination,
-    onDestinationSelected: (AppDestination) -> Unit
-) {
-    NavigationRail(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
-            .padding(vertical = 8.dp),
-        containerColor = Color.Transparent,
-        header = {
-            // Optional header content
-        }
-    ) {
-        Spacer(Modifier.height(16.dp))
-        NavigationRailItem(
-            selected = selectedDestination == AppDestination.DASHBOARD,
-            onClick = { onDestinationSelected(AppDestination.DASHBOARD) },
-            icon = {
-                Icon(
-                    imageVector = if (selectedDestination == AppDestination.DASHBOARD) Icons.Filled.Dashboard else Icons.Outlined.Dashboard,
-                    contentDescription = "Dashboard"
-                )
-            },
-            label = { Text("Dashboard") },
-            colors = NavigationRailItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                indicatorColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        )
-        NavigationRailItem(
-            selected = selectedDestination == AppDestination.SETTINGS,
-            onClick = { onDestinationSelected(AppDestination.SETTINGS) },
-            icon = {
-                Icon(
-                    imageVector = if (selectedDestination == AppDestination.SETTINGS) Icons.Filled.Settings else Icons.Outlined.Settings,
-                    contentDescription = "Settings"
-                )
-            },
-            label = { Text("Settings") },
-            colors = NavigationRailItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                indicatorColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        )
-        NavigationRailItem(
-            selected = selectedDestination == AppDestination.PROFILE,
-            onClick = { onDestinationSelected(AppDestination.PROFILE) },
-            icon = {
-                Icon(
-                    imageVector = if (selectedDestination == AppDestination.PROFILE) Icons.Filled.AccountCircle else Icons.Outlined.AccountCircle,
-                    contentDescription = "Profile"
-                )
-            },
-            label = { Text("Profile") },
-            colors = NavigationRailItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                indicatorColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        )
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Dashboard Screen
-// ---------------------------------------------------------------------------------------------
+/**
+ * Composable for the enhanced Login Screen.
+ * Features a more professional UI/UX with gradients, animations, and improved error handling.
+ * @param onLoginSuccess Callback invoked on successful login, providing the username.
+ */
 @Composable
-fun DashboardScreen(modifier: Modifier = Modifier) {
+fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
+    var usernameInput by rememberSaveable { mutableStateOf("") }
+    var passwordInput by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) } // New state for loading indicator
+    val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current
-    val cardTitles = remember {
-        listOf(
-            "Quick Access", "Recent Files", "Favorites", "Categories",
-            "Storage", "Cloud Sync", "Recycle Bin", "Share"
-        )
-    }
+    val context = LocalContext.current   // Use application context for Toast
 
-    // Replaced painterResource with ImageVector from Material Icons
-    val cardIcons = remember {
-        listOf(
-            Icons.Filled.MailOutline, // Placeholder for Quick Access
-            Icons.Filled.Close, // Placeholder for Recent Files
-            Icons.Filled.Info, // Placeholder for Favorites
-            Icons.Filled.Dashboard, // Placeholder for Categories
-            Icons.Filled.PermStorage, // Placeholder for Storage - THIS IS WHERE PERMSTORAGE IS USED
-            Icons.Filled.Settings, // Placeholder for Cloud Sync
-            Icons.Filled.Delete, // Placeholder for Recycle Bin (requires import)
-            Icons.Filled.Share // Placeholder for Share (requires import)
+    // ... rest of your LoginScreen code ...
+
+    // Inside your Button onClick or KeyboardActions onDone:
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+        cursorColor = MaterialTheme.colorScheme.primary,
+        focusedLabelColor = MaterialTheme.colorScheme.primary,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+        unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        errorBorderColor = MaterialTheme.colorScheme.error,
+        errorLabelColor = MaterialTheme.colorScheme.error,
+        errorLeadingIconColor = MaterialTheme.colorScheme.error,
+        errorTrailingIconColor = MaterialTheme.colorScheme.error
+    )
+
+    // Gradient for the background of the login screen
+    val backgroundGradient = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            MaterialTheme.colorScheme.surfaceContainerLow,
+            MaterialTheme.colorScheme.surfaceContainerHigh
         )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundGradient),
+        contentAlignment = Alignment.Center
+    ) {
+        // Animated Card for the login form
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .widthIn(max = 480.dp) // Max width for larger screens
+                .padding(24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 32.dp, vertical = 40.dp)
+                    .verticalScroll(rememberScrollState()), // Make content scrollable if it overflows
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp) // Increased spacing
+            ) {
+                // App Logo
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher_round),
+                    contentDescription = stringResource(id = R.string.app_name) + " Logo",
+                    modifier = Modifier
+                        .size(96.dp) // Larger logo
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                        .padding(8.dp)
+                )
+                Text(
+                    text = stringResource(id = R.string.app_name),
+                    style = MaterialTheme.typography.headlineMedium, // CHANGED from headlineLarge
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Securely sign in to your account",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Username Field
+                OutlinedTextField(
+                    value = usernameInput,
+                    onValueChange = { usernameInput = it.trim(); errorMessage = null },
+                    label = { Text("Username") },
+                    leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username Icon") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                    shape = RoundedCornerShape(18.dp), // More rounded corners
+                    colors = textFieldColors,
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = errorMessage != null
+                )
+
+                // Password Field
+                OutlinedTextField(
+                    value = passwordInput,
+                    onValueChange = { passwordInput = it; errorMessage = null },
+                    label = { Text("Password") },
+                    leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = "Password Icon") },
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        focusManager.clearFocus()
+                        // Trigger login attempt
+                        isLoading = true
+                        errorMessage = null // Clear previous error
+                        // Simulate network delay
+                        val scope = (context as? ComponentActivity)?.lifecycleScope
+                        scope?.launch {
+                            delay(2000) // Simulate network request
+                            if (usernameInput == "admin" && passwordInput == "admin") {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onLoginSuccess(usernameInput)
+                                //Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                errorMessage = "Invalid username or password. Please try again."
+                                //Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
+                            }
+                            isLoading = false
+                        }
+                    }),
+                    trailingIcon = {
+                        val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                        val description = if (passwordVisible) "Hide password" else "Show password"
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = description)
+                        }
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = textFieldColors,
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = errorMessage != null
+                )
+
+                // Error Message
+                AnimatedVisibility(
+                    visible = errorMessage != null,
+                    enter = fadeIn(animationSpec = tween(200)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+                    exit = fadeOut(animationSpec = tween(200)) + slideOutVertically(targetOffsetY = { -it / 2 }, animationSpec = spring(stiffness = Spring.StiffnessMedium))
+                ) {
+                    Text(
+                        text = errorMessage ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                // Login Button
+                Button(
+                    onClick = {
+                        focusManager.clearFocus()
+                        isLoading = true
+                        errorMessage = null // Clear previous error
+                        // Simulate network delay
+                        // 'context' here is now guaranteed to be a ComponentActivity for lifecycleScope
+                        val scope = (context as ComponentActivity).lifecycleScope // Cast now safe
+                        scope?.launch { // This block will now execute
+                            delay(2000) // Simulate network request
+                            if (usernameInput == "admin" && passwordInput == "admin") {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onLoginSuccess(usernameInput)
+                                //Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                errorMessage = "Invalid username or password. Please try again."
+                                //Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
+                            }
+                            isLoading = false
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp)
+                        .height(56.dp), // Taller button
+                    shape = RoundedCornerShape(20.dp), // More rounded
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp), // More prominent shadow
+                    enabled = !isLoading // Disable button while loading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("LOGIN", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                // Placeholder for Forgot Password / Sign Up
+                TextButton(onClick = { /* TODO: Implement navigation to Forgot Password */ }) {
+                    Text("Forgot password?", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
     }
+}
+
+/**
+ * Composable for the enhanced Profile Screen.
+ * @param username The username to display.
+ * @param onLogout Callback invoked when the logout button is clicked.
+ */
+@Composable
+fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () -> Unit) {
+    val context = LocalContext.current
+
+    val profileBackgroundGradient = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.background
+        )
+    )
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(profileBackgroundGradient)
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
     ) {
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Profile Picture / Icon
+        Box(
+            modifier = Modifier
+                .size(160.dp) // Larger profile picture area
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                            MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        radius = 120f
+                    )
+                )
+                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape), // <-- FIXED HERE: 'border' modifier
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.AccountCircle,
+                contentDescription = "Profile Picture",
+                modifier = Modifier.size(100.dp), // Icon size within the circle
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Username
         Text(
-            text = "Your Dashboard",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
+            text = username.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
+            style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 24.dp)
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
-        AnimatedCardGrid(
-            titles = cardTitles,
-            // Pass ImageVector directly instead of Painter
-            icons = cardIcons,
-            onCardClick = { title ->
-                Toast.makeText(context, "$title clicked!", Toast.LENGTH_SHORT).show()
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Welcome Message
+        Text(
+            text = "Welcome to your personalized space!",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Profile Options (Placeholder)
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .widthIn(max = 500.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 16.dp)) {
+                ProfileOptionItem(
+                    icon = Icons.Filled.AccountBox,
+                    title = "Edit Profile",
+                    description = "Update your personal information."
+                ) {
+                    //Toast.makeText(context, "Edit Profile Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
+                }
+                Divider(modifier = Modifier.padding(horizontal = 24.dp))
+                ProfileOptionItem(
+                    icon = Icons.Filled.Lock,
+                    title = "Change Password",
+                    description = "Secure your account with a new password."
+                ) {
+                    //Toast.makeText(context, "Change Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
+                }
+                Divider(modifier = Modifier.padding(horizontal = 24.dp))
+                ProfileOptionItem(
+                    icon = Icons.Filled.Settings,
+                    title = "Privacy Settings",
+                    description = "Manage your data and privacy preferences."
+                ) {
+                    //Toast.makeText(context, "Privacy Settings Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
+                }
             }
+        }
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Logout Button
+        Button(
+            onClick = onLogout,
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error, // Stronger error color for logout
+                contentColor = MaterialTheme.colorScheme.onError
+            ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(56.dp)
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout Icon")
+            Spacer(Modifier.width(16.dp))
+            Text("Logout", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+/**
+ * Reusable composable for an option item within the Profile Screen.
+ */
+@Composable
+fun ProfileOptionItem(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null, // Icon is decorative here
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(28.dp)
+        )
+        Spacer(modifier = Modifier.width(20.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            imageVector = Icons.Filled.ChevronRight,
+            contentDescription = "Go to $title",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Animated Card Grid
-// ---------------------------------------------------------------------------------------------
-@OptIn(ExperimentalAnimationApi::class)
-@Composable
-fun AnimatedCardGrid(
-    titles: List<String>,
-    icons: List<ImageVector>, // Changed to ImageVector
-    onCardClick: (String) -> Unit
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        itemsIndexed(titles) { index, title ->
-            val animatedProgress = remember { Animatable(0f) }
 
-            LaunchedEffect(Unit) {
-                delay(index * 100L)
-                animatedProgress.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(durationMillis = 500, easing = EaseOutExpo)
+@Composable
+fun AppNavigationRail(
+    selectedDestination: Screen,
+    onDestinationSelected: (Screen) -> Unit,
+    isExpanded: Boolean,
+    onMenuClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
+    val railWidth by animateDpAsState(
+        targetValue = if (isExpanded) 180.dp else 80.dp,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+        label = "nav_rail_width_anim"
+    )
+    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f)
+
+    NavigationRail(
+        modifier = modifier
+            .statusBarsPadding()
+            .fillMaxHeight()
+            .width(railWidth)
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        containerColor = railContainerColor,
+        header = {
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                AnimatedContent(
+                    targetState = isExpanded,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(200, delayMillis = 150)) + scaleIn(initialScale = 0.8f, animationSpec = tween(200, delayMillis = 150)) togetherWith
+                                fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f, animationSpec = tween(150))
+                    }, label = "menu_icon_transition"
+                ) { expanded ->
+                    Icon(
+                        imageVector = if (expanded) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
+                        contentDescription = if (expanded) "Collapse Menu" else "Expand Menu",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    ) {
+        Spacer(Modifier.weight(0.05f))
+        destinations.forEach { screen ->
+            val isSelected = selectedDestination == screen
+            val iconScale by animateFloatAsState(
+                targetValue = if (isSelected) 1.1f else 1.0f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                label = "nav_item_icon_scale_anim"
+            )
+            val indicatorColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else Color.Transparent
+            val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+
+            NavigationRailItem(
+                selected = isSelected,
+                onClick = { onDestinationSelected(screen) },
+                icon = {
+                    Icon(
+                        imageVector = screen.icon,
+                        contentDescription = screen.label,
+                        modifier = Modifier.graphicsLayer(scaleX = iconScale, scaleY = iconScale)
+                    )
+                },
+                label = {
+                    AnimatedVisibility(
+                        visible = isExpanded,
+                        enter = fadeIn(animationSpec = tween(200, delayMillis = 150)) + expandHorizontally(animationSpec = tween(300, delayMillis = 100), expandFrom = Alignment.Start),
+                        exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally(animationSpec = tween(250), shrinkTowards = Alignment.Start)
+                    ) { Text(screen.label, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
+                },
+                alwaysShowLabel = isExpanded,
+                colors = NavigationRailItemDefaults.colors(
+                    selectedIconColor = contentColor,
+                    selectedTextColor = contentColor,
+                    indicatorColor = indicatorColor,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier.padding(vertical = 6.dp).height(56.dp)
+            )
+            if (destinations.last() != screen) {
+                Spacer(Modifier.height(6.dp))
+            }
+        }
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+fun SettingsScreen(modifier: Modifier = Modifier) {
+    var showAboutDialog by remember { mutableStateOf(false) }
+    var showPrivacyDialog by remember { mutableStateOf(false) }
+    var showChangelogDialog by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            "Application Settings",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
+        )
+
+        var notificationsEnabled by remember { mutableStateOf(true) }
+        SettingItem(
+            title = "Enable Notifications",
+            description = "Receive updates and alerts.",
+            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = {
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = { notificationsEnabled = it }
                 )
             }
+        )
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-            val scale by animateFloatAsState(
-                targetValue = if (animatedProgress.value > 0) 1f else 0.8f,
-                animationSpec = tween(durationMillis = 500, easing = EaseOutExpo), label = ""
+        var showAccountDialog by remember { mutableStateOf(false) }
+        SettingItem(
+            title = "Account Preferences",
+            description = "Manage your account details.",
+            leadingIcon = { Icon(Icons.Filled.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "Go to account preferences", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            onClick = { showAccountDialog = true }
+        )
+        if (showAccountDialog) {
+            AlertDialog(
+                onDismissRequest = { showAccountDialog = false },
+                icon = { Icon(Icons.Filled.AccountBox, contentDescription = null)},
+                title = { Text("Account Preferences") },
+                text = { Text("Account settings details would appear here or navigate to a dedicated screen. This is a placeholder.") },
+                confirmButton = { TextButton(onClick = { showAccountDialog = false }) { Text("OK") } }
             )
-            val alpha by animateFloatAsState(
-                targetValue = animatedProgress.value,
-                animationSpec = tween(durationMillis = 500, easing = LinearEasing), label = ""
-            )
+        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-            Box(
-                modifier = Modifier
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        alpha = alpha
-                    )
-                    .clickable { onCardClick(title) }
+        SettingItem(
+            title = "About",
+            description = "Information about this application.",
+            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View About", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            onClick = { showAboutDialog = true }
+        )
+        if (showAboutDialog) {
+            AlertDialog(
+                onDismissRequest = { showAboutDialog = false },
+                icon = { Icon(Icons.Filled.Info, contentDescription = "About App Icon")},
+                title = { Text("About " + stringResource(id = R.string.app_name)) },
+                text = { Text("Version: ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})\n\nDeveloped by Ktimaz Studio.\n\nThis application is a demonstration of various Android and Jetpack Compose features. Thank you for using our app!") },
+                confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Close") } }
+            )
+        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+        SettingItem(
+            title = "Privacy Policy",
+            description = "Read our privacy policy.",
+            leadingIcon = { Icon(Icons.Filled.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Privacy Policy", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            onClick = { showPrivacyDialog = true }
+        )
+        if (showPrivacyDialog) {
+            AlertDialog(
+                onDismissRequest = { showPrivacyDialog = false },
+                icon = { Icon(Icons.Filled.Policy, contentDescription = "Privacy Policy Icon")},
+                title = { Text("Privacy Policy") },
+                text = { Text("Placeholder for Privacy Policy text. In a real application, this would contain the full policy details or link to a web page.\n\nWe are committed to protecting your privacy. Our policy outlines how we collect, use, and safeguard your information.") },
+                confirmButton = { TextButton(onClick = { showPrivacyDialog = false }) { Text("Close") } }
+            )
+        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+        // Changelog Item
+        SettingItem(
+            title = "Changelog",
+            description = "See what's new in this version.",
+            leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Changelog", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            onClick = { showChangelogDialog = true }
+        )
+        if (showChangelogDialog) {
+            AlertDialog(
+                onDismissRequest = { showChangelogDialog = false },
+                icon = { Icon(Icons.Filled.HistoryEdu, contentDescription = "Changelog Icon", modifier = Modifier.size(28.dp))},
+                title = { Text("What's New - v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleLarge) },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Text("Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                        Text("✨ New Features:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                        Text(" • Added persistent login with auto-login.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Implemented Logout functionality.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Enhanced VPN detection with a Material 3 dialog.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added 'About', 'Privacy Policy', and 'Changelog' to Settings.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Implemented basic reverse engineering detection (debugger, emulator, root, APK tampering).", style = MaterialTheme.typography.bodyMedium)
+                        Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                        Text(" • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Profile screen now shows username and placeholder picture.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • General UI/UX tweaks for a more expressive Material 3 feel.", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Thank you for updating!", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showChangelogDialog = false }) { Text("Awesome!") } },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            )
+        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+
+        SettingItem(
+            title = "App Version",
+            description = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = {}
+        )
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+    }
+}
+
+@Composable
+fun SettingItem(
+    title: String,
+    description: String? = null,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+    control: @Composable (() -> Unit)? = null
+) {
+    val itemModifier = Modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .padding(vertical = 16.dp, horizontal = 8.dp)
+
+    Row(
+        modifier = itemModifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (leadingIcon != null) {
+            Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
+                leadingIcon()
+            }
+        }
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            if (description != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (control != null) {
+            Box(modifier = Modifier.padding(start = 8.dp)) {
+                control()
+            }
+        }
+    }
+}
+
+
+@Composable
+fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
+    val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
+    // Consider adding specific icons for each card for better visual distinction
+    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Placeholder: replace with distinct icons
+    val haptic = LocalHapticFeedback.current
+
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = modifier.fillMaxSize()
+    ) {
+        itemsIndexed(cards, key = { _, title -> title }) { index, title ->
+            var itemVisible by remember { mutableStateOf(false) }
+            LaunchedEffect(key1 = title) {
+                delay(index * 70L + 100L) // Staggered animation delay
+                itemVisible = true
+            }
+
+            AnimatedVisibility(
+                visible = itemVisible,
+                enter = fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessVeryLow)) +
+                        slideInVertically(
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                            initialOffsetY = { it / 2 }
+                        ) +
+                        scaleIn(
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                            initialScale = 0.75f
+                        ),
+                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.85f, animationSpec = tween(150))
             ) {
+                val infiniteTransition = rememberInfiniteTransition(label = "card_effects_$title")
+                val scale by infiniteTransition.animateFloat(
+                    initialValue = 0.995f,
+                    targetValue = 1.0f,
+                    animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
+                    label = "card_scale_$title"
+                )
+                val animatedAlpha by infiniteTransition.animateFloat(
+                    initialValue = 0.75f,
+                    targetValue = 0.60f,
+                    animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
+                    label = "card_alpha_$title"
+                )
+
                 Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onCardClick(title)
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
+                    ),
                     border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier
@@ -986,7 +1529,7 @@ fun AnimatedCardGrid(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            imageVector = icons[index % icons.size], // Changed from 'painter' to 'imageVector'
+                            painter = icons[index % icons.size], // Using placeholder icon
                             contentDescription = title,
                             modifier = Modifier.size(60.dp)
                         )
@@ -1000,535 +1543,6 @@ fun AnimatedCardGrid(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-
-// ---------------------------------------------------------------------------------------------
-// Settings Screen
-// ---------------------------------------------------------------------------------------------
-@Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
-    val scrollState = rememberScrollState()
-    val context = LocalContext.current
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "App Settings",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "General",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                SettingItem(
-                    icon = Icons.Filled.Notifications,
-                    title = "Notifications",
-                    description = "Control app notifications",
-                    onClick = { Toast.makeText(context, "Notifications clicked", Toast.LENGTH_SHORT).show() }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                SettingItem(
-                    icon = Icons.Filled.AccountCircle,
-                    title = "Account Preferences",
-                    description = "Manage your account settings",
-                    onClick = { Toast.makeText(context, "Account Preferences clicked", Toast.LENGTH_SHORT).show() }
-                )
-            }
-        }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "About",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                SettingItem(
-                    icon = Icons.Filled.Info,
-                    title = "About App",
-                    description = "Version, build information",
-                    onClick = {
-                        Toast.makeText(context, "App Version: 1.0.0 (Build 123)", Toast.LENGTH_LONG).show()
-                    }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                SettingItem(
-                    icon = Icons.Filled.PrivacyTip,
-                    title = "Privacy Policy",
-                    description = "Read our privacy statement",
-                    onClick = { Toast.makeText(context, "Privacy Policy clicked", Toast.LENGTH_SHORT).show() }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                SettingItem(
-                    icon = Icons.Filled.Palette,
-                    title = "Changelog",
-                    description = "See what's new",
-                    onClick = { Toast.makeText(context, "Changelog clicked", Toast.LENGTH_SHORT).show() }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SettingItem(
-    icon: ImageVector,
-    title: String,
-    description: String? = null,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(28.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            description?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Icon(
-            imageVector = Icons.Filled.ChevronRight,
-            contentDescription = "Navigate",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-// Profile Screen
-// ---------------------------------------------------------------------------------------------
-@Composable
-fun ProfileScreen(username: String, modifier: Modifier = Modifier) {
-    val scrollState = rememberScrollState()
-    val context = LocalContext.current
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(24.dp))
-        Icon(
-            imageVector = Icons.Filled.AccountCircle,
-            contentDescription = "Profile Picture",
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(120.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = username,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "user@example.com",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = "Account Settings",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                SettingItem(
-                    icon = Icons.Filled.AccountCircle,
-                    title = "Edit Profile",
-                    description = "Update your personal information",
-                    onClick = { Toast.makeText(context, "Edit Profile clicked", Toast.LENGTH_SHORT).show() }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                SettingItem(
-                    icon = Icons.Filled.Lock,
-                    title = "Change Password",
-                    description = "Update your login password",
-                    onClick = { Toast.makeText(context, "Change Password clicked", Toast.LENGTH_SHORT).show() }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                SettingItem(
-                    icon = Icons.Filled.PrivacyTip,
-                    title = "Privacy Settings",
-                    description = "Manage data and privacy options",
-                    onClick = { Toast.makeText(context, "Privacy Settings clicked", Toast.LENGTH_SHORT).show() }
-                )
-            }
-        }
-    }
-}
-
-
-// ---------------------------------------------------------------------------------------------
-// NEW: Configure Screen
-// ---------------------------------------------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ConfigureScreen(
-    modifier: Modifier = Modifier,
-    onGrantStoragePermissionClick: () -> Unit = {},
-    onThemeModeChanged: (Int) -> Unit = {},
-    onLanguageClick: () -> Unit = {},
-    onPerformanceModeClick: () -> Unit = {},
-    onLibraryTabsClick: () -> Unit = {},
-    onResetClick: () -> Unit = {},
-    onConfigurationComplete: () -> Unit = {}
-) {
-    var selectedThemeMode by remember { mutableIntStateOf(0) }
-
-    var isStorageGranted by remember { mutableStateOf(false) }
-
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier
-                    .fillMaxWidth(0.95f)
-                    .widthIn(max = 600.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Filled.Tune,
-                                contentDescription = "Configure Icon",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = "Configure",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        IconButton(onClick = onResetClick) {
-                            Icon(
-                                imageVector = Icons.Filled.Loop,
-                                contentDescription = "Reset",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Text(
-                        text = "Setup first startup",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 44.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    ConfigureSettingItem(
-                        icon = Icons.Filled.Palette,
-                        title = "Theme Mode",
-                        description = "",
-                        control = {
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier.height(48.dp)
-                            ) {
-                                SegmentedButton(
-                                    selected = selectedThemeMode == 0,
-                                    onClick = {
-                                        selectedThemeMode = 0
-                                        onThemeModeChanged(0)
-                                    },
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Tune,
-                                        contentDescription = "System Theme",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                SegmentedButton(
-                                    selected = selectedThemeMode == 1,
-                                    onClick = {
-                                        selectedThemeMode = 1
-                                        onThemeModeChanged(1)
-                                    },
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Palette,
-                                        contentDescription = "Light Theme",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                SegmentedButton(
-                                    selected = selectedThemeMode == 2,
-                                    onClick = {
-                                        selectedThemeMode = 2
-                                        onThemeModeChanged(2)
-                                    },
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.ModeNight,
-                                        contentDescription = "Dark Theme",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp))
-
-                    ConfigureSettingItem(
-                        icon = Icons.Filled.Tune,
-                        title = "Language",
-                        description = "English",
-                        control = {
-                            Icon(
-                                imageVector = Icons.Filled.ChevronRight,
-                                contentDescription = "Change Language",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        onClick = onLanguageClick
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp))
-
-                    ConfigureSettingItem(
-                        icon = Icons.Filled.Speed,
-                        title = "Performance mode",
-                        description = "Balanced",
-                        control = {
-                            Icon(
-                                imageVector = Icons.Filled.ChevronRight,
-                                contentDescription = "Change Performance Mode",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        onClick = onPerformanceModeClick
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp))
-
-                    ConfigureSettingItem(
-                        icon = Icons.Filled.Tune,
-                        title = "Library Tabs",
-                        description = "6",
-                        control = {
-                            Icon(
-                                imageVector = Icons.Filled.ChevronRight,
-                                contentDescription = "Change Library Tabs",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        onClick = onLibraryTabsClick
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp))
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .padding(start = 4.dp)
-                    ) {
-                        Text(
-                            text = "Use Media Store",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "✓ instant indexing time",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp)
-                            .clickable(onClick = onGrantStoragePermissionClick)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 20.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Filled.PermStorage, // THIS IS WHERE PERMSTORAGE IS USED
-                                    contentDescription = "Storage Icon",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = "Grant Storage Permission",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
-                                    selected = isStorageGranted,
-                                    onClick = onGrantStoragePermissionClick,
-                                    colors = RadioButtonDefaults.colors(
-                                        selectedColor = MaterialTheme.colorScheme.primary,
-                                        unselectedColor = MaterialTheme.colorScheme.outline
-                                    )
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                FilledIconButton(
-                                    onClick = onGrantStoragePermissionClick,
-                                    colors = IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    ),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.ChevronRight,
-                                        contentDescription = "Proceed",
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = onConfigurationComplete,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("DONE", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ConfigureSettingItem(
-    icon: ImageVector,
-    title: String,
-    description: String? = null,
-    onClick: (() -> Unit)? = null,
-    control: @Composable (() -> Unit)? = null
-) {
-    val itemModifier = Modifier
-        .fillMaxWidth()
-        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-        .padding(vertical = 8.dp)
-
-    Row(
-        modifier = itemModifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            if (description != null && description.isNotBlank()) {
-                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        if (control != null) {
-            Box(modifier = Modifier.padding(start = 8.dp)) {
-                control()
             }
         }
     }
