@@ -41,8 +41,10 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Info
@@ -54,6 +56,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
@@ -161,14 +165,14 @@ class SoundEffectManager(private val context: Context, private val sharedPrefsMa
  * using SharedPreferences for persistent storage.
  */
 class SharedPreferencesManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
+    val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
     private val context: Context = context // Keep context for theme checks
 
     companion object {
         private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
         private const val KEY_USERNAME = "username_key"
-        private const val KEY_THEME_SETTING = "theme_setting_key"
-        private const val KEY_SOUND_ENABLED = "sound_enabled_key"
+        const val KEY_THEME_SETTING = "theme_setting_key"
+        const val KEY_SOUND_ENABLED = "sound_enabled_key"
     }
 
     /**
@@ -301,7 +305,8 @@ class SecurityManager(private val context: Context) {
         // In inspection mode (e.g., Compose Preview), Debug.isDebuggerConnected() might be true.
         // We want to allow the app to run in preview, so we add a check for LocalInspectionMode.current.
         // For actual device builds, this check is still valid.
-        if (LocalInspectionMode.current) return false // Allow preview to run
+        // The check for LocalInspectionMode.current must be done within a @Composable function,
+        // so we'll remove it from here and handle it in the UI layer.
         return Debug.isDebuggerConnected() || isTracerAttached()
     }
      
@@ -377,7 +382,6 @@ class SecurityManager(private val context: Context) {
      * return true if an emulator is likely detected, false otherwise.
      */
     fun isRunningOnEmulator(): Boolean {
-        if (LocalInspectionMode.current) return false // Allow preview to run
         return (Build.FINGERPRINT.startsWith("generic")
                 || Build.FINGERPRINT.startsWith("unknown")
                 || Build.MODEL.contains("google_sdk")
@@ -394,7 +398,6 @@ class SecurityManager(private val context: Context) {
      * return true if root is likely detected, false otherwise.
      */
     fun isDeviceRooted(): Boolean {
-        if (LocalInspectionMode.current) return false // Allow preview to run
         val paths = arrayOf(
             "/system/app/Superuser.apk",
             "/sbin/su",
@@ -511,7 +514,8 @@ class SecurityManager(private val context: Context) {
     
     
     fun isHookingFrameworkDetected(): Boolean {
-        if (LocalInspectionMode.current) return false // Allow preview to run
+        // The check for LocalInspectionMode.current must be done within a @Composable function,
+        // so we'll remove it from here and handle it in the UI layer.
         // 1. Check for common Xposed/Magisk/Frida related files/directories
         val knownHookFiles = arrayOf(
             "/system/app/XposedInstaller.apk",
@@ -569,7 +573,8 @@ class SecurityManager(private val context: Context) {
      * return true if the hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
-        if (LocalInspectionMode.current) return false // Allow preview to run
+        // The check for LocalInspectionMode.current must be done within a @Composable function,
+        // so we'll remove it from here and handle it in the UI layer.
         val currentSignatureHash = getSignatureSha256Hash()
         // Compare with the signature SHA-256 hash provided by you.
         return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
@@ -594,7 +599,8 @@ class SecurityManager(private val context: Context) {
     }
     
     fun isTracerAttached(): Boolean {
-        if (LocalInspectionMode.current) return false // Allow preview to run
+        // The check for LocalInspectionMode.current must be done within a @Composable function,
+        // so we'll remove it from here and handle it in the UI layer.
         try {
             val statusFile = File("/proc/self/status")
             if (statusFile.exists()) {
@@ -617,6 +623,7 @@ class SecurityManager(private val context: Context) {
      * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
      */
     fun getSecurityIssue(): SecurityIssue {
+        // Handle LocalInspectionMode check at the call site in the Composable function
         if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
         if (isTracerAttached()) return SecurityIssue.DEBUGGER_ATTACHED // More robust debugger check
         if (isRunningOnEmulator()) return SecurityIssue.EMULATOR_DETECTED
@@ -666,113 +673,112 @@ class MainActivity : ComponentActivity() {
         soundEffectManager.loadSounds() // Load sounds
         securityManager = SecurityManager(applicationContext)
 
+        setContent {
+            val context = LocalContext.current
+            val isInspectionMode = LocalInspectionMode.current
+            // Determine if the app should be in dark theme based on setting
+            val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
 
-        // Perform initial security checks
-        val initialSecurityIssue = securityManager.getSecurityIssue()
-        if (initialSecurityIssue != SecurityIssue.NONE) {
-            setContent {
-                ktimaz(
-                    // Pass current theme from preferences
-                    darkTheme = isAppInDarkTheme(sharedPrefsManager.getThemeSetting(), LocalContext.current)
-                ) {
+            // Perform initial security checks
+            val initialSecurityIssue = remember {
+                if (isInspectionMode) SecurityIssue.NONE else securityManager.getSecurityIssue()
+            }
+
+            if (initialSecurityIssue != SecurityIssue.NONE) {
+                ktimaz(darkTheme = useDarkTheme) {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
                 }
-            }
-            return // Stop further app initialization if a critical issue is found
-        }
-
-        setContent {
-            val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-            // Observe changes to theme setting
-            LaunchedEffect(Unit) {
-                // Listen for changes in SharedPreferences for theme
-                val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                    if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
-                        currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
-                    }
-                }
-                sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
-                onDispose {
-                    sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
-                }
-            }
-
-            // Determine if the app should be in dark theme based on setting
-            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, LocalContext.current)
-
-            ktimaz(darkTheme = useDarkTheme) {
-                var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
-                var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
-                var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
-                var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
-
-                // Live VPN detection
+            } else {
+                // Now that we are in a composable context, we can handle the theme listener
                 DisposableEffect(Unit) {
-                    vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
-                        liveVpnDetected = isVpn
-                        // If VPN is detected, set it as the current issue.
-                        // Otherwise, re-evaluate all security issues.
-                        if (isVpn) {
-                            currentSecurityIssue = SecurityIssue.VPN_ACTIVE
-                        } else {
-                            currentSecurityIssue = securityManager.getSecurityIssue()
+                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                        if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
+                            currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
                         }
                     }
+                    sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
                     onDispose {
-                        vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+                        sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
                     }
                 }
 
-                // Periodic security checks for other issues (debugger, root, emulator, tampering, hooking)
-                // This runs every 5 seconds to catch issues that might appear after app launch.
-                LaunchedEffect(Unit) {
-                    while (true) {
-                        delay(5000) // Check every 5 seconds
-                        val issue = securityManager.getSecurityIssue()
-                        // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
-                        if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
-                            currentSecurityIssue = issue
-                        } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
-                            // If VPN was active and now no issue is found, clear the alert
-                            currentSecurityIssue = SecurityIssue.NONE
+                ktimaz(darkTheme = useDarkTheme) {
+                    var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
+                    var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
+                    var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
+                    var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
+
+                    // Live VPN detection
+                    DisposableEffect(Unit) {
+                        vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
+                            liveVpnDetected = isVpn
+                            // If VPN is detected, set it as the current issue.
+                            // Otherwise, re-evaluate all security issues.
+                            if (isVpn) {
+                                currentSecurityIssue = SecurityIssue.VPN_ACTIVE
+                            } else {
+                                currentSecurityIssue = securityManager.getSecurityIssue()
+                            }
+                        }
+                        onDispose {
+                            vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
                         }
                     }
-                }
 
-                // Observe currentSecurityIssue and display alert if needed
-                if (currentSecurityIssue != SecurityIssue.NONE) {
-                    SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
-                } else {
-                    AnimatedContent(
-                        targetState = isLoggedIn,
-                        transitionSpec = {
-                            (fadeIn(animationSpec = tween(400, delayMillis = 200)) +
-                                    scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)))
-                                .togetherWith(
-                                    fadeOut(animationSpec = tween(200)) +
-                                            scaleOut(targetScale = 0.92f, animationSpec = tween(200))
+                    // Periodic security checks for other issues (debugger, root, emulator, tampering, hooking)
+                    // This runs every 5 seconds to catch issues that might appear after app launch.
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(5000) // Check every 5 seconds
+                            if (!isInspectionMode) { // Do not run security checks in preview mode
+                                val issue = securityManager.getSecurityIssue()
+                                // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
+                                if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
+                                    currentSecurityIssue = issue
+                                } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
+                                    // If VPN was active and now no issue is found, clear the alert
+                                    currentSecurityIssue = SecurityIssue.NONE
+                                }
+                            }
+                        }
+                    }
+
+                    // Observe currentSecurityIssue and display alert if needed
+                    if (currentSecurityIssue != SecurityIssue.NONE) {
+                        SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
+                    } else {
+                        AnimatedContent(
+                            targetState = isLoggedIn,
+                            transitionSpec = {
+                                (fadeIn(animationSpec = tween(400, delayMillis = 200)) +
+                                        scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)))
+                                    .togetherWith(
+                                        fadeOut(animationSpec = tween(200)) +
+                                                scaleOut(targetScale = 0.92f, animationSpec = tween(200))
+                                    )
+                                    .using(SizeTransform(clip = false))
+                            },
+                            label = "LoginScreenTransition"
+                        ) { targetIsLoggedIn ->
+                            if (targetIsLoggedIn) {
+                                MainApplicationUI(
+                                    username = currentUsername ?: "User",
+                                    onLogout = {
+                                        sharedPrefsManager.setLoggedIn(false)
+                                        isLoggedIn = false
+                                    },
+                                    soundEffectManager = soundEffectManager // Pass sound manager
                                 )
-                                .using(SizeTransform(clip = false))
-                        },
-                        label = "LoginScreenTransition"
-                    ) { targetIsLoggedIn ->
-                        if (targetIsLoggedIn) {
-                            MainApplicationUI(
-                                username = currentUsername ?: "User",
-                                onLogout = {
-                                    sharedPrefsManager.setLoggedIn(false)
-                                    isLoggedIn = false
-                                },
-                                soundEffectManager = soundEffectManager // Pass sound manager
-                            )
-                        } else {
-                            LoginScreen(
-                                onLoginSuccess = { loggedInUsername ->
-                                    sharedPrefsManager.setLoggedIn(true, loggedInUsername)
-                                    isLoggedIn = true
-                                },
-                                soundEffectManager = soundEffectManager // Pass sound manager
-                            )
+                            } else {
+                                LoginScreen(
+                                    onLoginSuccess = { loggedInUsername ->
+                                        sharedPrefsManager.setLoggedIn(true, loggedInUsername)
+                                        isLoggedIn = true
+                                    },
+                                    soundEffectManager = soundEffectManager // Pass sound manager
+                                )
+                            }
                         }
                     }
                 }
@@ -991,7 +997,10 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit, soundEffectManager
                             },
                             soundEffectManager = soundEffectManager // Pass sound manager
                         )
-                        Screen.AppSettings -> SettingsScreen(soundEffectManager = soundEffectManager, sharedPrefsManager = sharedPrefsManager)
+                        Screen.AppSettings -> SettingsScreen(
+                            soundEffectManager = soundEffectManager, 
+                            sharedPrefsManager = sharedPrefsManager
+                        )
                         Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
                     }
                 }
