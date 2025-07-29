@@ -312,7 +312,6 @@ class SecurityManager(private val context: Context) {
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
                 super.onCapabilitiesChanged(network, networkCapabilities)
-                // When network capabilities change, re-check VPN status
                 onVpnStatusChanged(isVpnActive())
             }
         }
@@ -1380,7 +1379,7 @@ fun ProfileOptionItem(
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // Use default Material 3 ripple by setting indication to null
+                // Removed explicit indication = null to use default Material 3 ripple
                 onClick = {
                     soundEffectManager.playClickSound() // Play sound on item click
                     onClick()
@@ -1718,7 +1717,7 @@ fun SettingItem(
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // Use default Material 3 ripple by setting indication to null
+                // Removed explicit indication = null to use default Material 3 ripple
                 onClick = {
                     soundEffectManager?.playClickSound() // Play sound if manager provided
                     onClick()
