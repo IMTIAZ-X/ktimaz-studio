@@ -90,7 +90,7 @@ import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
 import androidx.compose.foundation.border
-import androidx.compose.foundation.LocalIndication // ADDED THIS IMPORT
+import androidx.compose.foundation.LocalIndication
 
 
 // --- SoundEffectManager ---
@@ -390,8 +390,9 @@ class SecurityManager(private val context: Context) {
     }
 
     /**
-     * Calculates the SHA-256 hash of the application's APK file.
-     * This can be used to detect if the APK has been tampered with.
+     * Calculates the SHA-256 hash of the application's *signing certificate*.
+     * This is a more robust integrity check than file hash as it remains constant
+     * for signed APKs regardless of minor build variations.
      * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
      fun getSignatureSha256Hash(): String? {
@@ -1456,12 +1457,13 @@ fun AppNavigationRail(
                 label = "menu_icon_scale"
             )
 
+            // MODIFIED: Pass interactionSource directly to IconButton
             IconButton(
                 onClick = onMenuClick,
+                interactionSource = interactionSource, // Pass interactionSource here
                 modifier = Modifier
                     .padding(bottom = 16.dp)
                     .graphicsLayer(scaleX = scale, scaleY = scale) // Apply press animation
-                    .clickable(interactionSource = interactionSource, indication = defaultIndication) // Explicitly pass the default indication
             ) {
                 AnimatedContent(
                     targetState = isExpanded,
@@ -1832,8 +1834,6 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                     label = "card_press_alpha"
                 )
 
-                val defaultIndication = LocalIndication.current // Get the default Material indication
-
                 TooltipBox(
                     positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
                     tooltip = {
@@ -1843,11 +1843,13 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                     },
                     state = rememberTooltipState()
                 ) {
+                    // MODIFIED: Pass interactionSource directly to Card
                     Card(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onCardClick(title)
                         },
+                        interactionSource = interactionSource, // Pass interactionSource here
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.outlinedCardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
@@ -1863,7 +1865,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
                             .height(170.dp)
-                            .clickable(interactionSource = interactionSource, indication = defaultIndication) // Explicitly pass the default indication
+                            // REMOVED: .clickable(interactionSource = interactionSource, indication = defaultIndication)
                     ) {
                         Column(
                             Modifier.fillMaxSize().padding(16.dp),
