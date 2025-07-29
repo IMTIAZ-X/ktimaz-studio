@@ -42,6 +42,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear // Corrected import for Clear icon
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Info
@@ -88,8 +89,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
-import androidx.compose.foundation.border // <-- ADDED THIS IMPORT
-import androidx.compose.material.ripple.rememberRipple // For custom ripple effects
+import androidx.compose.foundation.border
 
 // --- SoundEffectManager ---
 /**
@@ -120,6 +120,8 @@ class SoundEffectManager(private val context: Context) {
 
         // Load your click sound from res/raw.
         // Make sure you have a file named 'click_sound.wav' (or .mp3) in res/raw.
+        // You will need to create the 'raw' directory inside 'app/src/main/res/'
+        // and place your sound file there.
         clickSoundId = soundPool?.load(context, R.raw.click_sound, 1) ?: 0
     }
 
@@ -551,12 +553,6 @@ class SecurityManager(private val context: Context) {
         }
         return -1L
     }
-
-    // You could also add a check for expected app size and compare.
-    // private val EXPECTED_APP_SIZE_BYTES = 12345678L // Example size
-    // fun isAppSizeModified(): Boolean {
-    //     return getAppSize() != -1L && getAppSize() != EXPECTED_APP_SIZE_BYTES
-    // }
     
     fun isTracerAttached(): Boolean {
         try {
@@ -942,7 +938,7 @@ fun CustomSearchBar(
                     onClear()
                     focusManager.clearFocus()
                 }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear Search")
+                    Icon(Icons.Filled.Clear, contentDescription = "Clear Search") // Corrected icon reference
                 }
             }
         },
@@ -1173,8 +1169,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                         .fillMaxWidth()
                         .padding(top = 24.dp)
                         .height(56.dp) // Taller button
-                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
-                        .clickable(interactionSource = interactionSource, indication = rememberRipple(bounded = true)), // Custom ripple
+                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha), // Apply press animation directly
                     shape = RoundedCornerShape(20.dp), // More rounded
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp), // More prominent shadow
                     enabled = !isLoading // Disable button while loading
@@ -1344,8 +1339,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
             modifier = Modifier
                 .fillMaxWidth(0.7f)
                 .height(56.dp)
-                .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
-                .clickable(interactionSource = interactionSource, indication = rememberRipple(bounded = true)) // Custom ripple
+                .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation directly
         ) {
             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout Icon")
             Spacer(Modifier.width(16.dp))
@@ -1386,7 +1380,7 @@ fun ProfileOptionItem(
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
             .clickable(
                 interactionSource = interactionSource,
-                indication = rememberRipple(bounded = true), // Custom ripple
+                indication = null, // Use default Material 3 ripple by setting indication to null
                 onClick = {
                     soundEffectManager.playClickSound() // Play sound on item click
                     onClick()
@@ -1462,7 +1456,7 @@ fun AppNavigationRail(
                 modifier = Modifier
                     .padding(bottom = 16.dp)
                     .graphicsLayer(scaleX = scale, scaleY = scale) // Apply press animation
-                    .clickable(interactionSource = interactionSource, indication = rememberRipple(bounded = false)) // Custom ripple
+                    .clickable(interactionSource = interactionSource, indication = null) // Use default ripple by setting indication to null
             ) {
                 AnimatedContent(
                     targetState = isExpanded,
@@ -1724,7 +1718,7 @@ fun SettingItem(
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
             .clickable(
                 interactionSource = interactionSource,
-                indication = rememberRipple(bounded = true), // Custom ripple
+                indication = null, // Use default Material 3 ripple by setting indication to null
                 onClick = {
                     soundEffectManager?.playClickSound() // Play sound if manager provided
                     onClick()
@@ -1860,7 +1854,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
                             .height(170.dp)
-                            .clickable(interactionSource = interactionSource, indication = rememberRipple(bounded = true)) // Custom ripple
+                            .clickable(interactionSource = interactionSource, indication = null) // Use default Material 3 ripple
                     ) {
                         Column(
                             Modifier.fillMaxSize().padding(16.dp),
