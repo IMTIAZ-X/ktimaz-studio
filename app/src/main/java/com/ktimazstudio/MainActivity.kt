@@ -42,7 +42,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Clear // Corrected import for Clear icon
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Info
@@ -90,6 +90,8 @@ import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
 import androidx.compose.foundation.border
+import androidx.compose.foundation.LocalIndication // ADDED THIS IMPORT
+
 
 // --- SoundEffectManager ---
 /**
@@ -937,7 +939,7 @@ fun CustomSearchBar(
                     onClear()
                     focusManager.clearFocus()
                 }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear Search") // Corrected icon reference
+                    Icon(Icons.Filled.Clear, contentDescription = "Clear Search")
                 }
             }
         },
@@ -1373,13 +1375,15 @@ fun ProfileOptionItem(
         label = "profile_item_alpha"
     )
 
+    val defaultIndication = LocalIndication.current // Get the default Material indication
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
             .clickable(
                 interactionSource = interactionSource,
-                // Removed explicit indication = null to use default Material 3 ripple
+                indication = defaultIndication, // Explicitly pass the default indication
                 onClick = {
                     soundEffectManager.playClickSound() // Play sound on item click
                     onClick()
@@ -1434,6 +1438,8 @@ fun AppNavigationRail(
     )
     val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f)
 
+    val defaultIndication = LocalIndication.current // Get the default Material indication
+
     NavigationRail(
         modifier = modifier
             .statusBarsPadding()
@@ -1455,7 +1461,7 @@ fun AppNavigationRail(
                 modifier = Modifier
                     .padding(bottom = 16.dp)
                     .graphicsLayer(scaleX = scale, scaleY = scale) // Apply press animation
-                    .clickable(interactionSource = interactionSource, indication = null) // Use default ripple by setting indication to null
+                    .clickable(interactionSource = interactionSource, indication = defaultIndication) // Explicitly pass the default indication
             ) {
                 AnimatedContent(
                     targetState = isExpanded,
@@ -1711,13 +1717,15 @@ fun SettingItem(
         label = "setting_item_alpha"
     )
 
+    val defaultIndication = LocalIndication.current // Get the default Material indication
+
     val itemModifier = Modifier
         .fillMaxWidth()
         .then(if (onClick != null) Modifier
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
             .clickable(
                 interactionSource = interactionSource,
-                // Removed explicit indication = null to use default Material 3 ripple
+                indication = defaultIndication, // Explicitly pass the default indication
                 onClick = {
                     soundEffectManager?.playClickSound() // Play sound if manager provided
                     onClick()
@@ -1824,6 +1832,8 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                     label = "card_press_alpha"
                 )
 
+                val defaultIndication = LocalIndication.current // Get the default Material indication
+
                 TooltipBox(
                     positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
                     tooltip = {
@@ -1853,7 +1863,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
                             .height(170.dp)
-                            .clickable(interactionSource = interactionSource, indication = null) // Use default Material 3 ripple
+                            .clickable(interactionSource = interactionSource, indication = defaultIndication) // Explicitly pass the default indication
                     ) {
                         Column(
                             Modifier.fillMaxSize().padding(16.dp),
