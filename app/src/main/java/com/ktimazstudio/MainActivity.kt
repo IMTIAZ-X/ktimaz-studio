@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.SoundPool
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -24,6 +26,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
@@ -45,6 +49,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -84,6 +89,59 @@ import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
 import androidx.compose.foundation.border // <-- ADDED THIS IMPORT
+import androidx.compose.material.ripple.rememberRipple // For custom ripple effects
+
+// --- SoundEffectManager ---
+/**
+ * Manages playing short sound effects using SoundPool for low-latency audio feedback.
+ * This is used for click sounds and other UI interactions.
+ *
+ * IMPORTANT: For this to work, you must place an audio file (e.g., click_sound.wav)
+ * in your `res/raw` directory.
+ */
+class SoundEffectManager(private val context: Context) {
+    private var soundPool: SoundPool? = null
+    private var clickSoundId: Int = 0
+
+    /**
+     * Loads the sound effects into the SoundPool.
+     * This should be called once, typically during app startup.
+     */
+    fun loadSounds() {
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_GAME) // Appropriate usage for UI sounds
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        soundPool = SoundPool.Builder()
+            .setMaxStreams(1) // Only one click sound stream at a time to prevent overlap
+            .setAudioAttributes(audioAttributes)
+            .build()
+
+        // Load your click sound from res/raw.
+        // Make sure you have a file named 'click_sound.wav' (or .mp3) in res/raw.
+        clickSoundId = soundPool?.load(context, R.raw.click_sound, 1) ?: 0
+    }
+
+    /**
+     * Plays the loaded click sound.
+     */
+    fun playClickSound() {
+        if (clickSoundId != 0) {
+            soundPool?.play(clickSoundId, 1.0f, 1.0f, 0, 0, 1.0f)
+        }
+    }
+
+    /**
+     * Releases the SoundPool resources.
+     * This should be called when the activity/application is destroyed to prevent memory leaks.
+     */
+    fun release() {
+        soundPool?.release()
+        soundPool = null
+    }
+}
+
 
 // --- SharedPreferencesManager ---
 /**
@@ -560,6 +618,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var securityManager: SecurityManager
+    private lateinit var soundEffectManager: SoundEffectManager // Initialize SoundEffectManager
     private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -567,6 +626,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
         securityManager = SecurityManager(applicationContext)
+        soundEffectManager = SoundEffectManager(applicationContext) // Initialize
+        soundEffectManager.loadSounds() // Load sounds
 
         // Perform initial security checks
         val initialSecurityIssue = securityManager.getSecurityIssue()
@@ -642,14 +703,16 @@ class MainActivity : ComponentActivity() {
                                 onLogout = {
                                     sharedPrefsManager.setLoggedIn(false)
                                     isLoggedIn = false
-                                }
+                                },
+                                soundEffectManager = soundEffectManager // Pass sound manager
                             )
                         } else {
                             LoginScreen(
                                 onLoginSuccess = { loggedInUsername ->
                                     sharedPrefsManager.setLoggedIn(true, loggedInUsername)
                                     isLoggedIn = true
-                                }
+                                },
+                                soundEffectManager = soundEffectManager // Pass sound manager
                             )
                         }
                     }
@@ -661,6 +724,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+        soundEffectManager.release() // Release SoundPool resources
     }
 }
 
@@ -691,13 +755,15 @@ fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun MainApplicationUI(username: String, onLogout: () -> Unit) {
+fun MainApplicationUI(username: String, onLogout: () -> Unit, soundEffectManager: SoundEffectManager) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
     var isRailExpanded by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") } // State for search query
+    var isSearching by remember { mutableStateOf(false) } // State to control search bar visibility
 
     // Check for internet connectivity on app launch
     LaunchedEffect(Unit) {
@@ -732,9 +798,18 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
     ) {
         AppNavigationRail(
             selectedDestination = selectedDestination,
-            onDestinationSelected = { selectedDestination = it },
+            onDestinationSelected = {
+                soundEffectManager.playClickSound() // Play sound on navigation item click
+                selectedDestination = it
+                isSearching = false // Hide search when navigating away from dashboard
+                searchQuery = "" // Clear search query
+            },
             isExpanded = isRailExpanded,
-            onMenuClick = { isRailExpanded = !isRailExpanded }
+            onMenuClick = {
+                soundEffectManager.playClickSound() // Play sound on menu click
+                isRailExpanded = !isRailExpanded
+            },
+            soundEffectManager = soundEffectManager // Pass sound manager
         )
 
         Scaffold(
@@ -745,12 +820,49 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
                 val isScrolled = scrollBehavior.state.contentOffset > 0.1f
                 CenterAlignedTopAppBar(
                     title = {
-                        Text(
-                            text = stringResource(id = R.string.app_name),
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        AnimatedContent(
+                            targetState = isSearching,
+                            transitionSpec = {
+                                if (targetState) { // Entering search
+                                    slideInHorizontally { it } + fadeIn() togetherWith
+                                            slideOutHorizontally { -it } + fadeOut()
+                                } else { // Exiting search
+                                    slideInHorizontally { -it } + fadeIn() togetherWith
+                                            slideOutHorizontally { it } + fadeOut()
+                                }
+                            }, label = "search_bar_transition"
+                        ) { searching ->
+                            if (searching) {
+                                CustomSearchBar(
+                                    query = searchQuery,
+                                    onQueryChange = { searchQuery = it },
+                                    onClear = { searchQuery = ""; isSearching = false },
+                                    soundEffectManager = soundEffectManager
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(id = R.string.app_name),
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    },
+                    actions = {
+                        if (selectedDestination == Screen.Dashboard) { // Only show search on Dashboard
+                            IconButton(onClick = {
+                                soundEffectManager.playClickSound()
+                                isSearching = !isSearching
+                                if (!isSearching) searchQuery = "" // Clear search when closing
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = if (isSearching) "Close Search" else "Search",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
@@ -786,15 +898,20 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
             ) { targetDestination ->
                 Box(modifier = Modifier.padding(paddingValues)) {
                     when (targetDestination) {
-                        Screen.Dashboard -> AnimatedCardGrid { title ->
-                            if (title == "System Config") {
-                                context.startActivity(Intent(context, SettingsActivity::class.java))
-                            } else {
-                                context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
-                            }
-                        }
-                        Screen.AppSettings -> SettingsScreen()
-                        Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout)
+                        Screen.Dashboard -> AnimatedCardGrid(
+                            searchQuery = searchQuery, // Pass search query
+                            onCardClick = { title ->
+                                soundEffectManager.playClickSound() // Play sound on card click
+                                if (title == "System Config") {
+                                    context.startActivity(Intent(context, SettingsActivity::class.java))
+                                } else {
+                                    context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
+                                }
+                            },
+                            soundEffectManager = soundEffectManager // Pass sound manager
+                        )
+                        Screen.AppSettings -> SettingsScreen(soundEffectManager = soundEffectManager)
+                        Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
                     }
                 }
             }
@@ -803,12 +920,63 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit) {
 }
 
 /**
+ * Custom Search Bar Composable for the Top App Bar.
+ */
+@Composable
+fun CustomSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClear: () -> Unit,
+    soundEffectManager: SoundEffectManager
+) {
+    val focusManager = LocalFocusManager.current
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = { Text("Search modules...", style = MaterialTheme.typography.bodyLarge) },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search Icon") },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = {
+                    soundEffectManager.playClickSound()
+                    onClear()
+                    focusManager.clearFocus()
+                }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear Search")
+                }
+            }
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
+            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+            unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .padding(vertical = 4.dp)
+    )
+}
+
+
+/**
  * Composable for the enhanced Login Screen.
  * Features a more professional UI/UX with gradients, animations, and improved error handling.
  * @param onLoginSuccess Callback invoked on successful login, providing the username.
+ * @param soundEffectManager Manager for playing sound effects.
  */
 @Composable
-fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
+fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: SoundEffectManager) {
     var usernameInput by rememberSaveable { mutableStateOf("") }
     var passwordInput by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
@@ -817,10 +985,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current   // Use application context for Toast
-
-    // ... rest of your LoginScreen code ...
-
-    // Inside your Button onClick or KeyboardActions onDone:
+    val coroutineScope = rememberCoroutineScope() // Use rememberCoroutineScope for UI-related coroutines
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -923,16 +1088,16 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                         // Trigger login attempt
                         isLoading = true
                         errorMessage = null // Clear previous error
-                        // Simulate network delay
-                        val scope = (context as? ComponentActivity)?.lifecycleScope
-                        scope?.launch {
+                        coroutineScope.launch { // Use coroutineScope
                             delay(2000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                soundEffectManager.playClickSound() // Play sound on successful login
                                 onLoginSuccess(usernameInput)
                                 //Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
                             } else {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                soundEffectManager.playClickSound() // Play sound on failed login
                                 errorMessage = "Invalid username or password. Please try again."
                                 //Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
                             }
@@ -942,7 +1107,10 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     trailingIcon = {
                         val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                         val description = if (passwordVisible) "Hide password" else "Show password"
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        IconButton(onClick = {
+                            soundEffectManager.playClickSound() // Play sound on visibility toggle
+                            passwordVisible = !passwordVisible
+                        }) {
                             Icon(imageVector = image, contentDescription = description)
                         }
                     },
@@ -967,22 +1135,34 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                 }
 
                 // Login Button
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.98f else 1.0f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                    label = "login_button_scale"
+                )
+                val alpha by animateFloatAsState(
+                    targetValue = if (isPressed) 0.8f else 1.0f,
+                    animationSpec = tween(150),
+                    label = "login_button_alpha"
+                )
+
                 Button(
                     onClick = {
                         focusManager.clearFocus()
                         isLoading = true
                         errorMessage = null // Clear previous error
-                        // Simulate network delay
-                        // 'context' here is now guaranteed to be a ComponentActivity for lifecycleScope
-                        val scope = (context as ComponentActivity).lifecycleScope // Cast now safe
-                        scope?.launch { // This block will now execute
+                        coroutineScope.launch { // Use coroutineScope
                             delay(2000) // Simulate network request
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                soundEffectManager.playClickSound() // Play sound on successful login
                                 onLoginSuccess(usernameInput)
                                 //Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
                             } else {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                soundEffectManager.playClickSound() // Play sound on failed login
                                 errorMessage = "Invalid username or password. Please try again."
                                 //Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
                             }
@@ -992,7 +1172,9 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 24.dp)
-                        .height(56.dp), // Taller button
+                        .height(56.dp) // Taller button
+                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
+                        .clickable(interactionSource = interactionSource, indication = rememberRipple(bounded = true)), // Custom ripple
                     shape = RoundedCornerShape(20.dp), // More rounded
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp), // More prominent shadow
                     enabled = !isLoading // Disable button while loading
@@ -1005,7 +1187,10 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
                 }
 
                 // Placeholder for Forgot Password / Sign Up
-                TextButton(onClick = { /* TODO: Implement navigation to Forgot Password */ }) {
+                TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on text button click
+                    /* TODO: Implement navigation to Forgot Password */
+                }) {
                     Text("Forgot password?", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 }
             }
@@ -1017,9 +1202,10 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit) {
  * Composable for the enhanced Profile Screen.
  * @param username The username to display.
  * @param onLogout Callback invoked when the logout button is clicked.
+ * @param soundEffectManager Manager for playing sound effects.
  */
 @Composable
-fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () -> Unit) {
+fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () -> Unit, soundEffectManager: SoundEffectManager) {
     val context = LocalContext.current
 
     val profileBackgroundGradient = Brush.verticalGradient(
@@ -1103,7 +1289,8 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                 ProfileOptionItem(
                     icon = Icons.Filled.AccountBox,
                     title = "Edit Profile",
-                    description = "Update your personal information."
+                    description = "Update your personal information.",
+                    soundEffectManager = soundEffectManager
                 ) {
                     //Toast.makeText(context, "Edit Profile Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
@@ -1111,7 +1298,8 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                 ProfileOptionItem(
                     icon = Icons.Filled.Lock,
                     title = "Change Password",
-                    description = "Secure your account with a new password."
+                    description = "Secure your account with a new password.",
+                    soundEffectManager = soundEffectManager
                 ) {
                     //Toast.makeText(context, "Change Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
@@ -1119,7 +1307,8 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                 ProfileOptionItem(
                     icon = Icons.Filled.Settings,
                     title = "Privacy Settings",
-                    description = "Manage your data and privacy preferences."
+                    description = "Manage your data and privacy preferences.",
+                    soundEffectManager = soundEffectManager
                 ) {
                     //Toast.makeText(context, "Privacy Settings Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
@@ -1128,8 +1317,24 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
         Spacer(modifier = Modifier.height(48.dp))
 
         // Logout Button
+        val interactionSource = remember { MutableInteractionSource() }
+        val isPressed by interactionSource.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (isPressed) 0.98f else 1.0f,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+            label = "logout_button_scale"
+        )
+        val alpha by animateFloatAsState(
+            targetValue = if (isPressed) 0.8f else 1.0f,
+            animationSpec = tween(150),
+            label = "logout_button_alpha"
+        )
+
         Button(
-            onClick = onLogout,
+            onClick = {
+                soundEffectManager.playClickSound() // Play sound on logout click
+                onLogout()
+            },
             shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error, // Stronger error color for logout
@@ -1139,6 +1344,8 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
             modifier = Modifier
                 .fillMaxWidth(0.7f)
                 .height(56.dp)
+                .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
+                .clickable(interactionSource = interactionSource, indication = rememberRipple(bounded = true)) // Custom ripple
         ) {
             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout Icon")
             Spacer(Modifier.width(16.dp))
@@ -1150,18 +1357,41 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
 
 /**
  * Reusable composable for an option item within the Profile Screen.
+ * Includes click animation and sound.
  */
 @Composable
 fun ProfileOptionItem(
     icon: ImageVector,
     title: String,
     description: String,
+    soundEffectManager: SoundEffectManager,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "profile_item_scale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.8f else 1.0f,
+        animationSpec = tween(150),
+        label = "profile_item_alpha"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
+            .clickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(bounded = true), // Custom ripple
+                onClick = {
+                    soundEffectManager.playClickSound() // Play sound on item click
+                    onClick()
+                }
+            )
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1200,6 +1430,7 @@ fun AppNavigationRail(
     onDestinationSelected: (Screen) -> Unit,
     isExpanded: Boolean,
     onMenuClick: () -> Unit,
+    soundEffectManager: SoundEffectManager, // Pass sound manager
     modifier: Modifier = Modifier
 ) {
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
@@ -1218,9 +1449,20 @@ fun AppNavigationRail(
             .padding(vertical = 12.dp, horizontal = 4.dp),
         containerColor = railContainerColor,
         header = {
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.9f else 1.0f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                label = "menu_icon_scale"
+            )
+
             IconButton(
                 onClick = onMenuClick,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .graphicsLayer(scaleX = scale, scaleY = scale) // Apply press animation
+                    .clickable(interactionSource = interactionSource, indication = rememberRipple(bounded = false)) // Custom ripple
             ) {
                 AnimatedContent(
                     targetState = isExpanded,
@@ -1285,7 +1527,7 @@ fun AppNavigationRail(
 }
 
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
+fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager) {
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
@@ -1311,7 +1553,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             control = {
                 Switch(
                     checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it }
+                    onCheckedChange = {
+                        soundEffectManager.playClickSound() // Play sound on switch toggle
+                        notificationsEnabled = it
+                    }
                 )
             }
         )
@@ -1323,7 +1568,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Manage your account details.",
             leadingIcon = { Icon(Icons.Filled.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "Go to account preferences", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = { showAccountDialog = true }
+            onClick = {
+                soundEffectManager.playClickSound() // Play sound on item click
+                showAccountDialog = true
+            }
         )
         if (showAccountDialog) {
             AlertDialog(
@@ -1331,7 +1579,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 icon = { Icon(Icons.Filled.AccountBox, contentDescription = null)},
                 title = { Text("Account Preferences") },
                 text = { Text("Account settings details would appear here or navigate to a dedicated screen. This is a placeholder.") },
-                confirmButton = { TextButton(onClick = { showAccountDialog = false }) { Text("OK") } }
+                confirmButton = { TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on dialog button click
+                    showAccountDialog = false
+                }) { Text("OK") } }
             )
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
@@ -1341,7 +1592,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Information about this application.",
             leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View About", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = { showAboutDialog = true }
+            onClick = {
+                soundEffectManager.playClickSound() // Play sound on item click
+                showAboutDialog = true
+            }
         )
         if (showAboutDialog) {
             AlertDialog(
@@ -1349,7 +1603,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 icon = { Icon(Icons.Filled.Info, contentDescription = "About App Icon")},
                 title = { Text("About " + stringResource(id = R.string.app_name)) },
                 text = { Text("Version: ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})\n\nDeveloped by Ktimaz Studio.\n\nThis application is a demonstration of various Android and Jetpack Compose features. Thank you for using our app!") },
-                confirmButton = { TextButton(onClick = { showAboutDialog = false }) { Text("Close") } }
+                confirmButton = { TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on dialog button click
+                    showAboutDialog = false
+                }) { Text("Close") } }
             )
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
@@ -1359,7 +1616,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "Read our privacy policy.",
             leadingIcon = { Icon(Icons.Filled.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Privacy Policy", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = { showPrivacyDialog = true }
+            onClick = {
+                soundEffectManager.playClickSound() // Play sound on item click
+                showPrivacyDialog = true
+            }
         )
         if (showPrivacyDialog) {
             AlertDialog(
@@ -1367,7 +1627,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 icon = { Icon(Icons.Filled.Policy, contentDescription = "Privacy Policy Icon")},
                 title = { Text("Privacy Policy") },
                 text = { Text("Placeholder for Privacy Policy text. In a real application, this would contain the full policy details or link to a web page.\n\nWe are committed to protecting your privacy. Our policy outlines how we collect, use, and safeguard your information.") },
-                confirmButton = { TextButton(onClick = { showPrivacyDialog = false }) { Text("Close") } }
+                confirmButton = { TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on dialog button click
+                    showPrivacyDialog = false
+                }) { Text("Close") } }
             )
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
@@ -1378,7 +1641,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             description = "See what's new in this version.",
             leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Changelog", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = { showChangelogDialog = true }
+            onClick = {
+                soundEffectManager.playClickSound() // Play sound on item click
+                showChangelogDialog = true
+            }
         )
         if (showChangelogDialog) {
             AlertDialog(
@@ -1394,6 +1660,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         Text(" • Enhanced VPN detection with a Material 3 dialog.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Added 'About', 'Privacy Policy', and 'Changelog' to Settings.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Implemented basic reverse engineering detection (debugger, emulator, root, APK tampering).", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added click sound effects and beautiful press animations.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Implemented search functionality in the Dashboard.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Added tooltips for new users on Dashboard cards.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                         Text(" • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyMedium)
@@ -1403,7 +1672,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         Text("Thank you for updating!", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     }
                 },
-                confirmButton = { TextButton(onClick = { showChangelogDialog = false }) { Text("Awesome!") } },
+                confirmButton = { TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on dialog button click
+                    showChangelogDialog = false
+                }) { Text("Awesome!") } },
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
             )
         }
@@ -1420,17 +1692,44 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Reusable composable for a setting item.
+ * Includes click animation and sound if onClick is provided.
+ */
 @Composable
 fun SettingItem(
     title: String,
     description: String? = null,
     leadingIcon: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
-    control: @Composable (() -> Unit)? = null
+    control: @Composable (() -> Unit)? = null,
+    soundEffectManager: SoundEffectManager? = null // Optional sound manager
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && onClick != null) 0.98f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "setting_item_scale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (isPressed && onClick != null) 0.8f else 1.0f,
+        animationSpec = tween(150),
+        label = "setting_item_alpha"
+    )
+
     val itemModifier = Modifier
         .fillMaxWidth()
-        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .then(if (onClick != null) Modifier
+            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
+            .clickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(bounded = true), // Custom ripple
+                onClick = {
+                    soundEffectManager?.playClickSound() // Play sound if manager provided
+                    onClick()
+                }
+            ) else Modifier)
         .padding(vertical = 16.dp, horizontal = 8.dp)
 
     Row(
@@ -1458,12 +1757,25 @@ fun SettingItem(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Unit) {
-    val cards = listOf("Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link", "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer", "Sonic Emitter", "AI Core Access", "System Config")
+fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardClick: (String) -> Unit, soundEffectManager: SoundEffectManager) {
+    val cards = listOf(
+        "Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link",
+        "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer",
+        "Sonic Emitter", "AI Core Access", "System Config"
+    )
     // Consider adding specific icons for each card for better visual distinction
     val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Placeholder: replace with distinct icons
     val haptic = LocalHapticFeedback.current
+
+    val filteredCards = remember(cards, searchQuery) {
+        if (searchQuery.isBlank()) {
+            cards
+        } else {
+            cards.filter { it.contains(searchQuery, ignoreCase = true) }
+        }
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 160.dp),
@@ -1472,7 +1784,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
         horizontalArrangement = Arrangement.spacedBy(20.dp),
         modifier = modifier.fillMaxSize()
     ) {
-        itemsIndexed(cards, key = { _, title -> title }) { index, title ->
+        itemsIndexed(filteredCards, key = { _, title -> title }) { index, title ->
             var itemVisible by remember { mutableStateOf(false) }
             LaunchedEffect(key1 = title) {
                 delay(index * 70L + 100L) // Staggered animation delay
@@ -1506,41 +1818,69 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, onCardClick: (String) -> Uni
                     label = "card_alpha_$title"
                 )
 
-                Card(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onCardClick(title)
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val pressScale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.95f else 1.0f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                    label = "card_press_scale"
+                )
+                val pressAlpha by animateFloatAsState(
+                    targetValue = if (isPressed) 0.7f else 1.0f,
+                    animationSpec = tween(150),
+                    label = "card_press_alpha"
+                )
+
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = {
+                        PlainTooltip {
+                            Text("Click to open $title module")
+                        }
                     },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
-                    ),
-                    border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier = Modifier
-                        .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
-                        .fillMaxWidth()
-                        .height(170.dp)
+                    state = rememberTooltipState()
                 ) {
-                    Column(
-                        Modifier.fillMaxSize().padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Card(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onCardClick(title)
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
+                        ),
+                        border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        modifier = Modifier
+                            .graphicsLayer(
+                                scaleX = scale * pressScale, // Combine infinite and press animations
+                                scaleY = scale * pressScale,
+                                alpha = animatedAlpha * pressAlpha // Combine infinite and press animations
+                            )
+                            .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
+                            .fillMaxWidth()
+                            .height(170.dp)
+                            .clickable(interactionSource = interactionSource, indication = rememberRipple(bounded = true)) // Custom ripple
                     ) {
-                        Image(
-                            painter = icons[index % icons.size], // Using placeholder icon
-                            contentDescription = title,
-                            modifier = Modifier.size(60.dp)
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
-                        )
+                        Column(
+                            Modifier.fillMaxSize().padding(16.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Image(
+                                painter = icons[index % icons.size], // Using placeholder icon
+                                contentDescription = title,
+                                modifier = Modifier.size(60.dp)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
