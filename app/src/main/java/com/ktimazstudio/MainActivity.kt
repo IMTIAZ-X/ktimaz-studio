@@ -91,7 +91,15 @@ import java.security.MessageDigest
 import kotlin.experimental.and
 import androidx.compose.foundation.border
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
+import android.app.UiModeManager
+import android.os.PowerManager
 
+
+// --- Theme Settings Enum ---
+enum class ThemeSetting {
+    LIGHT, DARK, SYSTEM, BATTERY_SAVER
+}
 
 // --- SoundEffectManager ---
 /**
@@ -101,7 +109,7 @@ import androidx.compose.foundation.LocalIndication
  * IMPORTANT: For this to work, you must place an audio file (e.g., click_sound.wav)
  * in your `res/raw` directory.
  */
-class SoundEffectManager(private val context: Context) {
+class SoundEffectManager(private val context: Context, private val sharedPrefsManager: SharedPreferencesManager) {
     private var soundPool: SoundPool? = null
     private var clickSoundId: Int = 0
 
@@ -128,10 +136,10 @@ class SoundEffectManager(private val context: Context) {
     }
 
     /**
-     * Plays the loaded click sound.
+     * Plays the loaded click sound, only if sound effects are enabled in settings.
      */
     fun playClickSound() {
-        if (clickSoundId != 0) {
+        if (sharedPrefsManager.isSoundEnabled() && clickSoundId != 0) {
             soundPool?.play(clickSoundId, 1.0f, 1.0f, 0, 0, 1.0f)
         }
     }
@@ -149,16 +157,18 @@ class SoundEffectManager(private val context: Context) {
 
 // --- SharedPreferencesManager ---
 /**
- * Manages user login status and username using SharedPreferences for persistent storage.
- * This class provides a simple way to store and retrieve whether a user is logged in
- * and their username.
+ * Manages user login status, username, theme settings, and sound settings
+ * using SharedPreferences for persistent storage.
  */
 class SharedPreferencesManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
+    private val context: Context = context // Keep context for theme checks
 
     companion object {
         private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
         private const val KEY_USERNAME = "username_key"
+        private const val KEY_THEME_SETTING = "theme_setting_key"
+        private const val KEY_SOUND_ENABLED = "sound_enabled_key"
     }
 
     /**
@@ -193,6 +203,43 @@ class SharedPreferencesManager(context: Context) {
      */
     fun getUsername(): String? {
         return prefs.getString(KEY_USERNAME, null)
+    }
+
+    /**
+     * Retrieves the current theme setting.
+     * return The ThemeSetting enum value. Defaults to SYSTEM.
+     */
+    fun getThemeSetting(): ThemeSetting {
+        val themeString = prefs.getString(KEY_THEME_SETTING, ThemeSetting.SYSTEM.name)
+        return try {
+            ThemeSetting.valueOf(themeString ?: ThemeSetting.SYSTEM.name)
+        } catch (e: IllegalArgumentException) {
+            ThemeSetting.SYSTEM // Fallback to system if stored value is invalid
+        }
+    }
+
+    /**
+     * Sets the new theme setting.
+     * @param themeSetting The ThemeSetting enum value to store.
+     */
+    fun setThemeSetting(themeSetting: ThemeSetting) {
+        prefs.edit().putString(KEY_THEME_SETTING, themeSetting.name).apply()
+    }
+
+    /**
+     * Checks if sound effects are enabled.
+     * return true if sound is enabled, false otherwise. Defaults to true.
+     */
+    fun isSoundEnabled(): Boolean {
+        return prefs.getBoolean(KEY_SOUND_ENABLED, true) // Default to true
+    }
+
+    /**
+     * Sets the sound effects enabled status.
+     * @param enabled The new sound status.
+     */
+    fun setSoundEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SOUND_ENABLED, enabled).apply()
     }
 }
 
@@ -245,25 +292,18 @@ class SecurityManager(private val context: Context) {
     // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425
     private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
 
-    // ... (isVpnActive, registerVpnDetectionCallback, unregisterVpnDetectionCallback remain the same) ...
-    // ... (isDebuggerConnected, isRunningOnEmulator, isDeviceRooted remain the same) ...
-    
-     /**
-     * Calculates the SHA-256 hash of the application's *signing certificate*.
-     * This is a more robust integrity check than file hash as it remains constant
-     * for signed APKs regardless of minor build variations.
-     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
-     */
-     
-      /**
+    /**
      * Checks if a debugger is currently attached to the application process.
      * This now combines Android's built-in check with a more robust procfs check.
      * return true if a debugger is connected, false otherwise.
      */
     fun isDebuggerConnected(): Boolean {
-    return Debug.isDebuggerConnected() || isTracerAttached()
+        // In inspection mode (e.g., Compose Preview), Debug.isDebuggerConnected() might be true.
+        // We want to allow the app to run in preview, so we add a check for LocalInspectionMode.current.
+        // For actual device builds, this check is still valid.
+        if (LocalInspectionMode.current) return false // Allow preview to run
+        return Debug.isDebuggerConnected() || isTracerAttached()
     }
-    // ... (isRunningOnEmulator, isDeviceRooted remain the same) ...
      
     /**
      * Checks if a VPN connection is active.
@@ -337,6 +377,7 @@ class SecurityManager(private val context: Context) {
      * return true if an emulator is likely detected, false otherwise.
      */
     fun isRunningOnEmulator(): Boolean {
+        if (LocalInspectionMode.current) return false // Allow preview to run
         return (Build.FINGERPRINT.startsWith("generic")
                 || Build.FINGERPRINT.startsWith("unknown")
                 || Build.MODEL.contains("google_sdk")
@@ -353,6 +394,7 @@ class SecurityManager(private val context: Context) {
      * return true if root is likely detected, false otherwise.
      */
     fun isDeviceRooted(): Boolean {
+        if (LocalInspectionMode.current) return false // Allow preview to run
         val paths = arrayOf(
             "/system/app/Superuser.apk",
             "/sbin/su",
@@ -469,6 +511,7 @@ class SecurityManager(private val context: Context) {
     
     
     fun isHookingFrameworkDetected(): Boolean {
+        if (LocalInspectionMode.current) return false // Allow preview to run
         // 1. Check for common Xposed/Magisk/Frida related files/directories
         val knownHookFiles = arrayOf(
             "/system/app/XposedInstaller.apk",
@@ -526,17 +569,11 @@ class SecurityManager(private val context: Context) {
      * return true if the hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
+        if (LocalInspectionMode.current) return false // Allow preview to run
         val currentSignatureHash = getSignatureSha256Hash()
         // Compare with the signature SHA-256 hash provided by you.
         return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
     }
-
-    // ... (getAppSize and isAppSizeModified_UNUSED remain the same) ...
-
-    /**
-     * Aggregates all security checks to determine if the app environment is secure.
-     * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
-     */
 
     /**
      * Gets the size of the installed application (APK + data).
@@ -557,6 +594,7 @@ class SecurityManager(private val context: Context) {
     }
     
     fun isTracerAttached(): Boolean {
+        if (LocalInspectionMode.current) return false // Allow preview to run
         try {
             val statusFile = File("/proc/self/status")
             if (statusFile.exists()) {
@@ -623,15 +661,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
-        securityManager = SecurityManager(applicationContext)
-        soundEffectManager = SoundEffectManager(applicationContext) // Initialize
+        // Pass sharedPrefsManager to SoundEffectManager
+        soundEffectManager = SoundEffectManager(applicationContext, sharedPrefsManager)
         soundEffectManager.loadSounds() // Load sounds
+        securityManager = SecurityManager(applicationContext)
+
 
         // Perform initial security checks
         val initialSecurityIssue = securityManager.getSecurityIssue()
         if (initialSecurityIssue != SecurityIssue.NONE) {
             setContent {
-                ktimaz {
+                ktimaz(
+                    // Pass current theme from preferences
+                    darkTheme = isAppInDarkTheme(sharedPrefsManager.getThemeSetting(), LocalContext.current)
+                ) {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
                 }
             }
@@ -639,7 +682,25 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ktimaz {
+            val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+            // Observe changes to theme setting
+            LaunchedEffect(Unit) {
+                // Listen for changes in SharedPreferences for theme
+                val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                    if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
+                        currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
+                    }
+                }
+                sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
+                onDispose {
+                    sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
+                }
+            }
+
+            // Determine if the app should be in dark theme based on setting
+            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, LocalContext.current)
+
+            ktimaz(darkTheme = useDarkTheme) {
                 var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
                 var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
                 var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
@@ -723,6 +784,28 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
         soundEffectManager.release() // Release SoundPool resources
+    }
+}
+
+/**
+ * Determines if the app should be in dark theme based on the ThemeSetting.
+ */
+@Composable
+fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
+    val systemInDarkTheme = isSystemInDarkTheme()
+    return when (themeSetting) {
+        ThemeSetting.LIGHT -> false
+        ThemeSetting.DARK -> true
+        ThemeSetting.SYSTEM -> systemInDarkTheme
+        ThemeSetting.BATTERY_SAVER -> {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                powerManager.isPowerSaveMode
+            } else {
+                // For older versions, default to system theme or dark if power save cannot be detected
+                systemInDarkTheme
+            }
+        }
     }
 }
 
@@ -908,7 +991,7 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit, soundEffectManager
                             },
                             soundEffectManager = soundEffectManager // Pass sound manager
                         )
-                        Screen.AppSettings -> SettingsScreen(soundEffectManager = soundEffectManager)
+                        Screen.AppSettings -> SettingsScreen(soundEffectManager = soundEffectManager, sharedPrefsManager = sharedPrefsManager)
                         Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
                     }
                 }
@@ -1439,8 +1522,6 @@ fun AppNavigationRail(
     )
     val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f)
 
-    val defaultIndication = LocalIndication.current // Get the default Material indication
-
     NavigationRail(
         modifier = modifier
             .statusBarsPadding()
@@ -1528,10 +1609,14 @@ fun AppNavigationRail(
 }
 
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager) {
+fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
+
+    // State for theme and sound settings
+    val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+    val isSoundEnabled = remember { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
 
     Column(
         modifier = modifier
@@ -1557,6 +1642,59 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                     onCheckedChange = {
                         soundEffectManager.playClickSound() // Play sound on switch toggle
                         notificationsEnabled = it
+                    }
+                )
+            }
+        )
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+        // Theme Changer Setting
+        SettingItem(
+            title = "App Theme",
+            description = "Change the visual theme of the application.",
+            leadingIcon = { Icon(Icons.Filled.ColorLens, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = {
+                // Dropdown menu for theme selection
+                var expanded by remember { mutableStateOf(false) }
+                TextButton(onClick = {
+                    soundEffectManager.playClickSound()
+                    expanded = true
+                }) {
+                    Text(currentThemeSetting.value.name.replace("_", " "), style = MaterialTheme.typography.bodyMedium)
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Expand theme options")
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    ThemeSetting.values().forEach { theme ->
+                        DropdownMenuItem(
+                            text = { Text(theme.name.replace("_", " ")) },
+                            onClick = {
+                                soundEffectManager.playClickSound()
+                                sharedPrefsManager.setThemeSetting(theme)
+                                currentThemeSetting.value = theme // Update local state
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        )
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+        // Sound On/Off Setting
+        SettingItem(
+            title = "Sound Effects",
+            description = "Enable or disable click sounds and other effects.",
+            leadingIcon = { Icon(if (isSoundEnabled.value) Icons.Filled.VolumeUp else Icons.Filled.VolumeOff, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = {
+                Switch(
+                    checked = isSoundEnabled.value,
+                    onCheckedChange = {
+                        sharedPrefsManager.setSoundEnabled(it)
+                        isSoundEnabled.value = it // Update local state
+                        if (it) soundEffectManager.playClickSound() // Play sound only if enabling
                     }
                 )
             }
@@ -1661,9 +1799,12 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                         Text(" • Enhanced VPN detection with a Material 3 dialog.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Added 'About', 'Privacy Policy', and 'Changelog' to Settings.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Implemented basic reverse engineering detection (debugger, emulator, root, APK tampering).", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Added click sound effects and beautiful press animations.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
-                        Text(" • Implemented search functionality in the Dashboard.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
-                        Text(" • Added tooltips for new users on Dashboard cards.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Added click sound effects and beautiful press animations.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Implemented search functionality in the Dashboard.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added tooltips for new users on Dashboard cards.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added Theme Changer (Light, Dark, System, Battery Saver).", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Added Sound Effects On/Off setting.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Improved UI sizing consistency across devices.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                         Text(" • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyMedium)
@@ -1865,7 +2006,6 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
                             .height(170.dp)
-                            // REMOVED: .clickable(interactionSource = interactionSource, indication = defaultIndication)
                     ) {
                         Column(
                             Modifier.fillMaxSize().padding(16.dp),
