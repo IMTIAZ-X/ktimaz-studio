@@ -220,7 +220,7 @@ class SharedPreferencesManager(context: Context) {
         const val KEY_THEME_SETTING = "theme_setting_key" // Made public
         const val KEY_SOUND_ENABLED = "sound_enabled_key" // Made public
         private const val KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete" // NEW
-        // REMOVED: private const val KEY_LANGUAGE_SETTING = "language_setting_key" // REMOVED
+        // REMOVED: private const val KEY_LANGUAGE_SETTING = "language_setting_key" // Removed
     }
 
     /**
@@ -2155,6 +2155,7 @@ fun InitialSetupDialog(
                 permissions[Manifest.permission.READ_MEDIA_VIDEO] == true &&
                 permissions[Manifest.permission.READ_MEDIA_AUDIO] == true
             } else {
+                @Suppress("DEPRECATION")
                 permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
             }
             hasStoragePermission = granted
