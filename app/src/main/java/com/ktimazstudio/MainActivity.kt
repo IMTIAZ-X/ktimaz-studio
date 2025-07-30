@@ -124,6 +124,14 @@ import androidx.compose.ui.platform.LocalContext // Added: For LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
+import androidx.compose.ui.res.painterResource // Added: For painterResource
+import androidx.compose.ui.res.stringResource // Added: For stringResource
+import androidx.compose.ui.text.font.FontWeight // Added: For FontWeight
+import androidx.compose.ui.text.input.ImeAction // Added: For ImeAction
+import androidx.compose.ui.text.input.KeyboardType // Added: For KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation // Added: For PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation // Added: For VisualTransformation
+import androidx.compose.ui.text.style.TextAlign // Added: For TextAlign
 import androidx.compose.ui.unit.dp // Added: For dp unit
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties // Added: For DialogProperties
@@ -362,7 +370,7 @@ class SecurityManager(private val context: Context) {
     // You would typically calculate this hash for your *release* APK and hardcode it here.
     // For demonstration, this is a placeholder.
     // --- IMPORTANT: UPDATE THIS HASH TO YOUR APP'S RELEASE SIGNATURE SHA-256 HASH ---
-    // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a8425
+    // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425
     private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
 
     /**
@@ -878,7 +886,7 @@ fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
     val systemInDarkTheme = isSystemInDarkTheme()
     return when (themeSetting) {
         ThemeSetting.LIGHT -> false
-        Theme.DARK -> true
+        ThemeSetting.DARK -> true // Corrected from Theme.DARK
         ThemeSetting.SYSTEM -> systemInDarkTheme
         ThemeSetting.BATTERY_SAVER -> {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -1119,7 +1127,7 @@ fun CustomSearchBar(
             }
         },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.Transparent,
@@ -1515,7 +1523,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
             modifier = Modifier
                 .fillMaxWidth(0.7f)
                 .height(56.dp)
-                .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation directly
+                .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha), // Apply press animation directly
         ) {
             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout Icon")
             Spacer(Modifier.width(16.dp))
@@ -2085,7 +2093,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                         interactionSource = interactionSource, // Pass interactionSource here
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha.value) // Corrected alpha access
                         ),
                         border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -2093,7 +2101,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                             .graphicsLayer(
                                 scaleX = scale * pressScale, // Combine infinite and press animations
                                 scaleY = scale * pressScale,
-                                alpha = animatedAlpha * pressAlpha // Combine infinite and press animations
+                                alpha = animatedAlpha.value * pressAlpha // Combine infinite and press animations
                             )
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
@@ -2222,7 +2230,7 @@ fun InitialSetupDialog(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(selectedLanguage)
+                        Text(selectedLanguage) // Display the selected language directly
                         Icon(Icons.Filled.ArrowDropDown, contentDescription = "Select Language")
                     }
                     DropdownMenu(
