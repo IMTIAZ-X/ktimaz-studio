@@ -12,7 +12,101 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
 import android.provider.Settings
-RY_SAVER
+import android.os.Bundle
+import android.os.Debug
+import android.widget.Toast
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.MenuOpen
+import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.HistoryEdu
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
+import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.io.File
+import java.security.MessageDigest
+import kotlin.experimental.and
+import androidx.compose.foundation.border
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
+import android.app.UiModeManager
+import android.os.PowerManager
+import androidx.compose.foundation.isSystemInDarkTheme // ADDED THIS IMPORT
+import androidx.compose.material3.PlainTooltip // ADDED THIS IMPORT
+import androidx.compose.material3.TooltipBox // ADDED THIS IMPORT
+import androidx.compose.material3.TooltipDefaults // ADDED THIS IMPORT
+import androidx.compose.material3.rememberTooltipState // ADDED THIS IMPORT
+
+// --- Theme Settings Enum ---
+enum class ThemeSetting {
+    LIGHT, DARK, SYSTEM, BATTERY_SAVER
 }
 
 // --- SoundEffectManager ---
@@ -473,8 +567,9 @@ class SecurityManager(private val context: Context) {
     }
 
     /**
-     * Checks if the APK hash matches the expected hash.
-     * return true if the hash matches, false otherwise.
+     * Checks if the APK's signature hash matches the expected hash.
+     * This is now the primary integrity check.
+     * return true if the signature hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
         // LocalInspectionMode.current check is handled at the call site in Composable
@@ -674,7 +769,8 @@ class MainActivity : ComponentActivity() {
                                         sharedPrefsManager.setLoggedIn(false)
                                         isLoggedIn = false
                                     },
-                                    soundEffectManager = soundEffectManager // Pass sound manager
+                                    soundEffectManager = soundEffectManager, // Pass sound manager
+                                    sharedPrefsManager = sharedPrefsManager // FIXED: Pass sharedPrefsManager
                                 )
                             } else {
                                 LoginScreen(
@@ -751,7 +847,12 @@ fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun MainApplicationUI(username: String, onLogout: () -> Unit, soundEffectManager: SoundEffectManager) {
+fun MainApplicationUI(
+    username: String,
+    onLogout: () -> Unit,
+    soundEffectManager: SoundEffectManager,
+    sharedPrefsManager: SharedPreferencesManager // FIXED: Add sharedPrefsManager parameter
+) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
@@ -1721,6 +1822,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                         Text(" • Added Theme Changer (Light, Dark, System, Battery Saver).", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Text(" • Added Sound Effects On/Off setting.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Text(" • Improved UI sizing consistency across devices.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                         Text(" • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyMedium)
