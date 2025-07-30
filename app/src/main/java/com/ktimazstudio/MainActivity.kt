@@ -98,6 +98,7 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
 import android.app.UiModeManager
 import android.os.PowerManager
+import androidx.compose.foundation.isSystemInDarkTheme // ADDED THIS IMPORT
 
 
 // --- Theme Settings Enum ---
@@ -171,8 +172,8 @@ class SharedPreferencesManager(context: Context) {
     companion object {
         private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
         private const val KEY_USERNAME = "username_key"
-        const val KEY_THEME_SETTING = "theme_setting_key"
-        const val KEY_SOUND_ENABLED = "sound_enabled_key"
+        const val KEY_THEME_SETTING = "theme_setting_key" // Made public
+        const val KEY_SOUND_ENABLED = "sound_enabled_key" // Made public
     }
 
     /**
@@ -302,9 +303,6 @@ class SecurityManager(private val context: Context) {
      * return true if a debugger is connected, false otherwise.
      */
     fun isDebuggerConnected(): Boolean {
-        // In inspection mode (e.g., Compose Preview), Debug.isDebuggerConnected() might be true.
-        // We want to allow the app to run in preview, so we add a check for LocalInspectionMode.current.
-        // For actual device builds, this check is still valid.
         // The check for LocalInspectionMode.current must be done within a @Composable function,
         // so we'll remove it from here and handle it in the UI layer.
         return Debug.isDebuggerConnected() || isTracerAttached()
@@ -678,7 +676,7 @@ class MainActivity : ComponentActivity() {
             val isInspectionMode = LocalInspectionMode.current
             // Determine if the app should be in dark theme based on setting
             val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
+            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context) // CORRECTED CALL
 
             // Perform initial security checks
             val initialSecurityIssue = remember {
@@ -795,6 +793,7 @@ class MainActivity : ComponentActivity() {
 
 /**
  * Determines if the app should be in dark theme based on the ThemeSetting.
+ * Marked as @Composable because it calls isSystemInDarkTheme().
  */
 @Composable
 fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
