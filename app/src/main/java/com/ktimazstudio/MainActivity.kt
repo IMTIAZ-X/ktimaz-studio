@@ -1766,8 +1766,8 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                             text = { Text(theme.name.replace("_", " ")) },
                             onClick = {
                                 soundEffectManager.playClickSound()
+                                selectedTheme = theme
                                 sharedPrefsManager.setThemeSetting(theme)
-                                currentThemeSetting.value = theme // Update local state
                                 expanded = false
                             }
                         )
@@ -1975,7 +1975,7 @@ fun SettingItem(
     ) {
         if (leadingIcon != null) {
             Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
-                leadingIcon()
+                leadingIcon?.invoke() // CORRECTED: Use safe call for nullable composable lambda
             }
         }
         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
