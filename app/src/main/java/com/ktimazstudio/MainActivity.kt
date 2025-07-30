@@ -143,7 +143,7 @@ import kotlinx.coroutines.launch
 import android.app.UiModeManager
 import android.os.PowerManager
 import androidx.compose.foundation.isSystemInDarkTheme
-
+import androidx.compose.material3.surfaceColorAtElevation // Added: For surfaceColorAtElevation
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
