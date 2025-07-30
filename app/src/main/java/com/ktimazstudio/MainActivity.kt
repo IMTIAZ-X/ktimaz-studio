@@ -47,7 +47,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-// REMOVED: import androidx.compose.material.icons.automirrored.filled.Language // Removed: For Language icon
+import androidx.compose.material.icons.automirrored.filled.Language // RE-ADDED: For Language icon
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -108,7 +108,7 @@ import androidx.compose.material3.TooltipBox // Explicit import for Material3 To
 import androidx.compose.material3.TooltipDefaults // Explicit import for Material3 TooltipDefaults
 import androidx.compose.material3.TopAppBarDefaults // Explicit import for Material3 TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState // Explicit import for Material3 rememberTopAppBarState
-import androidx.compose.material3.rememberTooltipState // Explicit import for Material3 rememberTooltipState
+import androidx.compose.material3.rememberTooltipState // Explicit import for Material3 TooltipState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment // Added: For Alignment
@@ -220,7 +220,7 @@ class SharedPreferencesManager(context: Context) {
         const val KEY_THEME_SETTING = "theme_setting_key" // Made public
         const val KEY_SOUND_ENABLED = "sound_enabled_key" // Made public
         private const val KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete" // NEW
-        // REMOVED: private const val KEY_LANGUAGE_SETTING = "language_setting_key" // Removed
+        private const val KEY_LANGUAGE_SETTING = "language_setting_key" // RE-ADDED
     }
 
     /**
@@ -308,15 +308,13 @@ class SharedPreferencesManager(context: Context) {
         prefs.edit().putBoolean(KEY_INITIAL_SETUP_COMPLETE, complete).apply()
     }
 
-    // REMOVED: getLanguageSetting() and setLanguageSetting() methods
-    /*
+    // RE-ADDED: getLanguageSetting() and setLanguageSetting() methods
     fun getLanguageSetting(): String {
         return prefs.getString(KEY_LANGUAGE_SETTING, "English") ?: "English"
     }
     fun setLanguageSetting(language: String) {
         prefs.edit().putString(KEY_LANGUAGE_SETTING, language).apply()
     }
-    */
 }
 
 // --- Top-level utility functions ---
@@ -1711,6 +1709,9 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
     // State for theme and sound settings
     val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
     val isSoundEnabled = remember { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
+    // RE-ADDED: State for language setting
+    val selectedLanguage = remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
+    val languages = remember { listOf("English", "Spanish", "French", "German", "Bengali") } // Example languages
 
     Column(
         modifier = modifier
@@ -1791,6 +1792,40 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                         if (it) soundEffectManager.playClickSound() // Play sound only if enabling
                     }
                 )
+            }
+        )
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+        // RE-ADDED: Language Setting
+        SettingItem(
+            title = "Language",
+            description = "Change the application language.",
+            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Language, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = {
+                var expanded by remember { mutableStateOf(false) }
+                TextButton(onClick = {
+                    soundEffectManager.playClickSound()
+                    expanded = true
+                }) {
+                    Text(selectedLanguage.value, style = MaterialTheme.typography.bodyMedium) // Use .value
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Expand language options")
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    languages.forEach { language ->
+                        DropdownMenuItem(
+                            text = { Text(language) },
+                            onClick = {
+                                soundEffectManager.playClickSound()
+                                sharedPrefsManager.setLanguageSetting(language)
+                                selectedLanguage.value = language // Update local state
+                                expanded = false
+                            }
+                        )
+                    }
+                }
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
@@ -1898,6 +1933,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                         Text(" • Added tooltips for new users on Dashboard cards.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Added Theme Changer (Light, Dark, System, Battery Saver).", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Text(" • Added Sound Effects On/Off setting.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Re-added Language selection to settings and initial setup.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Text(" • Improved UI sizing consistency across devices.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Spacer(modifier = Modifier.height(16.dp))
                         Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
@@ -2048,7 +2084,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                     animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_scale_$title"
                 )
-                // Corrected: Use Float.value
+                // Corrected: Use .value
                 val animatedAlpha by infiniteTransition.animateFloat(
                     initialValue = 0.75f,
                     targetValue = 0.60f,
@@ -2093,9 +2129,9 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier
                             .graphicsLayer(
-                                scaleX = scale * pressScale, // Combine infinite and press animations
-                                scaleY = scale * pressScale,
-                                alpha = animatedAlpha.value * pressAlpha.value // Corrected: Use .value for pressAlpha
+                                scaleX = scale.value * pressScale, // Combine infinite and press animations
+                                scaleY = scale.value * pressScale,
+                                alpha = animatedAlpha.value * pressAlpha // Corrected: Use .value for animatedAlpha
                             )
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
@@ -2138,8 +2174,9 @@ fun InitialSetupDialog(
 
     // States for selections
     var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-    // REMOVED: var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
-    // REMOVED: val languages = listOf("English", "Spanish", "French", "German", "Bengali") // Example languages
+    // RE-ADDED: State for language setting
+    var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
+    val languages = listOf("English", "Spanish", "French", "German", "Bengali") // Example languages
 
     // State for permission status
     var hasStoragePermission by remember {
@@ -2210,8 +2247,7 @@ fun InitialSetupDialog(
 
                 HorizontalDivider()
 
-                // REMOVED: Language Section
-                /*
+                // RE-ADDED: Language Section
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.AutoMirrored.Filled.Language, contentDescription = "Language Icon", modifier = Modifier.size(24.dp))
@@ -2219,37 +2255,25 @@ fun InitialSetupDialog(
                         Text("Language", style = MaterialTheme.typography.titleMedium)
                     }
                     Spacer(Modifier.height(8.dp))
-                    var languageExpanded by remember { mutableStateOf(false) }
-                    OutlinedButton(
-                        onClick = {
-                            soundEffectManager.playClickSound()
-                            languageExpanded = true
-                        },
+                    SingleChoiceSegmentedButtonRow(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(selectedLanguage) // Display the selected language directly
-                        Icon(Icons.Filled.ArrowDropDown, contentDescription = "Select Language")
-                    }
-                    DropdownMenu(
-                        expanded = languageExpanded,
-                        onDismissRequest = { languageExpanded = false }
-                    ) {
-                        languages.forEach { language ->
-                            DropdownMenuItem(
-                                text = { Text(language) },
+                        languages.forEachIndexed { index, language ->
+                            SegmentedButton(
+                                selected = language == selectedLanguage,
                                 onClick = {
                                     soundEffectManager.playClickSound()
                                     selectedLanguage = language
                                     sharedPrefsManager.setLanguageSetting(language)
-                                    languageExpanded = false
-                                }
+                                },
+                                shape = SegmentedButtonDefaults.shape(index, languages.size), // Corrected shape usage
+                                label = { Text(language) }
                             )
                         }
                     }
                 }
 
                 HorizontalDivider()
-                */
 
                 // Storage Permission Section
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
