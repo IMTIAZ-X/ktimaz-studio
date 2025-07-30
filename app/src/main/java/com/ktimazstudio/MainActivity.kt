@@ -307,7 +307,7 @@ class SecurityManager(private val context: Context) {
         // so we'll remove it from here and handle it in the UI layer.
         return Debug.isDebuggerConnected() || isTracerAttached()
     }
-     
+
     /**
      * Checks if a VPN connection is active.
      * This method iterates through all active networks and checks for the VPN transport.
@@ -373,7 +373,7 @@ class SecurityManager(private val context: Context) {
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 
-  
+
     /**
      * Attempts to detect if the application is running on an emulator.
      * This check is not exhaustive and can be bypassed.
@@ -465,8 +465,8 @@ class SecurityManager(private val context: Context) {
         }
         return null
     }
-    
-      /**
+
+    /**
      * Checks if the APK's *signature hash* matches the expected hash.
      * This is now the primary integrity check.
      * return true if the signature hash matches, false otherwise.
@@ -496,21 +496,21 @@ class SecurityManager(private val context: Context) {
         }
         return null
     }
-    
+
      /**
      * Checks if the APK's *signature hash* matches the expected hash.
      * This is now the primary integrity check.
      * return true if the signature hash matches, false otherwise.
      */
-     
+
        /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, or system properties.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
      * return true if a hooking framework is likely detected, false otherwise.
      */
-    
-    
+
+
     fun isHookingFrameworkDetected(): Boolean {
         // The check for LocalInspectionMode.current must be done within a @Composable function,
         // so we'll remove it from here and handle it in the UI layer.
@@ -595,7 +595,7 @@ class SecurityManager(private val context: Context) {
         }
         return -1L
     }
-    
+
     fun isTracerAttached(): Boolean {
         // The check for LocalInspectionMode.current must be done within a @Composable function,
         // so we'll remove it from here and handle it in the UI layer.
@@ -997,7 +997,7 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit, soundEffectManager
                             soundEffectManager = soundEffectManager // Pass sound manager
                         )
                         Screen.AppSettings -> SettingsScreen(
-                            soundEffectManager = soundEffectManager, 
+                            soundEffectManager = soundEffectManager,
                             sharedPrefsManager = sharedPrefsManager
                         )
                         Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
