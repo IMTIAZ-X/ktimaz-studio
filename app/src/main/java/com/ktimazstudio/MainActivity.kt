@@ -47,7 +47,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.automirrored.filled.Language // Added: For Language icon
+// REMOVED: import androidx.compose.material.icons.automirrored.filled.Language // Removed: For Language icon
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -220,7 +220,7 @@ class SharedPreferencesManager(context: Context) {
         const val KEY_THEME_SETTING = "theme_setting_key" // Made public
         const val KEY_SOUND_ENABLED = "sound_enabled_key" // Made public
         private const val KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete" // NEW
-        private const val KEY_LANGUAGE_SETTING = "language_setting_key" // NEW
+        // REMOVED: private const val KEY_LANGUAGE_SETTING = "language_setting_key" // REMOVED
     }
 
     /**
@@ -308,21 +308,15 @@ class SharedPreferencesManager(context: Context) {
         prefs.edit().putBoolean(KEY_INITIAL_SETUP_COMPLETE, complete).apply()
     }
 
-    /**
-     * Retrieves the current language setting.
-     * return The language string. Defaults to "English".
-     */
+    // REMOVED: getLanguageSetting() and setLanguageSetting() methods
+    /*
     fun getLanguageSetting(): String {
         return prefs.getString(KEY_LANGUAGE_SETTING, "English") ?: "English"
     }
-
-    /**
-     * Sets the new language setting.
-     * @param language The language string to store.
-     */
     fun setLanguageSetting(language: String) {
         prefs.edit().putString(KEY_LANGUAGE_SETTING, language).apply()
     }
+    */
 }
 
 // --- Top-level utility functions ---
@@ -1565,29 +1559,35 @@ fun ProfileOptionItem(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
-            .then(if (onClick != null) Modifier // Apply clickable only if onClick is provided
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = defaultIndication, // Explicitly pass the default indication
-                    onClick = {
-                        soundEffectManager.playClickSound() // Play sound if manager provided
-                        onClick.invoke() // Corrected: Safe call for nullable onClick
-                    }
-                ) else Modifier)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = defaultIndication, // Explicitly pass the default indication
+                onClick = {
+                    soundEffectManager.playClickSound() // Play sound on item click
+                    onClick.invoke() // Corrected: Safe call for nullable onClick
+                }
+            )
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (leadingIcon != null) {
-            Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
-                leadingIcon()
-            }
-        }
-        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            if (description != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        Icon(
+            imageVector = icon,
+            contentDescription = null, // Icon is decorative here
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(28.dp)
+        )
+        Spacer(modifier = Modifier.width(20.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Icon(
             imageVector = Icons.Filled.ChevronRight,
@@ -1766,8 +1766,8 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                             text = { Text(theme.name.replace("_", " ")) },
                             onClick = {
                                 soundEffectManager.playClickSound()
-                                selectedTheme = theme
                                 sharedPrefsManager.setThemeSetting(theme)
+                                currentThemeSetting.value = theme // Update local state
                                 expanded = false
                             }
                         )
@@ -2138,8 +2138,8 @@ fun InitialSetupDialog(
 
     // States for selections
     var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-    var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
-    val languages = listOf("English", "Spanish", "French", "German", "Bengali") // Example languages
+    // REMOVED: var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
+    // REMOVED: val languages = listOf("English", "Spanish", "French", "German", "Bengali") // Example languages
 
     // State for permission status
     var hasStoragePermission by remember {
@@ -2209,7 +2209,8 @@ fun InitialSetupDialog(
 
                 HorizontalDivider()
 
-                // Language Section
+                // REMOVED: Language Section
+                /*
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.AutoMirrored.Filled.Language, contentDescription = "Language Icon", modifier = Modifier.size(24.dp))
@@ -2247,6 +2248,7 @@ fun InitialSetupDialog(
                 }
 
                 HorizontalDivider()
+                */
 
                 // Storage Permission Section
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
