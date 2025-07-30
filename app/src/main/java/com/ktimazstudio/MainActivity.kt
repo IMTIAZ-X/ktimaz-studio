@@ -1565,35 +1565,29 @@ fun ProfileOptionItem(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
-            .clickable(
-                interactionSource = interactionSource,
-                indication = defaultIndication, // Explicitly pass the default indication
-                onClick = {
-                    soundEffectManager.playClickSound() // Play sound on item click
-                    onClick()
-                }
-            )
+            .then(if (onClick != null) Modifier // Apply clickable only if onClick is provided
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = defaultIndication, // Explicitly pass the default indication
+                    onClick = {
+                        soundEffectManager.playClickSound() // Play sound if manager provided
+                        onClick.invoke() // Corrected: Safe call for nullable onClick
+                    }
+                ) else Modifier)
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null, // Icon is decorative here
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(28.dp)
-        )
-        Spacer(modifier = Modifier.width(20.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        if (leadingIcon != null) {
+            Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
+                leadingIcon()
+            }
+        }
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            if (description != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         Icon(
             imageVector = Icons.Filled.ChevronRight,
