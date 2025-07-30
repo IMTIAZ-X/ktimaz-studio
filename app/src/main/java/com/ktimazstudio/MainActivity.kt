@@ -1,6 +1,6 @@
 package com.ktimazstudio
 
-import android.Manifest
+import android.Manifest // Added: For permissions
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -16,24 +16,24 @@ import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
 import android.widget.Toast
-import java.io.BufferedReader 
-import java.io.File 
-import java.io.InputStreamReader 
-import java.security.MessageDigest
-import kotlin.experimental.and
+import java.io.BufferedReader // Added: For BufferedReader
+import java.io.File // Added: For File operations
+import java.io.InputStreamReader // Added: For InputStreamReader
+import java.security.MessageDigest // Added: For MessageDigest
+import kotlin.experimental.and // Added: For bitwise 'and' operation
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts 
-import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts // Added: For ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult // Crucial import for rememberLauncherForActivityResult
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.border // Added: For border modifier
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.LocalIndication 
+import androidx.compose.foundation.LocalIndication // Added: For LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -47,11 +47,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.automirrored.filled.Language 
+import androidx.compose.material.icons.automirrored.filled.Language // Added: For Language icon
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle 
+import androidx.compose.material.icons.filled.CheckCircle // Added: For CheckCircle icon
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ColorLens
@@ -64,39 +64,39 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage 
+import androidx.compose.material.icons.filled.Storage // Added: For Storage icon
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button 
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults 
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider 
-import androidx.compose.material3.DropdownMenu 
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api 
-import androidx.compose.material3.HorizontalDivider 
-import androidx.compose.material3.Icon 
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme 
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem 
-import androidx.compose.material3.NavigationRailItemDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField 
-import androidx.compose.material3.OutlinedTextFieldDefaults 
-import androidx.compose.material3.PlainTooltip 
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton 
-import androidx.compose.material3.SegmentedButtonDefaults 
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow 
+import androidx.compose.material3.AlertDialog // Explicit import for Material3 AlertDialog
+import androidx.compose.material3.Button // Explicit import for Material3 Button
+import androidx.compose.material3.ButtonDefaults // Explicit import for Material3 ButtonDefaults
+import androidx.compose.material3.Card // Explicit import for Material3 Card
+import androidx.compose.material3.CardDefaults // Explicit import for Material3 CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar // Explicit import for Material3 CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator // Explicit import for Material3 CircularProgressIndicator
+import androidx.compose.material3.Divider // Explicit import for Material3 Divider
+import androidx.compose.material3.DropdownMenu // Explicit import for Material3 DropdownMenu
+import androidx.compose.material3.DropdownMenuItem // Explicit import for Material3 DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api // Explicit import for ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider // Explicit import for HorizontalDivider
+import androidx.compose.material3.Icon // Explicit import for Material3 Icon
+import androidx.compose.material3.IconButton // Explicit import for Material3 IconButton
+import androidx.compose.material3.MaterialTheme // Explicit import for Material3 MaterialTheme
+import androidx.compose.material3.NavigationRail // Explicit import for Material3 NavigationRail
+import androidx.compose.material3.NavigationRailItem // Explicit import for Material3 NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults // Explicit import for Material3 NavigationRailItemDefaults
+import androidx.compose.material3.OutlinedButton // Explicit import for Material3 OutlinedButton
+import androidx.compose.material3.OutlinedTextField // Explicit import for Material3 OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults // Explicit import for Material3 OutlinedTextFieldDefaults
+import androidx.compose.material3.PlainTooltip // Explicit import for Material3 PlainTooltip
+import androidx.compose.material3.Scaffold // Explicit import for Material3 Scaffold
+import androidx.compose.material3.SegmentedButton // Explicit import for SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults // Explicit import for SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow // Explicit import for SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration // Explicit import for Material3 SnackbarDuration
 import androidx.compose.material3.SnackbarHost // Explicit import for Material3 SnackbarHost
 import androidx.compose.material3.SnackbarHostState // Explicit import for Material3 SnackbarHostState
@@ -138,8 +138,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties // Added: For DialogProperties
 import androidx.core.content.ContextCompat // Added: For ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
-import kotlinx.coroutines.delay // Added: For delay
+import com.ktimazstudio.ui.theme.ktimaz
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.app.UiModeManager
 import android.os.PowerManager
@@ -1967,14 +1967,15 @@ fun SettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
-            .clickable(
-                interactionSource = interactionSource,
-                indication = defaultIndication, // Explicitly pass the default indication
-                onClick = {
-                    soundEffectManager?.playClickSound() // Play sound if manager provided
-                    onClick()
-                }
-            )
+            .then(if (onClick != null) Modifier // Apply clickable only if onClick is provided
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = defaultIndication, // Explicitly pass the default indication
+                    onClick = {
+                        soundEffectManager?.playClickSound() // Play sound if manager provided
+                        onClick.invoke() // Corrected: Safe call for nullable onClick
+                    }
+                ) else Modifier)
             .padding(vertical = 16.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
