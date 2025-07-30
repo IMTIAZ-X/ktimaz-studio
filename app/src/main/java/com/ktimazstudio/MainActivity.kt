@@ -299,12 +299,10 @@ class SecurityManager(private val context: Context) {
 
     /**
      * Checks if a debugger is currently attached to the application process.
-     * This now combines Android's built-in check with a more robust procfs check.
      * return true if a debugger is connected, false otherwise.
      */
     fun isDebuggerConnected(): Boolean {
-        // The check for LocalInspectionMode.current must be done within a @Composable function,
-        // so we'll remove it from here and handle it in the UI layer.
+        // LocalInspectionMode.current check is handled at the call site in Composable
         return Debug.isDebuggerConnected() || isTracerAttached()
     }
 
@@ -512,8 +510,7 @@ class SecurityManager(private val context: Context) {
 
 
     fun isHookingFrameworkDetected(): Boolean {
-        // The check for LocalInspectionMode.current must be done within a @Composable function,
-        // so we'll remove it from here and handle it in the UI layer.
+        // LocalInspectionMode.current check is handled at the call site in Composable
         // 1. Check for common Xposed/Magisk/Frida related files/directories
         val knownHookFiles = arrayOf(
             "/system/app/XposedInstaller.apk",
@@ -571,8 +568,7 @@ class SecurityManager(private val context: Context) {
      * return true if the hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
-        // The check for LocalInspectionMode.current must be done within a @Composable function,
-        // so we'll remove it from here and handle it in the UI layer.
+        // LocalInspectionMode.current check is handled at the call site in Composable
         val currentSignatureHash = getSignatureSha256Hash()
         // Compare with the signature SHA-256 hash provided by you.
         return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
@@ -597,8 +593,7 @@ class SecurityManager(private val context: Context) {
     }
 
     fun isTracerAttached(): Boolean {
-        // The check for LocalInspectionMode.current must be done within a @Composable function,
-        // so we'll remove it from here and handle it in the UI layer.
+        // LocalInspectionMode.current check is handled at the call site in Composable
         try {
             val statusFile = File("/proc/self/status")
             if (statusFile.exists()) {
@@ -618,10 +613,14 @@ class SecurityManager(private val context: Context) {
 
     /**
      * Aggregates all security checks to determine if the app environment is secure.
+     * @param isInspectionMode True if the app is running in a Compose preview/inspection mode.
      * return A SecurityIssue enum indicating the first detected issue, or SecurityIssue.NONE if secure.
      */
-    fun getSecurityIssue(): SecurityIssue {
-        // Handle LocalInspectionMode check at the call site in the Composable function
+    fun getSecurityIssue(isInspectionMode: Boolean): SecurityIssue {
+        if (isInspectionMode) {
+            return SecurityIssue.NONE // Skip security checks in inspection mode
+        }
+
         if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
         if (isTracerAttached()) return SecurityIssue.DEBUGGER_ATTACHED // More robust debugger check
         if (isRunningOnEmulator()) return SecurityIssue.EMULATOR_DETECTED
@@ -676,11 +675,11 @@ class MainActivity : ComponentActivity() {
             val isInspectionMode = LocalInspectionMode.current
             // Determine if the app should be in dark theme based on setting
             val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context) // CORRECTED CALL
+            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
 
-            // Perform initial security checks
+            // Perform initial security checks, passing isInspectionMode
             val initialSecurityIssue = remember {
-                if (isInspectionMode) SecurityIssue.NONE else securityManager.getSecurityIssue()
+                securityManager.getSecurityIssue(isInspectionMode)
             }
 
             if (initialSecurityIssue != SecurityIssue.NONE) {
@@ -716,7 +715,8 @@ class MainActivity : ComponentActivity() {
                             if (isVpn) {
                                 currentSecurityIssue = SecurityIssue.VPN_ACTIVE
                             } else {
-                                currentSecurityIssue = securityManager.getSecurityIssue()
+                                // Pass isInspectionMode to getSecurityIssue
+                                currentSecurityIssue = securityManager.getSecurityIssue(isInspectionMode)
                             }
                         }
                         onDispose {
@@ -729,15 +729,14 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         while (true) {
                             delay(5000) // Check every 5 seconds
-                            if (!isInspectionMode) { // Do not run security checks in preview mode
-                                val issue = securityManager.getSecurityIssue()
-                                // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
-                                if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
-                                    currentSecurityIssue = issue
-                                } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
-                                    // If VPN was active and now no issue is found, clear the alert
-                                    currentSecurityIssue = SecurityIssue.NONE
-                                }
+                            // Pass isInspectionMode to getSecurityIssue
+                            val issue = securityManager.getSecurityIssue(isInspectionMode)
+                            // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
+                            if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
+                                currentSecurityIssue = issue
+                            } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
+                                // If VPN was active and now no issue is found, clear the alert
+                                currentSecurityIssue = SecurityIssue.NONE
                             }
                         }
                     }
@@ -922,7 +921,7 @@ fun MainApplicationUI(username: String, onLogout: () -> Unit, soundEffectManager
                                 CustomSearchBar(
                                     query = searchQuery,
                                     onQueryChange = { searchQuery = it },
-                                    onClear = { searchQuery = ""; isSearching = false },
+                                    onClear = { searchQuery = "" ; isSearching = false },
                                     soundEffectManager = soundEffectManager
                                 )
                             } else {
