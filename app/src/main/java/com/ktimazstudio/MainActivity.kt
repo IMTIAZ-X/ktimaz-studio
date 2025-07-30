@@ -25,6 +25,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts // Added: For ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult // Crucial import for rememberLauncherForActivityResult
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -886,7 +887,7 @@ fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
     val systemInDarkTheme = isSystemInDarkTheme()
     return when (themeSetting) {
         ThemeSetting.LIGHT -> false
-        ThemeSetting.DARK -> true // Corrected from Theme.DARK
+        ThemeSetting.DARK -> true
         ThemeSetting.SYSTEM -> systemInDarkTheme
         ThemeSetting.BATTERY_SAVER -> {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -1473,7 +1474,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                 ) {
                     //Toast.makeText(context, "Edit Profile Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
-                Divider(modifier = Modifier.padding(horizontal = 24.dp))
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
                 ProfileOptionItem(
                     icon = Icons.Filled.Lock,
                     title = "Change Password",
@@ -1482,7 +1483,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
                 ) {
                     //Toast.makeText(context, "Change Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
                 }
-                Divider(modifier = Modifier.padding(horizontal = 24.dp))
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
                 ProfileOptionItem(
                     icon = Icons.Filled.Settings,
                     title = "Privacy Settings",
@@ -2055,6 +2056,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                     animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_scale_$title"
                 )
+                // Corrected: Use Float.value
                 val animatedAlpha by infiniteTransition.animateFloat(
                     initialValue = 0.75f,
                     targetValue = 0.60f,
@@ -2101,7 +2103,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                             .graphicsLayer(
                                 scaleX = scale * pressScale, // Combine infinite and press animations
                                 scaleY = scale * pressScale,
-                                alpha = animatedAlpha.value * pressAlpha // Combine infinite and press animations
+                                alpha = animatedAlpha.value * pressAlpha.value // Corrected: Use .value for pressAlpha
                             )
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
@@ -2154,22 +2156,23 @@ fun InitialSetupDialog(
 
     // Permission launcher
     val requestPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions[Manifest.permission.READ_MEDIA_IMAGES] == true &&
-            permissions[Manifest.permission.READ_MEDIA_VIDEO] == true &&
-            permissions[Manifest.permission.READ_MEDIA_AUDIO] == true
-        } else {
-            permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
+        contract = ActivityResultContracts.RequestMultiplePermissions(), // Explicitly specify contract
+        onResult = { permissions ->
+            val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions[Manifest.permission.READ_MEDIA_IMAGES] == true &&
+                permissions[Manifest.permission.READ_MEDIA_VIDEO] == true &&
+                permissions[Manifest.permission.READ_MEDIA_AUDIO] == true
+            } else {
+                permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
+            }
+            hasStoragePermission = granted
+            if (granted) {
+                Toast.makeText(context, "Storage permission granted!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Storage permission denied.", Toast.LENGTH_SHORT).show()
+            }
         }
-        hasStoragePermission = granted
-        if (granted) {
-            Toast.makeText(context, "Storage permission granted!", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(context, "Storage permission denied.", Toast.LENGTH_SHORT).show()
-        }
-    }
+    )
 
     AlertDialog(
         onDismissRequest = { /* Dialog is not dismissible until setup is complete */ },
