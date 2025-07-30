@@ -1,6 +1,6 @@
 package com.ktimazstudio
 
-import android.Manifest
+import android.Manifest // Added: For permissions
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -16,18 +16,23 @@ import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
 import android.widget.Toast
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import java.io.BufferedReader // Added: For BufferedReader
+import java.io.File // Added: For File operations
+import java.io.InputStreamReader // Added: For InputStreamReader
+import java.security.MessageDigest // Added: For MessageDigest
+import kotlin.experimental.and // Added: For bitwise 'and' operation
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts // Added: For ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border // Added: For border modifier
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.LocalIndication // Added: For LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -41,10 +46,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
+import androidx.compose.material.icons.automirrored.filled.Language // Added: For Language icon
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CheckCircle // Added: For CheckCircle icon
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ColorLens
@@ -57,57 +63,78 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Storage // Added: For Storage icon
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.Card // Explicit import for Material3 Card
-import androidx.compose.material3.Text // Explicit import for Material3 Text
-import androidx.compose.material3.MaterialTheme // Explicit import for Material3 MaterialTheme
-import androidx.compose.material3.CardDefaults // Explicit import for Material3 CardDefaults
+import androidx.compose.material3.AlertDialog // Explicit import for Material3 AlertDialog
 import androidx.compose.material3.Button // Explicit import for Material3 Button
 import androidx.compose.material3.ButtonDefaults // Explicit import for Material3 ButtonDefaults
+import androidx.compose.material3.Card // Explicit import for Material3 Card
+import androidx.compose.material3.CardDefaults // Explicit import for Material3 CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar // Explicit import for Material3 CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator // Explicit import for Material3 CircularProgressIndicator
-import androidx.compose.material3.Switch // Explicit import for Material3 Switch
+import androidx.compose.material3.Divider // Explicit import for Material3 Divider
 import androidx.compose.material3.DropdownMenu // Explicit import for Material3 DropdownMenu
 import androidx.compose.material3.DropdownMenuItem // Explicit import for Material3 DropdownMenuItem
-import androidx.compose.material3.AlertDialog // Explicit import for Material3 AlertDialog
-import androidx.compose.material3.Divider // Explicit import for Material3 Divider
-import androidx.compose.material3.SnackbarHost // Explicit import for Material3 SnackbarHost
-import androidx.compose.material3.SnackbarHostState // Explicit import for Material3 SnackbarHostState
-import androidx.compose.material3.SnackbarDuration // Explicit import for Material3 SnackbarDuration
-import androidx.compose.material3.SnackbarResult // Explicit import for Material3 SnackbarResult
-import androidx.compose.material3.OutlinedTextField // Explicit import for Material3 OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults // Explicit import for Material3 OutlinedTextFieldDefaults
-import androidx.compose.material3.TextButton // Explicit import for Material3 TextButton
-import androidx.compose.material3.IconButton // Explicit import for Material3 IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api // Explicit import for ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider // Explicit import for HorizontalDivider
 import androidx.compose.material3.Icon // Explicit import for Material3 Icon
-import androidx.compose.material3.TopAppBarDefaults // Explicit import for Material3 TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState // Explicit import for Material3 rememberTopAppBarState
-import androidx.compose.material3.CenterAlignedTopAppBar // Explicit import for Material3 CenterAlignedTopAppBar
+import androidx.compose.material3.IconButton // Explicit import for Material3 IconButton
+import androidx.compose.material3.MaterialTheme // Explicit import for Material3 MaterialTheme
 import androidx.compose.material3.NavigationRail // Explicit import for Material3 NavigationRail
 import androidx.compose.material3.NavigationRailItem // Explicit import for Material3 NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults // Explicit import for Material3 NavigationRailItemDefaults
+import androidx.compose.material3.OutlinedButton // Explicit import for Material3 OutlinedButton
+import androidx.compose.material3.OutlinedTextField // Explicit import for Material3 OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults // Explicit import for Material3 OutlinedTextFieldDefaults
 import androidx.compose.material3.PlainTooltip // Explicit import for Material3 PlainTooltip
+import androidx.compose.material3.Scaffold // Explicit import for Material3 Scaffold
+import androidx.compose.material3.SegmentedButton // Explicit import for SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults // Explicit import for SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow // Explicit import for SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration // Explicit import for Material3 SnackbarDuration
+import androidx.compose.material3.SnackbarHost // Explicit import for Material3 SnackbarHost
+import androidx.compose.material3.SnackbarHostState // Explicit import for Material3 SnackbarHostState
+import androidx.compose.material3.SnackbarResult // Explicit import for Material3 SnackbarResult
+import androidx.compose.material3.Switch // Explicit import for Material3 Switch
+import androidx.compose.material3.Text // Explicit import for Material3 Text
+import androidx.compose.material3.TextButton // Explicit import for Material3 TextButton
 import androidx.compose.material3.TooltipBox // Explicit import for Material3 TooltipBox
 import androidx.compose.material3.TooltipDefaults // Explicit import for Material3 TooltipDefaults
+import androidx.compose.material3.TopAppBarDefaults // Explicit import for Material3 TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState // Explicit import for Material3 rememberTopAppBarState
 import androidx.compose.material3.rememberTooltipState // Explicit import for Material3 rememberTooltipState
-import androidx.compose.material3.ExperimentalMaterial3Api // Explicit import for ExperimentalMaterial3Api
-import androidx.compose.material3.SegmentedButton // Explicit import for SegmentedButton
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow // Explicit import for SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.HorizontalDivider // Explicit import for HorizontalDivider
-import androidx.compose.material.icons.automirrored.filled.Language // Explicit import for Language icon
-
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment // Added: For Alignment
+import androidx.compose.ui.Modifier // Added: For Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush // Added: For Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector // Added: For ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType // Added: For HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext // Added: For LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
+import androidx.compose.ui.unit.dp // Added: For dp unit
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties // Added: For DialogProperties
+import androidx.core.content.ContextCompat // Added: For ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
+import kotlinx.coroutines.delay // Added: For delay
+import kotlinx.coroutines.launch
 import android.app.UiModeManager
 import android.os.PowerManager
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.core.content.ContextCompat // For permission check
 
 
 // --- Theme Settings Enum ---
@@ -335,7 +362,7 @@ class SecurityManager(private val context: Context) {
     // You would typically calculate this hash for your *release* APK and hardcode it here.
     // For demonstration, this is a placeholder.
     // --- IMPORTANT: UPDATE THIS HASH TO YOUR APP'S RELEASE SIGNATURE SHA-256 HASH ---
-    // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425
+    // You provided this in your last message: f21317d4d6276ff3174a363c7fdff4171c73b1b80a8425
     private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
 
     /**
@@ -459,7 +486,7 @@ class SecurityManager(private val context: Context) {
         var process: Process? = null
         try {
             process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
-            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
             if (reader.readLine() != null) return true
         } catch (e: Exception) {
             // Command not found or other error, likely not rooted
@@ -603,8 +630,9 @@ class SecurityManager(private val context: Context) {
     }
 
     /**
-     * Checks if the APK hash matches the expected hash.
-     * return true if the hash matches, false otherwise.
+     * Checks if the APK's signature hash matches the expected hash.
+     * This is now the primary integrity check.
+     * return true if the signature hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
         val currentSignatureHash = getSignatureSha256Hash()
@@ -707,7 +735,7 @@ class MainActivity : ComponentActivity() {
         soundEffectManager.loadSounds() // Load sounds
         securityManager = SecurityManager(applicationContext)
 
-        setContent {
+        setContent { // All @Composable calls must be inside setContent
             val context = LocalContext.current
             val isInspectionMode = LocalInspectionMode.current
             // Determine if the app should be in dark theme based on setting
@@ -724,35 +752,33 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(!sharedPrefsManager.isInitialSetupComplete())
             }
 
-            if (initialSecurityIssue != SecurityIssue.NONE) {
-                ktimaz(darkTheme = useDarkTheme) {
+            ktimaz(darkTheme = useDarkTheme) { // Theme wrapper
+                if (initialSecurityIssue != SecurityIssue.NONE) {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
-                }
-            } else if (showInitialSetupDialog) {
-                // Show the initial setup dialog if it hasn't been completed
-                InitialSetupDialog(
-                    sharedPrefsManager = sharedPrefsManager,
-                    soundEffectManager = soundEffectManager,
-                    onSetupComplete = {
-                        sharedPrefsManager.setInitialSetupComplete(true)
-                        showInitialSetupDialog = false
-                    }
-                )
-            } else {
-                // Now that we are in a composable context, we can handle the theme listener
-                DisposableEffect(Unit) {
-                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                        if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
-                            currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
+                } else if (showInitialSetupDialog) {
+                    // Show the initial setup dialog if it hasn't been completed
+                    InitialSetupDialog(
+                        sharedPrefsManager = sharedPrefsManager,
+                        soundEffectManager = soundEffectManager,
+                        onSetupComplete = {
+                            sharedPrefsManager.setInitialSetupComplete(true)
+                            showInitialSetupDialog = false
+                        }
+                    )
+                } else {
+                    // Now that we are in a composable context, we can handle the theme listener
+                    DisposableEffect(Unit) {
+                        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                            if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
+                                currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
+                            }
+                        }
+                        sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
+                        onDispose {
+                            sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
                         }
                     }
-                    sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
-                    onDispose {
-                        sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
-                    }
-                }
 
-                ktimaz(darkTheme = useDarkTheme) {
                     var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
                     var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
                     var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
@@ -852,7 +878,7 @@ fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
     val systemInDarkTheme = isSystemInDarkTheme()
     return when (themeSetting) {
         ThemeSetting.LIGHT -> false
-        ThemeSetting.DARK -> true
+        Theme.DARK -> true
         ThemeSetting.SYSTEM -> systemInDarkTheme
         ThemeSetting.BATTERY_SAVER -> {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -2139,7 +2165,7 @@ fun InitialSetupDialog(
 
     AlertDialog(
         onDismissRequest = { /* Dialog is not dismissible until setup is complete */ },
-        properties = androidx.compose.ui.window.DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false), // Corrected import
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         icon = { Icon(Icons.Filled.Settings, contentDescription = "Setup Icon") },
         title = { Text("Configure App", style = MaterialTheme.typography.headlineSmall) },
