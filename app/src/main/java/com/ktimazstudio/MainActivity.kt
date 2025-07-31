@@ -947,8 +947,6 @@ fun MainApplicationUI(
                         Screen.Dashboard -> AnimatedCardGrid(
                             searchQuery = searchQuery,
                             onCardClick = { title ->
-                                soundEffectManager.playClickSound()
-                                // Added missing imports
                                 val intentClass = when (title) {
                                     "System Config" -> SettingsActivity::class.java
                                     else -> ComingActivity::class.java
