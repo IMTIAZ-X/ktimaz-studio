@@ -1947,15 +1947,15 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                         interactionSource = interactionSource,
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha.value)
                         ),
                         border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier
                             .graphicsLayer(
-                                scaleX = scale * pressScale,
-                                scaleY = scale * pressScale,
-                                alpha = animatedAlpha * pressAlpha
+                                scaleX = scale.value * pressScale,
+                                scaleY = scale.value * pressScale,
+                                alpha = animatedAlpha.value * pressAlpha
                             )
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
