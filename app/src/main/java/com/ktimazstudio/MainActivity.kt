@@ -47,7 +47,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.automirrored.filled.Language // RE-ADDED: For Language icon
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -1815,6 +1815,8 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                     onDismissRequest = { expanded = false }
                 ) {
                     languages.forEach { language ->
+                    val languageList = listOf("English", "Spanish", "French") // use your list!
+                    languageList.forEach { value ->
                         DropdownMenuItem(
                             text = { Text(language) },
                             onClick = {
