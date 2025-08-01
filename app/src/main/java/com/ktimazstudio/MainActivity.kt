@@ -1,6 +1,6 @@
 package com.ktimazstudio
 
-import android.Manifest
+import android.Manifest // Added: For permissions
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -16,24 +16,24 @@ import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
 import android.widget.Toast
-import java.io.BufferedReader 
-import java.io.File 
-import java.io.InputStreamReader 
-import java.security.MessageDigest
-import kotlin.experimental.and
+import java.io.BufferedReader // Added: For BufferedReader
+import java.io.File // Added: For File operations
+import java.io.InputStreamReader // Added: For InputStreamReader
+import java.security.MessageDigest // Added: For MessageDigest
+import kotlin.experimental.and // Added: For bitwise 'and' operation
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts 
-import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts // Added: For ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult // Crucial import for rememberLauncherForActivityResult
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.border // Added: For border modifier
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.LocalIndication 
+import androidx.compose.foundation.LocalIndication // Added: For LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -47,11 +47,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.automirrored.filled.Language 
+import androidx.compose.material.icons.automirrored.filled.Language // RE-ADDED: For Language icon
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle 
+import androidx.compose.material.icons.filled.CheckCircle // Added: For CheckCircle icon
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ColorLens
@@ -64,79 +64,79 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage 
+import androidx.compose.material.icons.filled.Storage // Added: For Storage icon
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button 
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults 
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider 
-import androidx.compose.material3.DropdownMenu 
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api 
-import androidx.compose.material3.HorizontalDivider 
-import androidx.compose.material3.Icon 
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme 
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem 
-import androidx.compose.material3.NavigationRailItemDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField 
-import androidx.compose.material3.OutlinedTextFieldDefaults 
-import androidx.compose.material3.PlainTooltip 
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton 
-import androidx.compose.material3.SegmentedButtonDefaults 
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow 
-import androidx.compose.material3.SnackbarDuration 
-import androidx.compose.material3.SnackbarHost 
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult 
-import androidx.compose.material3.Switch 
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.material3.rememberTooltipState
+import androidx.compose.material3.AlertDialog // Explicit import for Material3 AlertDialog
+import androidx.compose.material3.Button // Explicit import for Material3 Button
+import androidx.compose.material3.ButtonDefaults // Explicit import for Material3 ButtonDefaults
+import androidx.compose.material3.Card // Explicit import for Material3 Card
+import androidx.compose.material3.CardDefaults // Explicit import for Material3 CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar // Explicit import for Material3 CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator // Explicit import for Material3 CircularProgressIndicator
+import androidx.compose.material3.Divider // Explicit import for Material3 Divider
+import androidx.compose.material3.DropdownMenu // Explicit import for Material3 DropdownMenu
+import androidx.compose.material3.DropdownMenuItem // Explicit import for Material3 DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api // Explicit import for ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider // Explicit import for HorizontalDivider
+import androidx.compose.material3.Icon // Explicit import for Material3 Icon
+import androidx.compose.material3.IconButton // Explicit import for Material3 IconButton
+import androidx.compose.material3.MaterialTheme // Explicit import for Material3 MaterialTheme
+import androidx.compose.material3.NavigationRail // Explicit import for Material3 NavigationRail
+import androidx.compose.material3.NavigationRailItem // Explicit import for Material3 NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults // Explicit import for Material3 NavigationRailItemDefaults
+import androidx.compose.material3.OutlinedButton // Explicit import for Material3 OutlinedButton
+import androidx.compose.material3.OutlinedTextField // Explicit import for Material3 OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults // Explicit import for Material3 OutlinedTextFieldDefaults
+import androidx.compose.material3.PlainTooltip // Explicit import for Material3 PlainTooltip
+import androidx.compose.material3.Scaffold // Explicit import for Material3 Scaffold
+import androidx.compose.material3.SegmentedButton // Explicit import for SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults // Explicit import for SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow // Explicit import for SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration // Explicit import for Material3 SnackbarDuration
+import androidx.compose.material3.SnackbarHost // Explicit import for Material3 SnackbarHost
+import androidx.compose.material3.SnackbarHostState // Explicit import for Material3 SnackbarHostState
+import androidx.compose.material3.SnackbarResult // Explicit import for Material3 SnackbarResult
+import androidx.compose.material3.Switch // Explicit import for Material3 Switch
+import androidx.compose.material3.Text // Explicit import for Material3 Text
+import androidx.compose.material3.TextButton // Explicit import for Material3 TextButton
+import androidx.compose.material3.TooltipBox // Explicit import for Material3 TooltipBox
+import androidx.compose.material3.TooltipDefaults // Explicit import for Material3 TooltipDefaults
+import androidx.compose.material3.TopAppBarDefaults // Explicit import for Material3 TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState // Explicit import for Material3 rememberTopAppBarState
+import androidx.compose.material3.rememberTooltipState // Explicit import for Material3 TooltipState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment // Added: For Alignment
+import androidx.compose.ui.Modifier // Added: For Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Brush // Added: For Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.vector.ImageVector // Added: For ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType // Added: For HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalContext // Added: For LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalInspectionMode 
-import androidx.compose.ui.res.painterResource 
-import androidx.compose.ui.res.stringResource 
-import androidx.compose.ui.text.font.FontWeight 
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType 
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
+import androidx.compose.ui.res.painterResource // Added: For painterResource
+import androidx.compose.ui.res.stringResource // Added: For stringResource
+import androidx.compose.ui.text.font.FontWeight // Added: For FontWeight
+import androidx.compose.ui.text.input.ImeAction // Added: For ImeAction
+import androidx.compose.ui.text.input.KeyboardType // Added: For KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation // Added: For PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation // Added: For VisualTransformation
+import androidx.compose.ui.text.style.TextAlign // Added: For TextAlign
+import androidx.compose.ui.unit.dp // Added: For dp unit
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties 
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.window.DialogProperties // Added: For DialogProperties
+import androidx.core.content.ContextCompat // Added: For ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.delay
@@ -144,7 +144,7 @@ import kotlinx.coroutines.launch
 import android.app.UiModeManager
 import android.os.PowerManager
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.surfaceColorAtElevation // Added: For surfaceColorAtElevation
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
@@ -220,7 +220,7 @@ class SharedPreferencesManager(context: Context) {
         const val KEY_THEME_SETTING = "theme_setting_key" // Made public
         const val KEY_SOUND_ENABLED = "sound_enabled_key" // Made public
         private const val KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete" // NEW
-        private const val KEY_LANGUAGE_SETTING = "language_setting_key" // NEW
+        private const val KEY_LANGUAGE_SETTING = "language_setting_key" // RE-ADDED
     }
 
     /**
@@ -308,18 +308,10 @@ class SharedPreferencesManager(context: Context) {
         prefs.edit().putBoolean(KEY_INITIAL_SETUP_COMPLETE, complete).apply()
     }
 
-    /**
-     * Retrieves the current language setting.
-     * return The language string. Defaults to "English".
-     */
+    // RE-ADDED: getLanguageSetting() and setLanguageSetting() methods
     fun getLanguageSetting(): String {
         return prefs.getString(KEY_LANGUAGE_SETTING, "English") ?: "English"
     }
-
-    /**
-     * Sets the new language setting.
-     * @param language The language string to store.
-     */
     fun setLanguageSetting(language: String) {
         prefs.edit().putString(KEY_LANGUAGE_SETTING, language).apply()
     }
@@ -1570,7 +1562,7 @@ fun ProfileOptionItem(
                 indication = defaultIndication, // Explicitly pass the default indication
                 onClick = {
                     soundEffectManager.playClickSound() // Play sound on item click
-                    onClick()
+                    onClick.invoke() // Corrected: Safe call for nullable onClick
                 }
             )
             .padding(horizontal = 24.dp, vertical = 16.dp),
@@ -1717,6 +1709,9 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
     // State for theme and sound settings
     val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
     val isSoundEnabled = remember { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
+    // RE-ADDED: State for language setting
+    val selectedLanguage = remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
+    val languages = remember { listOf("English", "Spanish", "French", "German", "Bengali") } // Example languages
 
     Column(
         modifier = modifier
@@ -1797,6 +1792,40 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                         if (it) soundEffectManager.playClickSound() // Play sound only if enabling
                     }
                 )
+            }
+        )
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
+        // RE-ADDED: Language Setting
+        SettingItem(
+            title = "Language",
+            description = "Change the application language.",
+            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Language, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = {
+                var expanded by remember { mutableStateOf(false) }
+                TextButton(onClick = {
+                    soundEffectManager.playClickSound()
+                    expanded = true
+                }) {
+                    Text(selectedLanguage.value, style = MaterialTheme.typography.bodyMedium) // Use .value
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Expand language options")
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    languages.forEach { language ->
+                        DropdownMenuItem(
+                            text = { Text(language) },
+                            onClick = {
+                                soundEffectManager.playClickSound()
+                                sharedPrefsManager.setLanguageSetting(language)
+                                selectedLanguage.value = language // Update local state
+                                expanded = false
+                            }
+                        )
+                    }
+                }
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
@@ -1904,6 +1933,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                         Text(" • Added tooltips for new users on Dashboard cards.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Added Theme Changer (Light, Dark, System, Battery Saver).", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Text(" • Added Sound Effects On/Off setting.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Re-added Language selection to settings and initial setup.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Text(" • Improved UI sizing consistency across devices.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
                         Spacer(modifier = Modifier.height(16.dp))
                         Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
@@ -1967,20 +1997,21 @@ fun SettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
-            .clickable(
-                interactionSource = interactionSource,
-                indication = defaultIndication, // Explicitly pass the default indication
-                onClick = {
-                    soundEffectManager?.playClickSound() // Play sound if manager provided
-                    onClick()
-                }
-            )
+            .then(if (onClick != null) Modifier // Apply clickable only if onClick is provided
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = defaultIndication, // Explicitly pass the default indication
+                    onClick = {
+                        soundEffectManager?.playClickSound() // Play sound if manager provided
+                        onClick.invoke() // Corrected: Safe call for nullable onClick
+                    }
+                ) else Modifier)
             .padding(vertical = 16.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (leadingIcon != null) {
             Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
-                leadingIcon()
+                leadingIcon?.invoke() // CORRECTED: Use safe call for nullable composable lambda
             }
         }
         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
@@ -2053,7 +2084,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                     animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_scale_$title"
                 )
-                // Corrected: Use Float.value
+                // Corrected: Use .value
                 val animatedAlpha by infiniteTransition.animateFloat(
                     initialValue = 0.75f,
                     targetValue = 0.60f,
@@ -2098,9 +2129,9 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier
                             .graphicsLayer(
-                                scaleX = scale * pressScale, // Combine infinite and press animations
-                                scaleY = scale * pressScale,
-                                alpha = animatedAlpha.value * pressAlpha.value // Corrected: Use .value for pressAlpha
+                                scaleX = scale.value * pressScale, // Combine infinite and press animations
+                                scaleY = scale.value * pressScale,
+                                alpha = animatedAlpha.value * pressAlpha // Corrected: Use .value for animatedAlpha
                             )
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
@@ -2143,6 +2174,7 @@ fun InitialSetupDialog(
 
     // States for selections
     var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+    // RE-ADDED: State for language setting
     var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
     val languages = listOf("English", "Spanish", "French", "German", "Bengali") // Example languages
 
@@ -2160,6 +2192,7 @@ fun InitialSetupDialog(
                 permissions[Manifest.permission.READ_MEDIA_VIDEO] == true &&
                 permissions[Manifest.permission.READ_MEDIA_AUDIO] == true
             } else {
+                @Suppress("DEPRECATION")
                 permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
             }
             hasStoragePermission = granted
@@ -2214,7 +2247,7 @@ fun InitialSetupDialog(
 
                 HorizontalDivider()
 
-                // Language Section
+                // RE-ADDED: Language Section
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.AutoMirrored.Filled.Language, contentDescription = "Language Icon", modifier = Modifier.size(24.dp))
@@ -2222,30 +2255,19 @@ fun InitialSetupDialog(
                         Text("Language", style = MaterialTheme.typography.titleMedium)
                     }
                     Spacer(Modifier.height(8.dp))
-                    var languageExpanded by remember { mutableStateOf(false) }
-                    OutlinedButton(
-                        onClick = {
-                            soundEffectManager.playClickSound()
-                            languageExpanded = true
-                        },
+                    SingleChoiceSegmentedButtonRow(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(selectedLanguage) // Display the selected language directly
-                        Icon(Icons.Filled.ArrowDropDown, contentDescription = "Select Language")
-                    }
-                    DropdownMenu(
-                        expanded = languageExpanded,
-                        onDismissRequest = { languageExpanded = false }
-                    ) {
-                        languages.forEach { language ->
-                            DropdownMenuItem(
-                                text = { Text(language) },
+                        languages.forEachIndexed { index, language ->
+                            SegmentedButton(
+                                selected = language == selectedLanguage,
                                 onClick = {
                                     soundEffectManager.playClickSound()
                                     selectedLanguage = language
                                     sharedPrefsManager.setLanguageSetting(language)
-                                    languageExpanded = false
-                                }
+                                },
+                                shape = SegmentedButtonDefaults.shape(index, languages.size), // Corrected shape usage
+                                label = { Text(language) }
                             )
                         }
                     }
