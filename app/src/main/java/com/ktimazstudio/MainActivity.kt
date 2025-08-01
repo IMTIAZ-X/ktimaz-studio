@@ -23,6 +23,7 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.Locale
+import android.content.res.Configuration
 import kotlin.experimental.and
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
