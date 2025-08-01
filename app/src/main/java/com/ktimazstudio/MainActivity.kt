@@ -47,9 +47,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.automirrored.filled.Language // RE-ADDED: For Language icon
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle // Added: For CheckCircle icon
 import androidx.compose.material.icons.filled.ChevronRight
@@ -58,6 +55,7 @@ import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language // Updated: Non-auto-mirrored Language icon
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
@@ -203,7 +201,6 @@ class SoundEffectManager(private val context: Context, private val sharedPrefsMa
         soundPool = null
     }
 }
-
 
 // --- SharedPreferencesManager ---
 /**
@@ -387,8 +384,7 @@ class SecurityManager(private val context: Context) {
             if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
                 // Ensure the VPN is actually providing internet
                 if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
-                    return true
+                    ....
                 }
             }
         }
@@ -438,7 +434,6 @@ class SecurityManager(private val context: Context) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
-
 
     /**
      * Attempts to detect if the application is running on an emulator.
@@ -504,7 +499,7 @@ class SecurityManager(private val context: Context) {
      * for signed APKs regardless of minor build variations.
      * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
-     fun getSignatureSha256Hash(): String? {
+    fun getSignatureSha256Hash(): String? {
         try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
@@ -537,46 +532,17 @@ class SecurityManager(private val context: Context) {
      * This is now the primary integrity check.
      * return true if the signature hash matches, false otherwise.
      */
-
-    /**
-     * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
-     * Kept for reference or if needed for other purposes.
-     *
-     * Calculates the SHA-256 hash of the application's APK file.
-     * This can be used to detect if the APK has been tampered with.
-     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
-     */
-    fun getApkSha256Hash_UNUSED(): String? {
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return null
-            val file = File(apkPath)
-            if (file.exists()) {
-                val bytes = file.readBytes()
-                val digest = MessageDigest.getInstance("SHA-256")
-                val hashBytes = digest.digest(bytes)
-                return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return null
+    fun isApkTampered(): Boolean {
+        val currentSignatureHash = getSignatureSha256Hash()
+        return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
     }
 
-     /**
-     * Checks if the APK's *signature hash* matches the expected hash.
-     * This is now the primary integrity check.
-     * return true if the signature hash matches, false otherwise.
-     */
-
-       /**
+    /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, or system properties.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
      * return true if a hooking framework is likely detected, false otherwise.
      */
-
-
     fun isHookingFrameworkDetected(): Boolean {
         // 1. Check for common Xposed/Magisk/Frida related files/directories
         val knownHookFiles = arrayOf(
@@ -602,12 +568,12 @@ class SecurityManager(private val context: Context) {
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             while (true) {
-            line = reader.readLine()
-           if (line == null) break
-            for (prop in props) {
-            if (line.contains("[$prop]:")) return true
-    }
-}
+                line = reader.readLine()
+                if (line == null) break
+                for (prop in props) {
+                    if (line.contains("[$prop]:")) return true
+                }
+            }
             process.destroy()
         } catch (e: Exception) {
             // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
@@ -628,35 +594,6 @@ class SecurityManager(private val context: Context) {
         // This is more complex and might lead to false positives, so omitted for brevity.
 
         return false
-    }
-
-    /**
-     * Checks if the APK's signature hash matches the expected hash.
-     * This is now the primary integrity check.
-     * return true if the signature hash matches, false otherwise.
-     */
-    fun isApkTampered(): Boolean {
-        val currentSignatureHash = getSignatureSha256Hash()
-        // Compare with the signature SHA-256 hash provided by you.
-        return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
-    }
-
-    /**
-     * Gets the size of the installed application (APK + data).
-     * This can be used as a very basic indicator of tampering if the size changes unexpectedly.
-     * return The app size in bytes, or -1 if unable to retrieve.
-     */
-    fun getAppSize(): Long {
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            // Safely access applicationInfo.sourceDir as applicationInfo can be null
-            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return -1L
-            val file = File(apkPath)
-            return file.length()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return -1L
     }
 
     fun isTracerAttached(): Boolean {
@@ -715,6 +652,8 @@ enum class SecurityIssue(val message: String) {
 
 // --- Navigation Destinations ---
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+    object Dashboard * Today's date and time is 12:00 AM +06 on Saturday, August 02, 2025.
+
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
     object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
@@ -1140,7 +1079,6 @@ fun CustomSearchBar(
             .padding(vertical = 4.dp)
     )
 }
-
 
 /**
  * Composable for the enhanced Login Screen.
@@ -1596,7 +1534,6 @@ fun ProfileOptionItem(
     }
 }
 
-
 @Composable
 fun AppNavigationRail(
     selectedDestination: Screen,
@@ -1800,7 +1737,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
         SettingItem(
             title = "Language",
             description = "Change the application language.",
-            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Language, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            leadingIcon = { Icon(Icons.Filled.Language, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)}, // Updated icon reference
             control = {
                 var expanded by remember { mutableStateOf(false) }
                 TextButton(onClick = {
@@ -1954,7 +1891,6 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-
         SettingItem(
             title = "App Version",
             description = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
@@ -2011,7 +1947,7 @@ fun SettingItem(
     ) {
         if (leadingIcon != null) {
             Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
-                leadingIcon?.invoke() // CORRECTED: Use safe call for nullable composable lambda
+                leadingIcon.invoke() // CORRECTED: Use safe call for nullable composable lambda
             }
         }
         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
@@ -2028,7 +1964,6 @@ fun SettingItem(
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -2084,7 +2019,6 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                     animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
                     label = "card_scale_$title"
                 )
-                // Corrected: Use .value
                 val animatedAlpha by infiniteTransition.animateFloat(
                     initialValue = 0.75f,
                     targetValue = 0.60f,
@@ -2114,24 +2048,21 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                     },
                     state = rememberTooltipState()
                 ) {
-                    // MODIFIED: Pass interactionSource directly to Card
                     Card(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onCardClick(title)
                         },
-                        interactionSource = interactionSource, // Pass interactionSource here
+                        interactionSource = interactionSource,
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha.value) // Corrected alpha access
-                        ),
+                        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)),
                         border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier
                             .graphicsLayer(
-                                scaleX = scale.value * pressScale, // Combine infinite and press animations
-                                scaleY = scale.value * pressScale,
-                                alpha = animatedAlpha.value * pressAlpha // Corrected: Use .value for animatedAlpha
+                                scaleX = scale * pressScale,
+                                scaleY = scale * pressScale,
+                                alpha = animatedAlpha * pressAlpha
                             )
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
@@ -2238,7 +2169,7 @@ fun InitialSetupDialog(
                                     selectedTheme = theme
                                     sharedPrefsManager.setThemeSetting(theme)
                                 },
-                                shape = SegmentedButtonDefaults.shape(index, ThemeSetting.values().size), // Corrected shape usage
+                                shape = SegmentedButtonDefaults.itemShape(index, ThemeSetting.values().size), // Corrected: Use itemShape
                                 label = { Text(theme.name.replace("_", " ")) }
                             )
                         }
@@ -2250,7 +2181,7 @@ fun InitialSetupDialog(
                 // RE-ADDED: Language Section
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.AutoMirrored.Filled.Language, contentDescription = "Language Icon", modifier = Modifier.size(24.dp))
+                        Icon(Icons.Filled.Language, contentDescription = "Language Icon", modifier = Modifier.size(24.dp)) // Updated icon reference
                         Spacer(Modifier.width(8.dp))
                         Text("Language", style = MaterialTheme.typography.titleMedium)
                     }
@@ -2266,7 +2197,7 @@ fun InitialSetupDialog(
                                     selectedLanguage = language
                                     sharedPrefsManager.setLanguageSetting(language)
                                 },
-                                shape = SegmentedButtonDefaults.shape(index, languages.size), // Corrected shape usage
+                                shape = SegmentedButtonDefaults.itemShape(index, languages.size), // Corrected: Use itemShape
                                 label = { Text(language) }
                             )
                         }
