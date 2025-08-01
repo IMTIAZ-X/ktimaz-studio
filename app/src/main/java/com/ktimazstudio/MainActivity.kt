@@ -1,6 +1,6 @@
 package com.ktimazstudio
 
-import android.Manifest // Added: For permissions
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -15,25 +15,15 @@ import android.os.Build
 import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
+import android.os.PowerManager
 import android.widget.Toast
-import java.io.BufferedReader // Added: For BufferedReader
-import java.io.File // Added: For File operations
-import java.io.InputStreamReader // Added: For InputStreamReader
-import java.security.MessageDigest // Added: For MessageDigest
-import kotlin.experimental.and // Added: For bitwise 'and' operation
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts // Added: For ActivityResultContracts
-import androidx.activity.compose.rememberLauncherForActivityResult // Crucial import for rememberLauncherForActivityResult
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border // Added: For border modifier
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.LocalIndication // Added: For LocalIndication
+import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -46,105 +36,46 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.Language
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.automirrored.filled.Language // RE-ADDED: For Language icon
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle // Added: For CheckCircle icon
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.HistoryEdu
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage // Added: For Storage icon
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.AlertDialog // Explicit import for Material3 AlertDialog
-import androidx.compose.material3.Button // Explicit import for Material3 Button
-import androidx.compose.material3.ButtonDefaults // Explicit import for Material3 ButtonDefaults
-import androidx.compose.material3.Card // Explicit import for Material3 Card
-import androidx.compose.material3.CardDefaults // Explicit import for Material3 CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar // Explicit import for Material3 CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator // Explicit import for Material3 CircularProgressIndicator
-import androidx.compose.material3.Divider // Explicit import for Material3 Divider
-import androidx.compose.material3.DropdownMenu // Explicit import for Material3 DropdownMenu
-import androidx.compose.material3.DropdownMenuItem // Explicit import for Material3 DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api // Explicit import for ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider // Explicit import for HorizontalDivider
-import androidx.compose.material3.Icon // Explicit import for Material3 Icon
-import androidx.compose.material3.IconButton // Explicit import for Material3 IconButton
-import androidx.compose.material3.MaterialTheme // Explicit import for Material3 MaterialTheme
-import androidx.compose.material3.NavigationRail // Explicit import for Material3 NavigationRail
-import androidx.compose.material3.NavigationRailItem // Explicit import for Material3 NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults // Explicit import for Material3 NavigationRailItemDefaults
-import androidx.compose.material3.OutlinedButton // Explicit import for Material3 OutlinedButton
-import androidx.compose.material3.OutlinedTextField // Explicit import for Material3 OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults // Explicit import for Material3 OutlinedTextFieldDefaults
-import androidx.compose.material3.PlainTooltip // Explicit import for Material3 PlainTooltip
-import androidx.compose.material3.Scaffold // Explicit import for Material3 Scaffold
-import androidx.compose.material3.SegmentedButton // Explicit import for SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults // Explicit import for SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow // Explicit import for SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarDuration // Explicit import for Material3 SnackbarDuration
-import androidx.compose.material3.SnackbarHost // Explicit import for Material3 SnackbarHost
-import androidx.compose.material3.SnackbarHostState // Explicit import for Material3 SnackbarHostState
-import androidx.compose.material3.SnackbarResult // Explicit import for Material3 SnackbarResult
-import androidx.compose.material3.Switch // Explicit import for Material3 Switch
-import androidx.compose.material3.Text // Explicit import for Material3 Text
-import androidx.compose.material3.TextButton // Explicit import for Material3 TextButton
-import androidx.compose.material3.TooltipBox // Explicit import for Material3 TooltipBox
-import androidx.compose.material3.TooltipDefaults // Explicit import for Material3 TooltipDefaults
-import androidx.compose.material3.TopAppBarDefaults // Explicit import for Material3 TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState // Explicit import for Material3 rememberTopAppBarState
-import androidx.compose.material3.rememberTooltipState // Explicit import for Material3 TooltipState
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment // Added: For Alignment
-import androidx.compose.ui.Modifier // Added: For Modifier
-import androidx.compose.ui.draw.blur
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush // Added: For Brush
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector // Added: For ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType // Added: For HapticFeedbackType
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext // Added: For LocalContext
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
-import androidx.compose.ui.res.painterResource // Added: For painterResource
-import androidx.compose.ui.res.stringResource // Added: For stringResource
-import androidx.compose.ui.text.font.FontWeight // Added: For FontWeight
-import androidx.compose.ui.text.input.ImeAction // Added: For ImeAction
-import androidx.compose.ui.text.input.KeyboardType // Added: For KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation // Added: For PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation // Added: For VisualTransformation
-import androidx.compose.ui.text.style.TextAlign // Added: For TextAlign
-import androidx.compose.ui.unit.dp // Added: For dp unit
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties // Added: For DialogProperties
-import androidx.core.content.ContextCompat // Added: For ContextCompat
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import android.app.UiModeManager
-import android.os.PowerManager
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.surfaceColorAtElevation // Added: For surfaceColorAtElevation
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+import java.security.MessageDigest
+import kotlin.experimental.and
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
@@ -1086,14 +1017,65 @@ fun MainApplicationUI(
     }
 }
 
-// --- AppNavigationRail (NEW) ---
+/**
+ * Determines if the app should be in dark theme based on the ThemeSetting.
+ * Marked as @Composable because it calls isSystemInDarkTheme().
+ */
+@Composable
+fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
+    val systemInDarkTheme = isSystemInDarkTheme()
+    return when (themeSetting) {
+        ThemeSetting.LIGHT -> false
+        ThemeSetting.DARK -> true
+        ThemeSetting.SYSTEM -> systemInDarkTheme
+        ThemeSetting.BATTERY_SAVER -> {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                powerManager.isPowerSaveMode
+            } else {
+                // For older versions, default to system theme or dark if power save cannot be detected
+                systemInDarkTheme
+            }
+        }
+    }
+}
+
+/**
+ * A generic security alert dialog displayed when a critical security issue is detected.
+ * This dialog is non-dismissible, forcing the user to exit the application.
+ * @param issue The SecurityIssue enum indicating the reason for the alert.
+ * @param onExitApp Callback to be invoked when the "Exit Application" button is clicked.
+ */
+@Composable
+fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
+    MaterialTheme {
+        AlertDialog(
+            onDismissRequest = { /* Not dismissible by user action */ },
+            icon = { Icon(Icons.Filled.Lock, contentDescription = "Security Alert Icon", tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Security Alert", color = MaterialTheme.colorScheme.error) },
+            text = { Text(issue.message, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            confirmButton = {
+                Button(
+                    onClick = onExitApp,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Exit Application", color = MaterialTheme.colorScheme.onError)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigationRail(
     selectedDestination: Screen,
     onDestinationSelected: (Screen) -> Unit,
     isExpanded: Boolean,
     onMenuClick: () -> Unit,
-    soundEffectManager: SoundEffectManager
+    soundEffectManager: SoundEffectManager,
+    onLogout: () -> Unit
 ) {
     AnimatedVisibility(
         visible = isExpanded,
@@ -1129,6 +1111,7 @@ fun AppNavigationRail(
             }
             Spacer(Modifier.weight(1f))
             TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
                 tooltip = { PlainTooltip { Text("Logout") } },
                 state = rememberTooltipState()
             ) {
@@ -1138,7 +1121,7 @@ fun AppNavigationRail(
                     selected = false, // This is a static action button
                     onClick = {
                         soundEffectManager.playClickSound()
-                        // onLogout() // Implement logout logic if needed
+                        onLogout()
                     }
                 )
             }
@@ -1169,7 +1152,7 @@ fun CustomSearchBar(
                     onClear()
                     focusManager.clearFocus()
                 }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear Search")
+                    Icon(Icons.Default.Clear, contentDescription = "Clear Search")
                 }
             }
         },
