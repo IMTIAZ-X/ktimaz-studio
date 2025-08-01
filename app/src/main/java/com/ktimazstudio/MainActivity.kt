@@ -863,209 +863,6 @@ fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
-@Composable
-fun MainApplicationUI(
-    username: String,
-    onLogout: () -> Unit,
-    soundEffectManager: SoundEffectManager,
-    sharedPrefsManager: SharedPreferencesManager
-) {
-    val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
-    var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
-    var isRailExpanded by remember { mutableStateOf(false) }
-    var searchQuery by rememberSaveable { mutableStateOf("") } // State for search query
-    var isSearching by rememberSaveable { mutableStateOf(false) } // State to control search bar visibility
-
-    // Check for internet connectivity on app launch
-    LaunchedEffect(Unit) {
-        if (!isConnected(context)) {
-            val result = snackbarHostState.showSnackbar(
-                message = "No Internet Connection!",
-                actionLabel = "Wi-Fi Settings",
-                duration = SnackbarDuration.Indefinite
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                openWifiSettings(context)
-            }
-        }
-    }
-
-    val primaryGradient = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.90f),
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
-            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.6f)
-        )
-    )
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-    val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
-    val scrolledAppBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(primaryGradient)
-    ) {
-        AppNavigationRail(
-            selectedDestination = selectedDestination,
-            onDestinationSelected = {
-                soundEffectManager.playClickSound() // Play sound on navigation item click
-                selectedDestination = it
-                isSearching = false // Hide search when navigating away from dashboard
-                searchQuery = "" // Clear search query
-            },
-            isExpanded = isRailExpanded,
-            onMenuClick = {
-                soundEffectManager.playClickSound() // Play sound on menu click
-                isRailExpanded = !isRailExpanded
-            },
-            soundEffectManager = soundEffectManager // Pass sound manager
-        )
-        Scaffold(
-            modifier = Modifier
-                .weight(1f)
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            topBar = {
-                val isScrolled = scrollBehavior.state.contentOffset > 0.1f
-                CenterAlignedTopAppBar(
-                    title = {
-                        AnimatedContent(
-                            targetState = isSearching,
-                            transitionSpec = {
-                                if (targetState) {
-                                    // Entering search
-                                    slideInHorizontally { it } + fadeIn() togetherWith slideOutHorizontally { -it } + fadeOut()
-                                } else {
-                                    // Exiting search
-                                    slideInHorizontally { -it } + fadeIn() togetherWith slideOutHorizontally { it } + fadeOut()
-                                }
-                            },
-                            label = "search_bar_transition"
-                        ) { searching ->
-                            if (searching) {
-                                CustomSearchBar(
-                                    query = searchQuery,
-                                    onQueryChange = { searchQuery = it },
-                                    onClear = { searchQuery = ""; isSearching = false },
-                                    soundEffectManager = soundEffectManager
-                                )
-                            } else {
-                                Text(
-                                    text = stringResource(id = R.string.app_name),
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        if (selectedDestination == Screen.Dashboard) {
-                            // Only show search on Dashboard
-                            IconButton(onClick = {
-                                soundEffectManager.playClickSound()
-                                isSearching = !isSearching
-                                if (!isSearching) {
-                                    searchQuery = "" // Clear search if search bar is hidden
-                                }
-                            }) {
-                                val searchIcon = if (isSearching) Icons.Default.Close else Icons.Default.Search
-                                Icon(
-                                    imageVector = searchIcon,
-                                    contentDescription = if (isSearching) "Close Search" else "Search",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = if (isScrolled) scrolledAppBarColor else Color.Transparent
-                    ),
-                    modifier = Modifier.clip(topAppBarRoundedShape),
-                    scrollBehavior = scrollBehavior
-                )
-            },
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            containerColor = Color.Transparent
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                // Content for selected screen
-                when (selectedDestination) {
-                    Screen.Dashboard -> DashboardScreen(
-                        username = username,
-                        searchQuery = searchQuery,
-                        soundEffectManager = soundEffectManager
-                    )
-                    Screen.AppSettings -> SettingsScreen(
-                        sharedPrefsManager = sharedPrefsManager,
-                        onLogout = onLogout,
-                        soundEffectManager = soundEffectManager
-                    )
-                    Screen.Profile -> ProfileScreen(
-                        username = username,
-                        onLogout = onLogout,
-                        soundEffectManager = soundEffectManager
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Determines if the app should be in dark theme based on the ThemeSetting.
- * Marked as @Composable because it calls isSystemInDarkTheme().
- */
-@Composable
-fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
-    val systemInDarkTheme = isSystemInDarkTheme()
-    return when (themeSetting) {
-        ThemeSetting.LIGHT -> false
-        ThemeSetting.DARK -> true
-        ThemeSetting.SYSTEM -> systemInDarkTheme
-        ThemeSetting.BATTERY_SAVER -> {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                powerManager.isPowerSaveMode
-            } else {
-                // For older versions, default to system theme or dark if power save cannot be detected
-                systemInDarkTheme
-            }
-        }
-    }
-}
-
-/**
- * A generic security alert dialog displayed when a critical security issue is detected.
- * This dialog is non-dismissible, forcing the user to exit the application.
- * @param issue The SecurityIssue enum indicating the reason for the alert.
- * @param onExitApp Callback to be invoked when the "Exit Application" button is clicked.
- */
-@Composable
-fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
-    MaterialTheme {
-        AlertDialog(
-            onDismissRequest = { /* Not dismissible by user action */ },
-            icon = { Icon(Icons.Filled.Lock, contentDescription = "Security Alert Icon", tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Security Alert", color = MaterialTheme.colorScheme.error) },
-            text = { Text(issue.message, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            confirmButton = {
-                Button(
-                    onClick = onExitApp,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Exit Application", color = MaterialTheme.colorScheme.onError)
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1116,7 +913,7 @@ fun AppNavigationRail(
                 state = rememberTooltipState()
             ) {
                 NavigationRailItem(
-                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout") },
+                    icon = { Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout" },
                     label = { Text("Logout") },
                     selected = false, // This is a static action button
                     onClick = {
@@ -1144,7 +941,7 @@ fun CustomSearchBar(
         value = query,
         onValueChange = onQueryChange,
         placeholder = { Text("Search modules...", style = MaterialTheme.typography.bodyLarge) },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search Icon") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = {
@@ -1194,7 +991,7 @@ fun LoginScreen(onLoginSuccess: (String) -> Unit, soundEffectManager: SoundEffec
             value = username,
             onValueChange = { username = it },
             label = { Text("Username") },
-            leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username Icon") },
+            leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = "Username Icon") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -1202,13 +999,13 @@ fun LoginScreen(onLoginSuccess: (String) -> Unit, soundEffectManager: SoundEffec
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = "Password Icon") },
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password Icon") },
             trailingIcon = {
                 IconButton(onClick = {
                     isPasswordVisible = !isPasswordVisible
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 }) {
-                    val icon = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    val icon = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     Icon(imageVector = icon, contentDescription = "Toggle password visibility")
                 }
             },
