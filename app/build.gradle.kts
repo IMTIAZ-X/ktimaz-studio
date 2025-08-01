@@ -124,7 +124,8 @@ dependencies {
     implementation(libs.androidx.material3)
 
     implementation("androidx.compose.material:material-icons-core:1.7.8")
-    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+  //  implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
