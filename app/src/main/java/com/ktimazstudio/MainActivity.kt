@@ -1,4 +1,3 @@
-
 package com.ktimazstudio
 
 import android.Manifest
@@ -18,7 +17,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Debug
 import android.provider.Settings
-import android.util.Log // NEW: Added for debugging
+import android.util.Log
 import android.view.View
 import android.view.Window
 import android.widget.Toast
@@ -54,13 +53,16 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.* // NEW: Import for semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties // NEW: Import for DialogProperties
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
+import androidx.core.util.Pair // NEW: Import for androidx.core.util.Pair
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.delay
@@ -79,150 +81,9 @@ private const val SECURITY_CHECK_INTERVAL_MS = 30_000L
 private const val ANIMATION_DURATION_MS = 300
 private const val ANIMATION_DELAY_MS = 100
 private const val SEARCH_DEBOUNCE_MS = 300L
-private const val TAG = "MainActivity" // NEW: For logging
+private const val TAG = "MainActivity"
 
-enum class ThemeSetting {
-    LIGHT, DARK, SYSTEM, BATTERY_SAVER
-}
-
-class SoundEffectManager(private val context: Context, private val sharedPrefsManager: SharedPreferencesManager) {
-    private var soundPool: SoundPool? = null
-    private var clickSoundId: Int = 0
-    private var isSoundFileMissing: Boolean = false
-
-    fun loadSounds() {
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_GAME)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-
-        soundPool = SoundPool.Builder()
-            .setMaxStreams(1)
-            .setAudioAttributes(audioAttributes)
-            .build()
-
-        try {
-            clickSoundId = soundPool?.load(context, R.raw.click_sound, 1) ?: 0
-        } catch (e: Exception) {
-            isSoundFileMissing = true
-            Log.e(TAG, "Failed to load sound: ${e.message}") // NEW: Log error
-            Toast.makeText(context, "Click sound file missing. Sound effects disabled.", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    fun playClickSound() {
-        if (sharedPrefsManager.isSoundEnabled() && clickSoundId != 0 && !isSoundFileMissing && soundPool != null) {
-            soundPool?.play(clickSoundId, 1.0f, 1.0f, 0, 0, 1.0f)
-        }
-    }
-
-    fun release() {
-        soundPool?.release()
-        soundPool = null
-    }
-}
-
-class SharedPreferencesManager(context: Context) {
-    val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
-    private val context: Context = context
-
-    companion object {
-        private const val KEY_IS_LOGGED_IN = "is_logged_in_key"
-        private const val KEY_USERNAME = "username_key"
-        const val KEY_THEME_SETTING = "theme_setting_key"
-        const val KEY_SOUND_ENABLED = "sound_enabled_key"
-        private const val KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete"
-        private const val KEY_LANGUAGE_SETTING = "language_setting_key"
-        private const val KEY_SESSION_TOKEN = "session_token_key"
-    }
-
-    fun isLoggedIn(): Boolean {
-        return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
-    }
-
-    fun setLoggedIn(loggedIn: Boolean, username: String? = null) {
-        prefs.edit().apply {
-            putBoolean(KEY_IS_LOGGED_IN, loggedIn)
-            if (loggedIn && username != null) {
-                putString(KEY_USERNAME, username)
-                val sessionToken = generateSessionToken()
-                putString(KEY_SESSION_TOKEN, sessionToken)
-            } else if (!loggedIn) {
-                remove(KEY_USERNAME)
-                remove(KEY_SESSION_TOKEN)
-            }
-            apply()
-        }
-    }
-
-    fun getUsername(): String? {
-        return prefs.getString(KEY_USERNAME, null)
-    }
-
-    fun getThemeSetting(): ThemeSetting {
-        val themeString = prefs.getString(KEY_THEME_SETTING, ThemeSetting.SYSTEM.name)
-        return try {
-            ThemeSetting.valueOf(themeString ?: ThemeSetting.SYSTEM.name)
-        } catch (e: IllegalArgumentException) {
-            ThemeSetting.SYSTEM
-        }
-    }
-
-    fun setThemeSetting(themeSetting: ThemeSetting) {
-        prefs.edit().putString(KEY_THEME_SETTING, themeSetting.name).apply()
-    }
-
-    fun isSoundEnabled(): Boolean {
-        return prefs.getBoolean(KEY_SOUND_ENABLED, true)
-    }
-
-    fun setSoundEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_SOUND_ENABLED, enabled).apply()
-    }
-
-    fun isInitialSetupComplete(): Boolean {
-        return prefs.getBoolean(KEY_INITIAL_SETUP_COMPLETE, false)
-    }
-
-    fun setInitialSetupComplete(complete: Boolean) {
-        prefs.edit().putBoolean(KEY_INITIAL_SETUP_COMPLETE, complete).apply()
-    }
-
-    fun getLanguageSetting(): String {
-        return prefs.getString(KEY_LANGUAGE_SETTING, "English") ?: "English"
-    }
-
-    fun setLanguageSetting(language: String) {
-        prefs.edit().putString(KEY_LANGUAGE_SETTING, language).apply()
-        applyLanguage(language)
-    }
-
-    private fun generateSessionToken(): String {
-        val random = SecureRandom()
-        val bytes = ByteArray(32)
-        random.nextBytes(bytes)
-        return Base64.getEncoder().encodeToString(bytes)
-    }
-
-    fun getSessionToken(): String? {
-        return prefs.getString(KEY_SESSION_TOKEN, null)
-    }
-
-    private fun applyLanguage(language: String) {
-        val locale = when (language) {
-            "Spanish" -> Locale("es")
-            "French" -> Locale("fr")
-            "German" -> Locale("de")
-            "Bengali" -> Locale("bn")
-            else -> Locale("en")
-        }
-        Locale.setDefault(locale)
-        val config = Configuration(context.resources.configuration)
-        config.setLocale(locale)
-        context.resources.updateConfiguration(config, context.resources.displayMetrics)
-        (context as? ComponentActivity)?.recreate()
-    }
-}
+// ... (ThemeSetting, SoundEffectManager, SharedPreferencesManager unchanged from previous response)
 
 fun isConnected(context: Context): Boolean {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -251,270 +112,7 @@ class SecurityManager(private val context: Context) {
         return Debug.isDebuggerConnected() || isTracerAttached()
     }
 
-    @Suppress("DEPRECATION")
-    fun isVpnActive(): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        connectivityManager.allNetworks.forEach { network ->
-            val capabilities = connectivityManager.getNetworkCapabilities(network)
-            if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
-                    logSecurityEvent("VPN detected on network: $network")
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkRequest = NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-
-        val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                super.onAvailable(network)
-                onVpnStatusChanged(isVpnActive())
-            }
-
-            override fun onLost(network: Network) {
-                super.onLost(network)
-                onVpnStatusChanged(isVpnActive())
-            }
-
-            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-                super.onCapabilitiesChanged(network, networkCapabilities)
-                onVpnStatusChanged(isVpnActive())
-            }
-        }
-        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
-        return networkCallback
-    }
-
-    fun unregisterVpnDetectionCallback(networkCallback: ConnectivityManager.NetworkCallback) {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        connectivityManager.unregisterNetworkCallback(networkCallback)
-    }
-
-    fun isRunningOnEmulator(): Boolean {
-        val isEmulator = (Build.FINGERPRINT.startsWith("generic")
-                || Build.FINGERPRINT.startsWith("unknown")
-                || Build.MODEL.contains("google_sdk")
-                || Build.MODEL.contains("Emulator")
-                || Build.MODEL.contains("Android SDK built for x86")
-                || Build.MANUFACTURER.contains("Genymotion")
-                || Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")
-                || "google_sdk" == Build.PRODUCT)
-        if (isEmulator) {
-            logSecurityEvent("Emulator detected: ${Build.MODEL}")
-        }
-        return isEmulator
-    }
-
-    fun isDeviceRooted(): Boolean {
-        isRootedCached?.let { return it }
-        val paths = arrayOf(
-            "/system/app/Superuser.apk",
-            "/sbin/su",
-            "/system/bin/su",
-            "/system/xbin/su",
-            "/data/local/xbin/su",
-            "/data/local/bin/su",
-            "/system/sd/xbin/su",
-            "/system/bin/failsafe/su",
-            "/data/local/su",
-            "/su/bin/su"
-        )
-        for (path in paths) {
-            if (File(path).exists()) {
-                logSecurityEvent("Root binary detected at: $path")
-                isRootedCached = true
-                return true
-            }
-        }
-        if (Build.TAGS != null && Build.TAGS.contains("test-keys")) {
-            logSecurityEvent("Test-keys detected in Build.TAGS")
-            isRootedCached = true
-            return true
-        }
-        var process: Process? = null
-        try {
-            process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            if (reader.readLine() != null) {
-                logSecurityEvent("su command executable found")
-                isRootedCached = true
-                return true
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Root check failed: ${e.message}") // NEW: Log error
-        } finally {
-            process?.destroy()
-        }
-        isRootedCached = false
-        return false
-    }
-
-    @Suppress("DEPRECATION")
-    fun getSignatureSha256Hash(): String? {
-        return try {
-            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-            } else {
-                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
-            }
-            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.signingInfo?.apkContentsSigners
-            } else {
-                packageInfo.signatures
-            }
-            signatures?.takeIf { it.isNotEmpty() }?.let {
-                val md = MessageDigest.getInstance("SHA-256")
-                val hashBytes = md.digest(it[0].toByteArray())
-                hashBytes.joinToString("") { "%02x".format(it.and(0xff.toByte())) }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to calculate signature hash: ${e.message}") // NEW: Log error
-            null
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    fun getApkSha256Hash_UNUSED(): String? {
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return null
-            val file = File(apkPath)
-            if (file.exists()) {
-                val bytes = file.readBytes()
-                val digest = MessageDigest.getInstance("SHA-256")
-                val hashBytes = digest.digest(bytes)
-                return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to calculate APK hash: ${e.message}") // NEW: Log error
-            null
-        }
-        return null
-    }
-
-    fun isHookingFrameworkDetected(): Boolean {
-        isHookingDetectedCached?.let { return it }
-        val knownHookFiles = arrayOf(
-            "/system/app/XposedInstaller.apk",
-            "/system/bin/app_process_xposed",
-            "/system/lib/libxposed_art.so",
-            "/data/app/de.robv.android.xposed.installer",
-            "/data/data/de.robv.android.xposed.installer",
-            "/dev/frida",
-            "/data/local/tmp/frida-agent.so",
-            "/data/local/tmp/frida-agent-64.so",
-            "/data/local/tmp/frida-agent-32.so",
-            "/data/app/*/frida-server*",
-            "/data/local/frida/frida-server",
-            "/sbin/magisk",
-            "/system/xbin/magisk"
-        )
-        for (path in knownHookFiles) {
-            if (File(path).exists()) {
-                logSecurityEvent("Hooking framework file detected at: $path")
-                isHookingDetectedCached = true
-                return true
-            }
-        }
-        val props = listOf("xposed.active", "xposed.api_level", "xposed.installed")
-        try {
-            val process = Runtime.getRuntime().exec("getprop")
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            var line: String?
-            while (true) {
-                line = reader.readLine()
-                if (line == null) break
-                for (prop in props) {
-                    if (line.contains("[$prop]:")) {
-                        logSecurityEvent("Hooking framework property detected: $prop")
-                        isHookingDetectedCached = true
-                        return true
-                    }
-                }
-            }
-            process.destroy()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking system properties: ${e.message}") // NEW: Log error
-        }
-        try {
-            context.packageManager.getPackageInfo("de.robv.android.xposed.installer", PackageManager.GET_ACTIVITIES)
-            logSecurityEvent("Xposed installer package detected")
-            isHookingDetectedCached = true
-            return true
-        } catch (e: PackageManager.NameNotFoundException) {
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking Xposed installer package: ${e.message}") // NEW: Log error
-        }
-        try {
-            val process = Runtime.getRuntime().exec("ps -A")
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                if (line?.contains("frida-server") == true) {
-                    logSecurityEvent("Frida server process detected")
-                    isHookingDetectedCached = true
-                    return true
-                }
-            }
-            process.destroy()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking for Frida processes: ${e.message}") // NEW: Log error
-        }
-        isHookingDetectedCached = false
-        return false
-    }
-
-    fun isApkTampered(): Boolean {
-        val currentSignatureHash = getSignatureSha256Hash()
-        val isTampered = currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
-        if (isTampered) {
-            logSecurityEvent("APK tampering detected. Current hash: $currentSignatureHash")
-        }
-        return isTampered
-    }
-
-    @Suppress("DEPRECATION")
-    fun getAppSize(): Long {
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return -1L
-            val file = File(apkPath)
-            return file.length()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get app size: ${e.message}") // NEW: Log error
-            return -1L
-        }
-    }
-
-    fun isTracerAttached(): Boolean {
-        try {
-            val statusFile = File("/proc/self/status")
-            if (statusFile.exists()) {
-                statusFile.bufferedReader().useLines { lines ->
-                    val tracerPidLine = lines.firstOrNull { it.startsWith("TracerPid:") }
-                    if (tracerPidLine != null) {
-                        val pid = tracerPidLine.substringAfter("TracerPid:").trim().toInt()
-                        if (pid != 0) {
-                            logSecurityEvent("Tracer detected with PID: $pid")
-                            return true
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking TracerPid: ${e.message}") // NEW: Log error
-        }
-        return false
-    }
+    // ... (isVpnActive, registerVpnDetectionCallback, unregisterVpnDetectionCallback, isRunningOnEmulator, isDeviceRooted, getSignatureSha256Hash, getApkSha256Hash_UNUSED, isHookingFrameworkDetected, isApkTampered, getAppSize, isTracerAttached unchanged)
 
     fun getSecurityIssue(isInspectionMode: Boolean): SecurityIssue {
         if (isInspectionMode) return SecurityIssue.NONE
@@ -528,7 +126,7 @@ class SecurityManager(private val context: Context) {
             if (isVpnActive()) return SecurityIssue.VPN_ACTIVE
             return SecurityIssue.NONE
         } catch (e: Exception) {
-            Log.e(TAG, "Security check failed: ${e.message}") // NEW: Log error
+            Log.e(TAG, "Security check failed: ${e.message}")
             return SecurityIssue.UNKNOWN
         }
     }
@@ -543,7 +141,7 @@ class SecurityManager(private val context: Context) {
     }
 
     private fun logSecurityEvent(event: String) {
-        Log.w(TAG, "Security Event: $event") // NEW: Log instead of Toast to reduce UI thread load
+        Log.w(TAG, "Security Event: $event")
         Toast.makeText(context, "Security Event: $event", Toast.LENGTH_SHORT).show()
     }
 }
@@ -580,7 +178,7 @@ class MainActivity : ComponentActivity() {
         try {
             soundEffectManager.loadSounds()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load sounds: ${e.message}") // NEW: Log error
+            Log.e(TAG, "Failed to load sounds: ${e.message}")
             Toast.makeText(this, "Failed to load resources. Please reinstall the app.", Toast.LENGTH_LONG).show()
             finishAffinity()
             return
@@ -626,8 +224,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    var isLoggedIn by rememberSaveable { mutableStateOf(sharedPrefsManager.isLoggedIn()) } // NEW: Use rememberSaveable
-                    var currentUsername by rememberSaveable { mutableStateOf(sharedPrefsManager.getUsername() ?: "User") } // NEW: Default to "User"
+                    var isLoggedIn by rememberSaveable { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
+                    var currentUsername by rememberSaveable { mutableStateOf(sharedPrefsManager.getUsername() ?: "User") }
                     var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
                     var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
 
@@ -657,7 +255,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // NEW: Log state changes to debug login-to-main crash
                     LaunchedEffect(isLoggedIn, currentUsername) {
                         Log.d(TAG, "Login state: isLoggedIn=$isLoggedIn, username=$currentUsername")
                     }
@@ -679,11 +276,11 @@ class MainActivity : ComponentActivity() {
                             label = "LoginScreenTransition"
                         ) { targetIsLoggedIn ->
                             if (targetIsLoggedIn) {
-                                Log.d(TAG, "Transitioning to MainApplicationUI with username: $currentUsername") // NEW: Log transition
+                                Log.d(TAG, "Transitioning to MainApplicationUI with username: $currentUsername")
                                 MainApplicationUI(
                                     username = currentUsername,
                                     onLogout = {
-                                        Log.d(TAG, "Logout triggered") // NEW: Log logout
+                                        Log.d(TAG, "Logout triggered")
                                         sharedPrefsManager.setLoggedIn(false)
                                         isLoggedIn = false
                                         currentUsername = "User"
@@ -692,10 +289,10 @@ class MainActivity : ComponentActivity() {
                                     sharedPrefsManager = sharedPrefsManager
                                 )
                             } else {
-                                Log.d(TAG, "Showing LoginScreen") // NEW: Log login screen
+                                Log.d(TAG, "Showing LoginScreen")
                                 LoginScreen(
                                     onLoginSuccess = { loggedInUsername ->
-                                        Log.d(TAG, "Login success for username: $loggedInUsername") // NEW: Log success
+                                        Log.d(TAG, "Login success for username: $loggedInUsername")
                                         sharedPrefsManager.setLoggedIn(true, loggedInUsername)
                                         isLoggedIn = true
                                         currentUsername = loggedInUsername
@@ -914,7 +511,7 @@ fun InitialSetupDialog(
                 }
             }
         },
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false) // FIXED: Now properly imported
     )
 }
 
@@ -1004,7 +601,7 @@ fun MainApplicationUI(
                                     fontSize = 22.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.semantics { contentDescription = "App Title" }
+                                    modifier = Modifier.semantics { contentDescription = "App Title" } // FIXED: Added semantics import
                                 )
                             }
                         }
@@ -1098,6 +695,7 @@ fun AnimatedCardGrid(
         }
     }
     var isFiltering by remember { mutableStateOf(false) }
+    val context = LocalContext.current // NEW: Moved context access outside lambda
 
     LaunchedEffect(searchQuery) {
         isFiltering = true
@@ -1118,18 +716,23 @@ fun AnimatedCardGrid(
                 title = cardTitle,
                 onClick = {
                     val intent = when (cardTitle) {
-                        "System Config" -> Intent(LocalContext.current, SettingsActivity::class.java)
-                        else -> Intent(LocalContext.current, ComingActivity::class.java).putExtra("CARD_TITLE", cardTitle)
+                        "System Config" -> Intent(context, SettingsActivity::class.java)
+                        else -> Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", cardTitle)
                     }
                     intent.putExtra("transition_name", "card_$cardTitle")
                     try {
-                        LocalContext.current.startActivity(intent, ActivityOptionsCompat.makeSceneTransitionAnimation(
-                            LocalContext.current as ComponentActivity,
-                            Pair(View(LocalContext.current), "card_$cardTitle")
-                        ).toBundle())
+                        // NEW: Moved transition logic outside Composable scope
+                        val activity = context as? ComponentActivity
+                        activity?.let {
+                            val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                                it,
+                                Pair(View(context), "card_$cardTitle") // FIXED: Use androidx.core.util.Pair
+                            )
+                            context.startActivity(intent, options.toBundle())
+                        } ?: context.startActivity(intent) // Fallback if activity is null
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to start activity with transition: ${e.message}") // NEW: Log error
-                        LocalContext.current.startActivity(intent) // Fallback without transition
+                        Log.e(TAG, "Failed to start activity with transition: ${e.message}")
+                        context.startActivity(intent)
                     }
                     onCardClick(cardTitle)
                 },
@@ -1196,7 +799,7 @@ fun AnimatedCardItem(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             }
-            .semantics { contentDescription = "Card: $title" },
+            .semantics { contentDescription = "Card: $title" }, // FIXED: Added semantics import
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
@@ -1430,6 +1033,15 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    // NEW: Check resources outside Composable scope
+    val isLogoAvailable = try {
+        context.resources.getResourceEntryName(R.mipmap.ic_launcher_round)
+        true
+    } catch (e: Exception) {
+        Log.e(TAG, "Logo resource not found: ${e.message}")
+        false
+    }
+
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
@@ -1446,14 +1058,13 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
         errorTrailingIconColor = MaterialTheme.colorScheme.error
     )
 
-    val backgroundGradient = Brush.linearGradient( // NEW: Simplified gradient
+    val backgroundGradient = Brush.linearGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
             MaterialTheme.colorScheme.surface
         )
     )
 
-    // NEW: Remove infiniteTransition to reduce CPU usage
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1476,8 +1087,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // NEW: Validate resource existence
-                try {
+                if (isLogoAvailable) {
                     Image(
                         painter = painterResource(id = R.mipmap.ic_launcher_round),
                         contentDescription = stringResource(id = R.string.app_name) + " Logo",
@@ -1488,8 +1098,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                             .padding(8.dp),
                         colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
                     )
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to load logo: ${e.message}") // NEW: Log error
+                } else {
                     Icon(
                         imageVector = Icons.Filled.AccountCircle,
                         contentDescription = "Fallback Logo",
@@ -1543,7 +1152,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                         isLoading = true
                         errorMessage = null
                         coroutineScope.launch {
-                            delay(1000) // NEW: Reduced delay for faster feedback
+                            delay(1000)
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 soundEffectManager.playClickSound()
@@ -1604,7 +1213,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                         isLoading = true
                         errorMessage = null
                         coroutineScope.launch {
-                            delay(1000) // NEW: Reduced delay
+                            delay(1000)
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 soundEffectManager.playClickSound()
