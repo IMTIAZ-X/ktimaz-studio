@@ -12,32 +12,29 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
-import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
+import android.os.PowerManager
+import android.provider.Settings
 import android.widget.Toast
-import java.io.BufferedReader // Added: For BufferedReader
-import java.io.File // Added: For File operations
-import java.io.InputStreamReader // Added: For InputStreamReader
-import java.security.MessageDigest // Added: For MessageDigest
-import kotlin.experimental.and // Added: For bitwise 'and' operation
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts // Added: For ActivityResultContracts
-import androidx.activity.compose.rememberLauncherForActivityResult // Crucial import for rememberLauncherForActivityResult
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border // Added: For border modifier
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.LocalIndication // Added: For LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,105 +43,167 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.Language
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle // Added: For CheckCircle icon
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.HistoryEdu
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage // Added: For Storage icon
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.AlertDialog // Explicit import for Material3 AlertDialog
-import androidx.compose.material3.Button // Explicit import for Material3 Button
-import androidx.compose.material3.ButtonDefaults // Explicit import for Material3 ButtonDefaults
-import androidx.compose.material3.Card // Explicit import for Material3 Card
-import androidx.compose.material3.CardDefaults // Explicit import for Material3 CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar // Explicit import for Material3 CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator // Explicit import for Material3 CircularProgressIndicator
-import androidx.compose.material3.Divider // Explicit import for Material3 Divider
-import androidx.compose.material3.DropdownMenu // Explicit import for Material3 DropdownMenu
-import androidx.compose.material3.DropdownMenuItem // Explicit import for Material3 DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api // Explicit import for ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider // Explicit import for HorizontalDivider
-import androidx.compose.material3.Icon // Explicit import for Material3 Icon
-import androidx.compose.material3.IconButton // Explicit import for Material3 IconButton
-import androidx.compose.material3.MaterialTheme // Explicit import for Material3 MaterialTheme
-import androidx.compose.material3.NavigationRail // Explicit import for Material3 NavigationRail
-import androidx.compose.material3.NavigationRailItem // Explicit import for Material3 NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults // Explicit import for Material3 NavigationRailItemDefaults
-import androidx.compose.material3.OutlinedButton // Explicit import for Material3 OutlinedButton
-import androidx.compose.material3.OutlinedTextField // Explicit import for Material3 OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults // Explicit import for Material3 OutlinedTextFieldDefaults
-import androidx.compose.material3.PlainTooltip // Explicit import for Material3 PlainTooltip
-import androidx.compose.material3.Scaffold // Explicit import for Material3 Scaffold
-import androidx.compose.material3.SegmentedButton // Explicit import for SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults // Explicit import for SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow // Explicit import for SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarDuration // Explicit import for Material3 SnackbarDuration
-import androidx.compose.material3.SnackbarHost // Explicit import for Material3 SnackbarHost
-import androidx.compose.material3.SnackbarHostState // Explicit import for Material3 SnackbarHostState
-import androidx.compose.material3.SnackbarResult // Explicit import for Material3 SnackbarResult
-import androidx.compose.material3.Switch // Explicit import for Material3 Switch
-import androidx.compose.material3.Text // Explicit import for Material3 Text
-import androidx.compose.material3.TextButton // Explicit import for Material3 TextButton
-import androidx.compose.material3.TooltipBox // Explicit import for Material3 TooltipBox
-import androidx.compose.material3.TooltipDefaults // Explicit import for Material3 TooltipDefaults
-import androidx.compose.material3.TopAppBarDefaults // Explicit import for Material3 TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState // Explicit import for Material3 rememberTopAppBarState
-import androidx.compose.material3.rememberTooltipState // Explicit import for Material3 TooltipState
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment // Added: For Alignment
-import androidx.compose.ui.Modifier // Added: For Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush // Added: For Brush
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector // Added: For ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType // Added: For HapticFeedbackType
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext // Added: For LocalContext
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
-import androidx.compose.ui.res.painterResource // Added: For painterResource
-import androidx.compose.ui.res.stringResource // Added: For stringResource
-import androidx.compose.ui.text.font.FontWeight // Added: For FontWeight
-import androidx.compose.ui.text.input.ImeAction // Added: For ImeAction
-import androidx.compose.ui.text.input.KeyboardType // Added: For KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation // Added: For PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation // Added: For VisualTransformation
-import androidx.compose.ui.text.style.TextAlign // Added: For TextAlign
-import androidx.compose.ui.unit.dp // Added: For dp unit
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties // Added: For DialogProperties
-import androidx.core.content.ContextCompat // Added: For ContextCompat
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import android.app.UiModeManager
-import android.os.PowerManager
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.surfaceColorAtElevation // Added: For surfaceColorAtElevation
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+import java.security.MessageDigest
+import kotlin.experimental.and
+
+// ADD THESE TO YOUR build.gradle.kts (Module: app)
+//
+// dependencies {
+//     // ViewModel
+//     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+//
+//     // Hilt (for dependency injection, optional but recommended)
+//     // implementation("com.google.dagger:hilt-android:2.51.1")
+//     // kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+//     // hilt-navigation-compose
+//     // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+// }
+//
+// plugins {
+//     // Apply the KSP plugin
+//     id("com.google.devtools.ksp") version "1.9.23-1.0.20"
+//     // Apply the Hilt plugin
+//     id("com.google.dagger.hilt.android")
+// }
+
+
+// --- ViewModel ---
+/**
+ * Main ViewModel to handle all application state and business logic.
+ * This class is responsible for managing login state, security checks, and UI state,
+ * separating them from the Activity and Composables.
+ */
+class MainViewModel(
+    private val sharedPrefsManager: SharedPreferencesManager,
+    private val securityManager: SecurityManager
+) : ViewModel() {
+
+    // --- State exposed to the UI ---
+    // Using LiveData for state that can be observed across different UI components
+    private val _isLoggedIn = MutableLiveData(sharedPrefsManager.isLoggedIn())
+    val isLoggedIn: LiveData<Boolean> = _isLoggedIn
+
+    private val _currentUsername = MutableLiveData(sharedPrefsManager.getUsername())
+    val currentUsername: LiveData<String?> = _currentUsername
+
+    private val _securityIssue = MutableLiveData(SecurityIssue.NONE)
+    val securityIssue: LiveData<SecurityIssue> = _securityIssue
+
+    // Live VPN detection status
+    private val _liveVpnDetected = MutableLiveData(securityManager.isVpnActive())
+    val liveVpnDetected: LiveData<Boolean> = _liveVpnDetected
+
+    // --- Business Logic ---
+    init {
+        // Start periodic security checks when the ViewModel is created
+        viewModelScope.launch {
+            while (true) {
+                delay(5000) // Check every 5 seconds
+                performSecurityCheck()
+            }
+        }
+    }
+
+    /**
+     * Performs a comprehensive security check and updates the state.
+     * This method is called periodically and on VPN status changes.
+     */
+    fun performSecurityCheck() {
+        // We'll pass `false` here as the ViewModel won't be active in a Preview.
+        val issue = securityManager.getSecurityIssue(false)
+        _securityIssue.postValue(issue)
+    }
+
+    /**
+     * Handles user login logic.
+     * @param username The username of the logged-in user.
+     */
+    fun onLoginSuccess(username: String) {
+        sharedPrefsManager.setLoggedIn(true, username)
+        _isLoggedIn.value = true
+        _currentUsername.value = username
+    }
+
+    /**
+     * Handles user logout logic.
+     */
+    fun onLogout() {
+        sharedPrefsManager.setLoggedIn(false)
+        _isLoggedIn.value = false
+        _currentUsername.value = null
+    }
+
+    /**
+     * Registers the VPN detection callback.
+     * @param onVpnStatusChanged Callback to be invoked when VPN status changes.
+     */
+    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
+        return securityManager.registerVpnDetectionCallback { isVpn ->
+            _liveVpnDetected.postValue(isVpn)
+            if (isVpn) {
+                // If a VPN is detected, immediately flag it as a security issue.
+                _securityIssue.postValue(SecurityIssue.VPN_ACTIVE)
+            } else {
+                // If VPN is gone, re-evaluate the security status.
+                performSecurityCheck()
+            }
+            onVpnStatusChanged(isVpn)
+        }
+    }
+
+    /**
+     * Unregisters the VPN detection callback.
+     * @param networkCallback The callback to unregister.
+     */
+    fun unregisterVpnDetectionCallback(networkCallback: ConnectivityManager.NetworkCallback) {
+        securityManager.unregisterVpnDetectionCallback(networkCallback)
+    }
+}
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
@@ -356,6 +415,29 @@ fun openWifiSettings(context: Context) {
  *
  * NOTE: Client-side security checks are never foolproof and can be bypassed by
  * determined attackers. They serve as deterrents and indicators of compromise.
+ *
+ * IMPORTANT SECURITY UPGRADE: Certificate Pinning
+ * To further enhance security, especially for network communication, you should implement
+ * Certificate Pinning. This involves:
+ * 1. Obtaining the public key hash of your server's SSL certificate.
+ * 2. Storing this hash securely within your app's Network Security Configuration XML file.
+ * 3. Android's network stack will then verify that the server's certificate matches your
+ * pinned hash, preventing Man-in-the-Middle (MitM) attacks.
+ * This is a crucial step for apps handling sensitive data.
+ *
+ * A sample `network_security_config.xml` would look like this:
+ * ```xml
+ * <?xml version="1.0" encoding="utf-8"?>
+ * <network-security-config>
+ * <domain-config>
+ * <domain includeSubdomains="true">your-api-domain.com</domain>
+ * <pin-set expiration="2025-01-01">
+ * <pin digest="SHA-256">your-certificate-hash-here</pin>
+ * </pin-set>
+ * </domain-config>
+ * </network-security-config>
+ * ```
+ * Then reference this file in your `AndroidManifest.xml`.
  */
 class SecurityManager(private val context: Context) {
 
@@ -537,46 +619,18 @@ class SecurityManager(private val context: Context) {
      * This is now the primary integrity check.
      * return true if the signature hash matches, false otherwise.
      */
-
-    /**
-     * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
-     * Kept for reference or if needed for other purposes.
-     *
-     * Calculates the SHA-256 hash of the application's APK file.
-     * This can be used to detect if the APK has been tampered with.
-     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
-     */
-    fun getApkSha256Hash_UNUSED(): String? {
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return null
-            val file = File(apkPath)
-            if (file.exists()) {
-                val bytes = file.readBytes()
-                val digest = MessageDigest.getInstance("SHA-256")
-                val hashBytes = digest.digest(bytes)
-                return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return null
+    fun isApkTampered(): Boolean {
+        val currentSignatureHash = getSignatureSha256Hash()
+        // Compare with the signature SHA-256 hash provided by you.
+        return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
     }
 
-     /**
-     * Checks if the APK's *signature hash* matches the expected hash.
-     * This is now the primary integrity check.
-     * return true if the signature hash matches, false otherwise.
-     */
-
-       /**
+    /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, or system properties.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
      * return true if a hooking framework is likely detected, false otherwise.
      */
-
-
     fun isHookingFrameworkDetected(): Boolean {
         // 1. Check for common Xposed/Magisk/Frida related files/directories
         val knownHookFiles = arrayOf(
@@ -628,17 +682,6 @@ class SecurityManager(private val context: Context) {
         // This is more complex and might lead to false positives, so omitted for brevity.
 
         return false
-    }
-
-    /**
-     * Checks if the APK's signature hash matches the expected hash.
-     * This is now the primary integrity check.
-     * return true if the signature hash matches, false otherwise.
-     */
-    fun isApkTampered(): Boolean {
-        val currentSignatureHash = getSignatureSha256Hash()
-        // Compare with the signature SHA-256 hash provided by you.
-        return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
     }
 
     /**
@@ -720,44 +763,48 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
+// --- MainActivity and UI Composables ---
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var securityManager: SecurityManager
-    private lateinit var soundEffectManager: SoundEffectManager // Initialize SoundEffectManager
+    private lateinit var soundEffectManager: SoundEffectManager
+    private lateinit var mainViewModel: MainViewModel // Instantiate ViewModel
     private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
-        // Pass sharedPrefsManager to SoundEffectManager
         soundEffectManager = SoundEffectManager(applicationContext, sharedPrefsManager)
-        soundEffectManager.loadSounds() // Load sounds
+        soundEffectManager.loadSounds()
         securityManager = SecurityManager(applicationContext)
+        mainViewModel = MainViewModel(sharedPrefsManager, securityManager) // Initialize ViewModel
 
-        setContent { // All @Composable calls must be inside setContent
+        setContent {
             val context = LocalContext.current
             val isInspectionMode = LocalInspectionMode.current
-            // Determine if the app should be in dark theme based on setting
+
+            // Determine theme based on user setting
             val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
             val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
-
-            // Perform initial security checks, passing isInspectionMode
-            val initialSecurityIssue = remember {
-                securityManager.getSecurityIssue(isInspectionMode)
-            }
 
             // State to control initial setup dialog visibility
             var showInitialSetupDialog by rememberSaveable {
                 mutableStateOf(!sharedPrefsManager.isInitialSetupComplete())
             }
 
+            // Observe states from the ViewModel
+            val isLoggedIn by mainViewModel.isLoggedIn.observeAsState(sharedPrefsManager.isLoggedIn())
+            val currentUsername by mainViewModel.currentUsername.observeAsState(sharedPrefsManager.getUsername())
+            val currentSecurityIssue by mainViewModel.securityIssue.observeAsState(
+                securityManager.getSecurityIssue(isInspectionMode)
+            )
+
             ktimaz(darkTheme = useDarkTheme) { // Theme wrapper
-                if (initialSecurityIssue != SecurityIssue.NONE) {
-                    SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
+                if (currentSecurityIssue != SecurityIssue.NONE) {
+                    SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
                 } else if (showInitialSetupDialog) {
-                    // Show the initial setup dialog if it hasn't been completed
                     InitialSetupDialog(
                         sharedPrefsManager = sharedPrefsManager,
                         soundEffectManager = soundEffectManager,
@@ -780,82 +827,42 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
-                    var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
-                    var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
-                    var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
-
-                    // Live VPN detection
+                    // Live VPN detection is handled by the ViewModel
                     DisposableEffect(Unit) {
-                        vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
-                            liveVpnDetected = isVpn
-                            // If VPN is detected, set it as the current issue.
-                            // Otherwise, re-evaluate all security issues.
-                            if (isVpn) {
-                                currentSecurityIssue = SecurityIssue.VPN_ACTIVE
-                            } else {
-                                // Pass isInspectionMode to getSecurityIssue
-                                currentSecurityIssue = securityManager.getSecurityIssue(isInspectionMode)
-                            }
-                        }
+                        vpnNetworkCallback = mainViewModel.registerVpnDetectionCallback { /* The ViewModel handles the state update, nothing to do here */ }
                         onDispose {
-                            vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+                            vpnNetworkCallback?.let { mainViewModel.unregisterVpnDetectionCallback(it) }
                         }
                     }
 
-                    // Periodic security checks for other issues (debugger, root, emulator, tampering, hooking)
-                    // This runs every 5 seconds to catch issues that might appear after app launch.
-                    LaunchedEffect(Unit) {
-                        while (true) {
-                            delay(5000) // Check every 5 seconds
-                            // Pass isInspectionMode to getSecurityIssue
-                            val issue = securityManager.getSecurityIssue(isInspectionMode)
-                            // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
-                            if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
-                                currentSecurityIssue = issue
-                            } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
-                                // If VPN was active and now no issue is found, clear the alert
-                                currentSecurityIssue = SecurityIssue.NONE
-                            }
-                        }
-                    }
-
-                    // Observe currentSecurityIssue and display alert if needed
-                    if (currentSecurityIssue != SecurityIssue.NONE) {
-                        SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
-                    } else {
-                        AnimatedContent(
-                            targetState = isLoggedIn,
-                            transitionSpec = {
-                                (fadeIn(animationSpec = tween(400, delayMillis = 200)) +
-                                        scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)))
-                                    .togetherWith(
-                                        fadeOut(animationSpec = tween(200)) +
-                                                scaleOut(targetScale = 0.92f, animationSpec = tween(200))
-                                    )
-                                    .using(SizeTransform(clip = false))
-                            },
-                            label = "LoginScreenTransition"
-                        ) { targetIsLoggedIn ->
-                            if (targetIsLoggedIn) {
-                                MainApplicationUI(
-                                    username = currentUsername ?: "User",
-                                    onLogout = {
-                                        sharedPrefsManager.setLoggedIn(false)
-                                        isLoggedIn = false
-                                    },
-                                    soundEffectManager = soundEffectManager, // Pass sound manager
-                                    sharedPrefsManager = sharedPrefsManager // FIXED: Pass sharedPrefsManager
+                    // The logic for isLoggedIn and currentUsername is now managed by the ViewModel
+                    AnimatedContent(
+                        targetState = isLoggedIn,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(400, delayMillis = 200)) +
+                                    scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)))
+                                .togetherWith(
+                                    fadeOut(animationSpec = tween(200)) +
+                                            scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                                 )
-                            } else {
-                                LoginScreen(
-                                    onLoginSuccess = { loggedInUsername ->
-                                        sharedPrefsManager.setLoggedIn(true, loggedInUsername)
-                                        isLoggedIn = true
-                                    },
-                                    soundEffectManager = soundEffectManager // Pass sound manager
-                                )
-                            }
+                                .using(SizeTransform(clip = false))
+                        },
+                        label = "LoginScreenTransition"
+                    ) { targetIsLoggedIn ->
+                        if (targetIsLoggedIn) {
+                            MainApplicationUI(
+                                username = currentUsername ?: "User",
+                                onLogout = { mainViewModel.onLogout() },
+                                soundEffectManager = soundEffectManager,
+                                sharedPrefsManager = sharedPrefsManager
+                            )
+                        } else {
+                            LoginScreen(
+                                onLoginSuccess = { loggedInUsername ->
+                                    mainViewModel.onLoginSuccess(loggedInUsername)
+                                },
+                                soundEffectManager = soundEffectManager
+                            )
                         }
                     }
                 }
@@ -865,8 +872,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
-        soundEffectManager.release() // Release SoundPool resources
+        vpnNetworkCallback?.let { mainViewModel.unregisterVpnDetectionCallback(it) }
+        soundEffectManager.release()
     }
 }
 
@@ -886,7 +893,6 @@ fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
                 powerManager.isPowerSaveMode
             } else {
-                // For older versions, default to system theme or dark if power save cannot be detected
                 systemInDarkTheme
             }
         }
@@ -932,10 +938,9 @@ fun MainApplicationUI(
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
     var isRailExpanded by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") } // State for search query
-    var isSearching by remember { mutableStateOf(false) } // State to control search bar visibility
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearching by remember { mutableStateOf(false) }
 
-    // Check for internet connectivity on app launch
     LaunchedEffect(Unit) {
         if (!isConnected(context)) {
             val result = snackbarHostState.showSnackbar(
@@ -956,11 +961,9 @@ fun MainApplicationUI(
             MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.6f)
         )
     )
-
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
     val scrolledAppBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
-
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -969,19 +972,18 @@ fun MainApplicationUI(
         AppNavigationRail(
             selectedDestination = selectedDestination,
             onDestinationSelected = {
-                soundEffectManager.playClickSound() // Play sound on navigation item click
+                soundEffectManager.playClickSound()
                 selectedDestination = it
-                isSearching = false // Hide search when navigating away from dashboard
-                searchQuery = "" // Clear search query
+                isSearching = false
+                searchQuery = ""
             },
             isExpanded = isRailExpanded,
             onMenuClick = {
-                soundEffectManager.playClickSound() // Play sound on menu click
+                soundEffectManager.playClickSound()
                 isRailExpanded = !isRailExpanded
             },
-            soundEffectManager = soundEffectManager // Pass sound manager
+            soundEffectManager = soundEffectManager
         )
-
         Scaffold(
             modifier = Modifier
                 .weight(1f)
@@ -993,14 +995,13 @@ fun MainApplicationUI(
                         AnimatedContent(
                             targetState = isSearching,
                             transitionSpec = {
-                                if (targetState) { // Entering search
-                                    slideInHorizontally { it } + fadeIn() togetherWith
-                                            slideOutHorizontally { -it } + fadeOut()
-                                } else { // Exiting search
-                                    slideInHorizontally { -it } + fadeIn() togetherWith
-                                            slideOutHorizontally { it } + fadeOut()
+                                if (targetState) {
+                                    slideInHorizontally { it } + fadeIn() togetherWith slideOutHorizontally { -it } + fadeOut()
+                                } else {
+                                    slideInHorizontally { -it } + fadeIn() togetherWith slideOutHorizontally { it } + fadeOut()
                                 }
-                            }, label = "search_bar_transition"
+                            },
+                            label = "search_bar_transition"
                         ) { searching ->
                             if (searching) {
                                 CustomSearchBar(
@@ -1020,11 +1021,10 @@ fun MainApplicationUI(
                         }
                     },
                     actions = {
-                        if (selectedDestination == Screen.Dashboard) { // Only show search on Dashboard
-                            IconButton(onClick = {
-                                soundEffectManager.playClickSound()
+                        if (selectedDestination == Screen.Dashboard) {
+                            IconButton(onClick = { soundEffectManager.playClickSound()
                                 isSearching = !isSearching
-                                if (!isSearching) searchQuery = "" // Clear search when closing
+                                if (!isSearching) searchQuery = ""
                             }) {
                                 Icon(
                                     imageVector = Icons.Filled.Search,
@@ -1061,30 +1061,19 @@ fun MainApplicationUI(
                 targetState = selectedDestination,
                 transitionSpec = {
                     fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
-                            slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(300)) togetherWith
+                            slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(300))
+                        .togetherWith(
                             fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                            slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -300 else 300 }, animationSpec = tween(300))
-                }, label = "nav_rail_content_transition"
+                                    slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -300 else 300 }, animationSpec = tween(300))
+                        )
+                },
+                label = "nav_rail_content_transition"
             ) { targetDestination ->
                 Box(modifier = Modifier.padding(paddingValues)) {
                     when (targetDestination) {
-                        Screen.Dashboard -> AnimatedCardGrid(
-                            searchQuery = searchQuery, // Pass search query
-                            onCardClick = { title ->
-                                soundEffectManager.playClickSound() // Play sound on card click
-                                if (title == "System Config") {
-                                    context.startActivity(Intent(context, SettingsActivity::class.java))
-                                } else {
-                                    context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
-                                }
-                            },
-                            soundEffectManager = soundEffectManager // Pass sound manager
-                        )
-                        Screen.AppSettings -> SettingsScreen(
-                            soundEffectManager = soundEffectManager,
-                            sharedPrefsManager = sharedPrefsManager
-                        )
-                        Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
+                        Screen.Dashboard -> AnimatedCardGrid(searchQuery)
+                        Screen.AppSettings -> AppSettingsScreen(sharedPrefsManager, soundEffectManager, onLogout)
+                        Screen.Profile -> ProfileScreen(username, onLogout)
                     }
                 }
             }
@@ -1093,7 +1082,11 @@ fun MainApplicationUI(
 }
 
 /**
- * Custom Search Bar Composable for the Top App Bar.
+ * A custom search bar Composable with a clear button and animations.
+ * @param query The current search query.
+ * @param onQueryChange Callback to update the query.
+ * @param onClear Callback to clear the query.
+ * @param soundEffectManager Manager to play click sounds.
  */
 @Composable
 fun CustomSearchBar(
@@ -1102,500 +1095,269 @@ fun CustomSearchBar(
     onClear: () -> Unit,
     soundEffectManager: SoundEffectManager
 ) {
-    val focusManager = LocalFocusManager.current
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text("Search modules...", style = MaterialTheme.typography.bodyLarge) },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search Icon") },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = {
-                    soundEffectManager.playClickSound()
-                    onClear()
-                    focusManager.clearFocus()
-                }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear Search")
-                }
-            }
-        },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
-            cursorColor = MaterialTheme.colorScheme.primary,
-            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
-            unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
-        shape = RoundedCornerShape(28.dp),
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
-            .padding(vertical = 4.dp)
+            .padding(horizontal = 16.dp),
+        singleLine = true,
+        placeholder = { Text("Search...", color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = "Search Icon",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        },
+        trailingIcon = {
+            AnimatedVisibility(
+                visible = query.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                IconButton(onClick = onClear) {
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = "Clear Search",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = Color.Transparent,
+            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        shape = RoundedCornerShape(50.dp),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(
+            onSearch = { /* Handle search action */ }
+        )
     )
 }
 
-
-/**
- * Composable for the enhanced Login Screen.
- * Features a more professional UI/UX with gradients, animations, and improved error handling.
- * @param onLoginSuccess Callback invoked on successful login, providing the username.
- * @param soundEffectManager Manager for playing sound effects.
- */
 @Composable
-fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: SoundEffectManager) {
-    var usernameInput by rememberSaveable { mutableStateOf("") }
-    var passwordInput by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) } // New state for loading indicator
-    val focusManager = LocalFocusManager.current
-    val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current   // Use application context for Toast
-    val coroutineScope = rememberCoroutineScope() // Use rememberCoroutineScope for UI-related coroutines
-
-    val textFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = MaterialTheme.colorScheme.primary,
-        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-        cursorColor = MaterialTheme.colorScheme.primary,
-        focusedLabelColor = MaterialTheme.colorScheme.primary,
-        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
-        unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        errorBorderColor = MaterialTheme.colorScheme.error,
-        errorLabelColor = MaterialTheme.colorScheme.error,
-        errorLeadingIconColor = MaterialTheme.colorScheme.error,
-        errorTrailingIconColor = MaterialTheme.colorScheme.error
-    )
-
-    // Gradient for the background of the login screen
-    val backgroundGradient = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            MaterialTheme.colorScheme.surfaceContainerLow,
-            MaterialTheme.colorScheme.surfaceContainerHigh
+fun AnimatedCardGrid(searchQuery: String) {
+    // This is a placeholder. You can replace this with your actual content.
+    val items = remember {
+        mutableStateListOf(
+            "Item 1", "Item 2", "Item 3", "Item 4",
+            "Item 5", "Item 6", "Item 7", "Item 8"
         )
-    )
+    }
+    val filteredItems = if (searchQuery.isNotBlank()) {
+        items.filter { it.contains(searchQuery, ignoreCase = true) }
+    } else {
+        items
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundGradient),
-        contentAlignment = Alignment.Center
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.TopCenter
     ) {
-        // Animated Card for the login form
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .widthIn(max = 480.dp) // Max width for larger screens
-                .padding(24.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 32.dp, vertical = 40.dp)
-                    .verticalScroll(rememberScrollState()), // Make content scrollable if it overflows
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp) // Increased spacing
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 128.dp),
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // App Logo
-                Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher_round),
-                    contentDescription = stringResource(id = R.string.app_name) + " Logo",
-                    modifier = Modifier
-                        .size(96.dp) // Larger logo
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-                        .padding(8.dp)
-                )
-                Text(
-                    text = stringResource(id = R.string.app_name),
-                    style = MaterialTheme.typography.headlineMedium, // CHANGED from headlineLarge
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Securely sign in to your account",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Username Field
-                OutlinedTextField(
-                    value = usernameInput,
-                    onValueChange = { usernameInput = it.trim(); errorMessage = null },
-                    label = { Text("Username") },
-                    leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username Icon") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
-                    shape = RoundedCornerShape(18.dp), // More rounded corners
-                    colors = textFieldColors,
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = errorMessage != null
-                )
-
-                // Password Field
-                OutlinedTextField(
-                    value = passwordInput,
-                    onValueChange = { passwordInput = it; errorMessage = null },
-                    label = { Text("Password") },
-                    leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = "Password Icon") },
-                    singleLine = true,
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = {
-                        focusManager.clearFocus()
-                        // Trigger login attempt
-                        isLoading = true
-                        errorMessage = null // Clear previous error
-                        coroutineScope.launch { // Use coroutineScope
-                            delay(2000) // Simulate network request
-                            if (usernameInput == "admin" && passwordInput == "admin") {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                soundEffectManager.playClickSound() // Play sound on successful login
-                                onLoginSuccess(usernameInput)
-                                //Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                soundEffectManager.playClickSound() // Play sound on failed login
-                                errorMessage = "Invalid username or password. Please try again."
-                                //Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
-                            }
-                            isLoading = false
+                items(filteredItems) { item ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(item, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         }
-                    }),
-                    trailingIcon = {
-                        val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                        val description = if (passwordVisible) "Hide password" else "Show password"
-                        IconButton(onClick = {
-                            soundEffectManager.playClickSound() // Play sound on visibility toggle
-                            passwordVisible = !passwordVisible
-                        }) {
-                            Icon(imageVector = image, contentDescription = description)
-                        }
-                    },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = textFieldColors,
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = errorMessage != null
-                )
-
-                // Error Message
-                AnimatedVisibility(
-                    visible = errorMessage != null,
-                    enter = fadeIn(animationSpec = tween(200)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
-                    exit = fadeOut(animationSpec = tween(200)) + slideOutVertically(targetOffsetY = { -it / 2 }, animationSpec = spring(stiffness = Spring.StiffnessMedium))
-                ) {
-                    Text(
-                        text = errorMessage ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-
-                // Login Button
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.98f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                    label = "login_button_scale"
-                )
-                val alpha by animateFloatAsState(
-                    targetValue = if (isPressed) 0.8f else 1.0f,
-                    animationSpec = tween(150),
-                    label = "login_button_alpha"
-                )
-
-                Button(
-                    onClick = {
-                        focusManager.clearFocus()
-                        isLoading = true
-                        errorMessage = null // Clear previous error
-                        coroutineScope.launch { // Use coroutineScope
-                            delay(2000) // Simulate network request
-                            if (usernameInput == "admin" && passwordInput == "admin") {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                soundEffectManager.playClickSound() // Play sound on successful login
-                                onLoginSuccess(usernameInput)
-                                //Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                soundEffectManager.playClickSound() // Play sound on failed login
-                                errorMessage = "Invalid username or password. Please try again."
-                                //Toast.makeText(context, "Login Failed!", Toast.LENGTH_SHORT).show()
-                            }
-                            isLoading = false
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 24.dp)
-                        .height(56.dp) // Taller button
-                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha), // Apply press animation directly
-                    shape = RoundedCornerShape(20.dp), // More rounded
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp), // More prominent shadow
-                    enabled = !isLoading // Disable button while loading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
-                    } else {
-                        Text("LOGIN", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
-
-                // Placeholder for Forgot Password / Sign Up
-                TextButton(onClick = {
-                    soundEffectManager.playClickSound() // Play sound on text button click
-                    /* TODO: Implement navigation to Forgot Password */
-                }) {
-                    Text("Forgot password?", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                }
             }
         }
     }
 }
 
-/**
- * Composable for the enhanced Profile Screen.
- * @param username The username to display.
- * @param onLogout Callback invoked when the logout button is clicked.
- * @param soundEffectManager Manager for playing sound effects.
- */
 @Composable
-fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () -> Unit, soundEffectManager: SoundEffectManager) {
-    val context = LocalContext.current
-
-    val profileBackgroundGradient = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            MaterialTheme.colorScheme.background,
-            MaterialTheme.colorScheme.background
-        )
-    )
+fun AppSettingsScreen(sharedPrefsManager: SharedPreferencesManager, soundEffectManager: SoundEffectManager, onLogout: () -> Unit) {
+    val themeOptions = remember { ThemeSetting.entries.toList() }
+    val selectedTheme = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+    var soundEnabled by remember { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(profileBackgroundGradient)
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Profile Picture / Icon
-        Box(
-            modifier = Modifier
-                .size(160.dp) // Larger profile picture area
-                .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
-                            MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        radius = 120f
-                    )
-                )
-                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape), // <-- FIXED HERE: 'border' modifier
-            contentAlignment = Alignment.Center
+        // Theme Selection
+        Text("Theme Settings", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(16.dp))
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(
-                imageVector = Icons.Filled.AccountCircle,
-                contentDescription = "Profile Picture",
-                modifier = Modifier.size(100.dp), // Icon size within the circle
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Username
-        Text(
-            text = username.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Welcome Message
-        Text(
-            text = "Welcome to your personalized space!",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Profile Options (Placeholder)
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .widthIn(max = 500.dp)
-                .padding(horizontal = 16.dp)
-        ) {
-            Column(modifier = Modifier.padding(vertical = 16.dp)) {
-                ProfileOptionItem(
-                    icon = Icons.Filled.AccountBox,
-                    title = "Edit Profile",
-                    description = "Update your personal information.",
-                    soundEffectManager = soundEffectManager
+            themeOptions.forEachIndexed { index, theme ->
+                SegmentedButton(
+                    selected = index == themeOptions.indexOf(selectedTheme.value),
+                    onClick = {
+                        selectedTheme.value = theme
+                        sharedPrefsManager.setThemeSetting(theme)
+                        soundEffectManager.playClickSound()
+                    },
+                    shape = SegmentedButtonDefaults.baseShape,
+                    icon = {
+                        AnimatedVisibility(
+                            visible = index == themeOptions.indexOf(selectedTheme.value),
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                        }
+                    }
                 ) {
-                    //Toast.makeText(context, "Edit Profile Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
-                }
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
-                ProfileOptionItem(
-                    icon = Icons.Filled.Lock,
-                    title = "Change Password",
-                    description = "Secure your account with a new password.",
-                    soundEffectManager = soundEffectManager
-                ) {
-                    //Toast.makeText(context, "Change Password Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
-                }
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
-                ProfileOptionItem(
-                    icon = Icons.Filled.Settings,
-                    title = "Privacy Settings",
-                    description = "Manage your data and privacy preferences.",
-                    soundEffectManager = soundEffectManager
-                ) {
-                    //Toast.makeText(context, "Privacy Settings Clicked (Placeholder)", Toast.LENGTH_SHORT).show()
+                    Text(text = theme.name)
                 }
             }
         }
-        Spacer(modifier = Modifier.height(48.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-        // Logout Button
-        val interactionSource = remember { MutableInteractionSource() }
-        val isPressed by interactionSource.collectIsPressedAsState()
-        val scale by animateFloatAsState(
-            targetValue = if (isPressed) 0.98f else 1.0f,
-            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-            label = "logout_button_scale"
-        )
-        val alpha by animateFloatAsState(
-            targetValue = if (isPressed) 0.8f else 1.0f,
-            animationSpec = tween(150),
-            label = "logout_button_alpha"
-        )
-
-        Button(
-            onClick = {
-                soundEffectManager.playClickSound() // Play sound on logout click
-                onLogout()
-            },
-            shape = RoundedCornerShape(20.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error, // Stronger error color for logout
-                contentColor = MaterialTheme.colorScheme.onError
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
+        // Sound Effects Toggle
+        Row(
             modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .height(56.dp)
-                .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha), // Apply press animation directly
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = LocalIndication.current,
+                    onClick = {
+                        soundEnabled = !soundEnabled
+                        sharedPrefsManager.setSoundEnabled(soundEnabled)
+                        if (soundEnabled) soundEffectManager.playClickSound()
+                    }
+                )
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout Icon")
-            Spacer(Modifier.width(16.dp))
-            Text("Logout", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-/**
- * Reusable composable for an option item within the Profile Screen.
- * Includes click animation and sound.
- */
-@Composable
-fun ProfileOptionItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    soundEffectManager: SoundEffectManager,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "profile_item_scale"
-    )
-    val alpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.8f else 1.0f,
-        animationSpec = tween(150),
-        label = "profile_item_alpha"
-    )
-
-    val defaultIndication = LocalIndication.current // Get the default Material indication
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
-            .clickable(
-                interactionSource = interactionSource,
-                indication = defaultIndication, // Explicitly pass the default indication
-                onClick = {
-                    soundEffectManager.playClickSound() // Play sound on item click
-                    onClick.invoke() // Corrected: Safe call for nullable onClick
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (soundEnabled) Icons.Filled.VolumeUp else Icons.Filled.VolumeOff,
+                    contentDescription = "Sound",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Sound Effects", style = MaterialTheme.typography.titleMedium)
+            }
+            Switch(
+                checked = soundEnabled,
+                onCheckedChange = {
+                    soundEnabled = it
+                    sharedPrefsManager.setSoundEnabled(it)
+                    if (it) soundEffectManager.playClickSound()
                 }
             )
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null, // Icon is decorative here
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(28.dp)
-        )
-        Spacer(modifier = Modifier.width(20.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
-        Icon(
-            imageVector = Icons.Filled.ChevronRight,
-            contentDescription = "Go to $title",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
-        )
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+        // Language Setting
+        var isDropdownExpanded by remember { mutableStateOf(false) }
+        var language by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { isDropdownExpanded = true }
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Language,
+                    contentDescription = "Language",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Language", style = MaterialTheme.typography.titleMedium)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = language, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown,
+                    contentDescription = "Select language",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            DropdownMenu(
+                expanded = isDropdownExpanded,
+                onDismissRequest = { isDropdownExpanded = false }
+            ) {
+                DropdownMenuItem(text = { Text("English") }, onClick = {
+                    language = "English"
+                    sharedPrefsManager.setLanguageSetting(language)
+                    isDropdownExpanded = false
+                })
+                DropdownMenuItem(text = { Text("Spanish") }, onClick = {
+                    language = "Spanish"
+                    sharedPrefsManager.setLanguageSetting(language)
+                    isDropdownExpanded = false
+                })
+                DropdownMenuItem(text = { Text("French") }, onClick = {
+                    language = "French"
+                    sharedPrefsManager.setLanguageSetting(language)
+                    isDropdownExpanded = false
+                })
+            }
+        }
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+        // Logout Button
+        OutlinedButton(
+            onClick = onLogout,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Logout")
+        }
     }
 }
 
+@Composable
+fun ProfileScreen(username: String, onLogout: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Welcome, $username!", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(onClick = onLogout) {
+            Text("Logout")
+        }
+    }
+}
 
 @Composable
 fun AppNavigationRail(
@@ -1603,569 +1365,63 @@ fun AppNavigationRail(
     onDestinationSelected: (Screen) -> Unit,
     isExpanded: Boolean,
     onMenuClick: () -> Unit,
-    soundEffectManager: SoundEffectManager, // Pass sound manager
-    modifier: Modifier = Modifier
+    soundEffectManager: SoundEffectManager
 ) {
-    val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
-    val railWidth by animateDpAsState(
-        targetValue = if (isExpanded) 180.dp else 80.dp,
-        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
-        label = "nav_rail_width_anim"
-    )
-    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f)
-
+    val destinations = remember { listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile) }
     NavigationRail(
-        modifier = modifier
-            .statusBarsPadding()
-            .fillMaxHeight()
-            .width(railWidth)
-            .padding(vertical = 12.dp, horizontal = 4.dp),
-        containerColor = railContainerColor,
-        header = {
-            val interactionSource = remember { MutableInteractionSource() }
-            val isPressed by interactionSource.collectIsPressedAsState()
-            val scale by animateFloatAsState(
-                targetValue = if (isPressed) 0.9f else 1.0f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                label = "menu_icon_scale"
+        modifier = Modifier
+            .animateContentSize(
+                animationSpec = tween(durationMillis = 300)
             )
-
-            // MODIFIED: Pass interactionSource directly to IconButton
-            IconButton(
-                onClick = onMenuClick,
-                interactionSource = interactionSource, // Pass interactionSource here
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .graphicsLayer(scaleX = scale, scaleY = scale) // Apply press animation
-            ) {
-                AnimatedContent(
-                    targetState = isExpanded,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(200, delayMillis = 150)) + scaleIn(initialScale = 0.8f, animationSpec = tween(200, delayMillis = 150)) togetherWith
-                                fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f, animationSpec = tween(150))
-                    }, label = "menu_icon_transition"
-                ) { expanded ->
-                    Icon(
-                        imageVector = if (expanded) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
-                        contentDescription = if (expanded) "Collapse Menu" else "Expand Menu",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            .background(color = MaterialTheme.colorScheme.surface),
+        containerColor = Color.Transparent,
+        header = {
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
+                    contentDescription = "Menu"
+                )
             }
         }
     ) {
-        Spacer(Modifier.weight(0.05f))
-        destinations.forEach { screen ->
-            val isSelected = selectedDestination == screen
-            val iconScale by animateFloatAsState(
-                targetValue = if (isSelected) 1.1f else 1.0f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                label = "nav_item_icon_scale_anim"
-            )
-            val indicatorColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else Color.Transparent
-            val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-
+        Spacer(modifier = Modifier.height(12.dp))
+        destinations.forEach { destination ->
+            val isSelected = destination.route == selectedDestination.route
             NavigationRailItem(
                 selected = isSelected,
-                onClick = { onDestinationSelected(screen) },
+                onClick = { onDestinationSelected(destination) },
                 icon = {
+                    val iconColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "navigationIconColor"
+                    )
                     Icon(
-                        imageVector = screen.icon,
-                        contentDescription = screen.label,
-                        modifier = Modifier.graphicsLayer(scaleX = iconScale, scaleY = iconScale)
+                        imageVector = destination.icon,
+                        contentDescription = destination.label,
+                        tint = iconColor
                     )
                 },
                 label = {
-                    AnimatedVisibility(
-                        visible = isExpanded,
-                        enter = fadeIn(animationSpec = tween(200, delayMillis = 150)) + expandHorizontally(animationSpec = tween(300, delayMillis = 100), expandFrom = Alignment.Start),
-                        exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally(animationSpec = tween(250), shrinkTowards = Alignment.Start)
-                    ) { Text(screen.label, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
+                    if (isExpanded) {
+                        Text(destination.label, style = MaterialTheme.typography.labelMedium)
+                    }
                 },
-                alwaysShowLabel = isExpanded,
                 colors = NavigationRailItemDefaults.colors(
-                    selectedIconColor = contentColor,
-                    selectedTextColor = contentColor,
-                    indicatorColor = indicatorColor,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                modifier = Modifier.padding(vertical = 6.dp).height(56.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 8.dp)
+                    .clip(CircleShape)
             )
-            if (destinations.last() != screen) {
-                Spacer(Modifier.height(6.dp))
-            }
-        }
-        Spacer(Modifier.weight(1f))
-    }
-}
-
-@Composable
-fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
-    var showAboutDialog by remember { mutableStateOf(false) }
-    var showPrivacyDialog by remember { mutableStateOf(false) }
-    var showChangelogDialog by remember { mutableStateOf(false) }
-
-    // State for theme and sound settings
-    val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-    val isSoundEnabled = remember { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
-    // RE-ADDED: State for language setting
-    val selectedLanguage = remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
-    val languages = remember { listOf("English", "Spanish", "French", "German", "Bengali") } // Example languages
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text(
-            "Application Settings",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
-        )
-
-        var notificationsEnabled by remember { mutableStateOf(true) }
-        SettingItem(
-            title = "Enable Notifications",
-            description = "Receive updates and alerts.",
-            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = {
-                Switch(
-                    checked = notificationsEnabled,
-                    onCheckedChange = {
-                        soundEffectManager.playClickSound() // Play sound on switch toggle
-                        notificationsEnabled = it
-                    }
-                )
-            }
-        )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-        // Theme Changer Setting
-        SettingItem(
-            title = "App Theme",
-            description = "Change the visual theme of the application.",
-            leadingIcon = { Icon(Icons.Filled.ColorLens, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = {
-                // Dropdown menu for theme selection
-                var expanded by remember { mutableStateOf(false) }
-                TextButton(onClick = {
-                    soundEffectManager.playClickSound()
-                    expanded = true
-                }) {
-                    Text(currentThemeSetting.value.name.replace("_", " "), style = MaterialTheme.typography.bodyMedium)
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Expand theme options")
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    ThemeSetting.values().forEach { theme ->
-                        DropdownMenuItem(
-                            text = { Text(theme.name.replace("_", " ")) },
-                            onClick = {
-                                soundEffectManager.playClickSound()
-                                sharedPrefsManager.setThemeSetting(theme)
-                                currentThemeSetting.value = theme // Update local state
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-        // Sound On/Off Setting
-        SettingItem(
-            title = "Sound Effects",
-            description = "Enable or disable click sounds and other effects.",
-            leadingIcon = { Icon(if (isSoundEnabled.value) Icons.Filled.VolumeUp else Icons.Filled.VolumeOff, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = {
-                Switch(
-                    checked = isSoundEnabled.value,
-                    onCheckedChange = {
-                        sharedPrefsManager.setSoundEnabled(it)
-                        isSoundEnabled.value = it // Update local state
-                        if (it) soundEffectManager.playClickSound() // Play sound only if enabling
-                    }
-                )
-            }
-        )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-        // RE-ADDED: Language Setting
-        SettingItem(
-            title = "Language",
-            description = "Change the application language.",
-            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Language, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = {
-                var expanded by remember { mutableStateOf(false) }
-                TextButton(onClick = {
-                    soundEffectManager.playClickSound()
-                    expanded = true
-                }) {
-                    Text(selectedLanguage.value, style = MaterialTheme.typography.bodyMedium) // Use .value
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Expand language options")
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    languages.forEach { language ->
-                    val languageList = listOf("English", "Spanish", "French") // use your list!
-                    languageList.forEach { value ->
-                        DropdownMenuItem(
-                            text = { Text(language) },
-                            onClick = {
-                                soundEffectManager.playClickSound()
-                                sharedPrefsManager.setLanguageSetting(language)
-                                selectedLanguage.value = language // Update local state
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-        var showAccountDialog by remember { mutableStateOf(false) }
-        SettingItem(
-            title = "Account Preferences",
-            description = "Manage your account details.",
-            leadingIcon = { Icon(Icons.Filled.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "Go to account preferences", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                soundEffectManager.playClickSound() // Play sound on item click
-                showAccountDialog = true
-            }
-        )
-        if (showAccountDialog) {
-            AlertDialog(
-                onDismissRequest = { showAccountDialog = false },
-                icon = { Icon(Icons.Filled.AccountBox, contentDescription = null)},
-                title = { Text("Account Preferences") },
-                text = { Text("Account settings details would appear here or navigate to a dedicated screen. This is a placeholder.") },
-                confirmButton = { TextButton(onClick = {
-                    soundEffectManager.playClickSound() // Play sound on dialog button click
-                    showAccountDialog = false
-                }) { Text("OK") } }
-            )
-        }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-        SettingItem(
-            title = "About",
-            description = "Information about this application.",
-            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View About", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                soundEffectManager.playClickSound() // Play sound on item click
-                showAboutDialog = true
-            }
-        )
-        if (showAboutDialog) {
-            AlertDialog(
-                onDismissRequest = { showAboutDialog = false },
-                icon = { Icon(Icons.Filled.Info, contentDescription = "About App Icon")},
-                title = { Text("About " + stringResource(id = R.string.app_name)) },
-                text = { Text("Version: ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})\n\nDeveloped by Ktimaz Studio.\n\nThis application is a demonstration of various Android and Jetpack Compose features. Thank you for using our app!") },
-                confirmButton = { TextButton(onClick = {
-                    soundEffectManager.playClickSound() // Play sound on dialog button click
-                    showAboutDialog = false
-                }) { Text("Close") } }
-            )
-        }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-        SettingItem(
-            title = "Privacy Policy",
-            description = "Read our privacy policy.",
-            leadingIcon = { Icon(Icons.Filled.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Privacy Policy", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                soundEffectManager.playClickSound() // Play sound on item click
-                showPrivacyDialog = true
-            }
-        )
-        if (showPrivacyDialog) {
-            AlertDialog(
-                onDismissRequest = { showPrivacyDialog = false },
-                icon = { Icon(Icons.Filled.Policy, contentDescription = "Privacy Policy Icon")},
-                title = { Text("Privacy Policy") },
-                text = { Text("Placeholder for Privacy Policy text. In a real application, this would contain the full policy details or link to a web page.\n\nWe are committed to protecting your privacy. Our policy outlines how we collect, use, and safeguard your information.") },
-                confirmButton = { TextButton(onClick = {
-                    soundEffectManager.playClickSound() // Play sound on dialog button click
-                    showPrivacyDialog = false
-                }) { Text("Close") } }
-            )
-        }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-        // Changelog Item
-        SettingItem(
-            title = "Changelog",
-            description = "See what's new in this version.",
-            leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Changelog", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            onClick = {
-                soundEffectManager.playClickSound() // Play sound on item click
-                showChangelogDialog = true
-            }
-        )
-        if (showChangelogDialog) {
-            AlertDialog(
-                onDismissRequest = { showChangelogDialog = false },
-                icon = { Icon(Icons.Filled.HistoryEdu, contentDescription = "Changelog Icon", modifier = Modifier.size(28.dp))},
-                title = { Text("What's New - v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleLarge) },
-                text = {
-                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                        Text("Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-                        Text("✨ New Features:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-                        Text(" • Added persistent login with auto-login.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Implemented Logout functionality.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Enhanced VPN detection with a Material 3 dialog.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Added 'About', 'Privacy Policy', and 'Changelog' to Settings.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Implemented basic reverse engineering detection (debugger, emulator, root, APK tampering).", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Added click sound effects and beautiful press animations.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Implemented search functionality in the Dashboard.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Added tooltips for new users on Dashboard cards.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Added Theme Changer (Light, Dark, System, Battery Saver).", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
-                        Text(" • Added Sound Effects On/Off setting.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
-                        Text(" • Re-added Language selection to settings and initial setup.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
-                        Text(" • Improved UI sizing consistency across devices.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
-                        Text(" • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • Profile screen now shows username and placeholder picture.", style = MaterialTheme.typography.bodyMedium)
-                        Text(" • General UI/UX tweaks for a more expressive Material 3 feel.", style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Thank you for updating!", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                    }
-                },
-                confirmButton = { TextButton(onClick = {
-                    soundEffectManager.playClickSound() // Play sound on dialog button click
-                    showChangelogDialog = false
-                }) { Text("Awesome!") } },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-            )
-        }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-
-        SettingItem(
-            title = "App Version",
-            description = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
-            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
-            control = {}
-        )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-    }
-}
-
-/**
- * Reusable composable for a setting item.
- * Includes click animation and sound if onClick is provided.
- */
-@Composable
-fun SettingItem(
-    title: String,
-    description: String? = null,
-    leadingIcon: (@Composable () -> Unit)? = null,
-    onClick: (() -> Unit)? = null,
-    control: @Composable (() -> Unit)? = null,
-    soundEffectManager: SoundEffectManager? = null // Optional sound manager
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && onClick != null) 0.98f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "setting_item_scale"
-    )
-    val alpha by animateFloatAsState(
-        targetValue = if (isPressed && onClick != null) 0.8f else 1.0f,
-        animationSpec = tween(150),
-        label = "setting_item_alpha"
-    )
-
-    val defaultIndication = LocalIndication.current // Get the default Material indication
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation
-            .then(if (onClick != null) Modifier // Apply clickable only if onClick is provided
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = defaultIndication, // Explicitly pass the default indication
-                    onClick = {
-                        soundEffectManager?.playClickSound() // Play sound if manager provided
-                        onClick.invoke() // Corrected: Safe call for nullable onClick
-                    }
-                ) else Modifier)
-            .padding(vertical = 16.dp, horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (leadingIcon != null) {
-            Box(modifier = Modifier.padding(end = 16.dp).size(24.dp), contentAlignment = Alignment.Center) {
-                leadingIcon?.invoke() // CORRECTED: Use safe call for nullable composable lambda
-            }
-        }
-        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            if (description != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        if (control != null) {
-            Box(modifier = Modifier.padding(start = 8.dp)) {
-                control()
-            }
         }
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardClick: (String) -> Unit, soundEffectManager: SoundEffectManager) {
-    val cards = listOf(
-        "Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link",
-        "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer",
-        "Sonic Emitter", "AI Core Access", "System Config"
-    )
-    // Consider adding specific icons for each card for better visual distinction
-    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) } // Placeholder: replace with distinct icons
-    val haptic = LocalHapticFeedback.current
-
-    val filteredCards = remember(cards, searchQuery) {
-        if (searchQuery.isBlank()) {
-            cards
-        } else {
-            cards.filter { it.contains(searchQuery, ignoreCase = true) }
-        }
-    }
-
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 160.dp),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-        modifier = modifier.fillMaxSize()
-    ) {
-        itemsIndexed(filteredCards, key = { _, title -> title }) { index, title ->
-            var itemVisible by remember { mutableStateOf(false) }
-            LaunchedEffect(key1 = title) {
-                delay(index * 70L + 100L) // Staggered animation delay
-                itemVisible = true
-            }
-
-            AnimatedVisibility(
-                visible = itemVisible,
-                enter = fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessVeryLow)) +
-                        slideInVertically(
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                            initialOffsetY = { it / 2 }
-                        ) +
-                        scaleIn(
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                            initialScale = 0.75f
-                        ),
-                exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.85f, animationSpec = tween(150))
-            ) {
-                val infiniteTransition = rememberInfiniteTransition(label = "card_effects_$title")
-                val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.995f,
-                    targetValue = 1.0f,
-                    animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
-                    label = "card_scale_$title"
-                )
-                // Corrected: Use .value
-                val animatedAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.75f,
-                    targetValue = 0.60f,
-                    animationSpec = infiniteRepeatable(animation = tween(2500, easing = EaseInOutCubic), repeatMode = RepeatMode.Reverse),
-                    label = "card_alpha_$title"
-                )
-
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val pressScale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.95f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                    label = "card_press_scale"
-                )
-                val pressAlpha by animateFloatAsState(
-                    targetValue = if (isPressed) 0.7f else 1.0f,
-                    animationSpec = tween(150),
-                    label = "card_press_alpha"
-                )
-
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                    tooltip = {
-                        PlainTooltip {
-                            Text("Click to open $title module")
-                        }
-                    },
-                    state = rememberTooltipState()
-                ) {
-                    // MODIFIED: Pass interactionSource directly to Card
-                    Card(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onCardClick(title)
-                        },
-                        interactionSource = interactionSource, // Pass interactionSource here
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha.value) // Corrected alpha access
-                        ),
-                        border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        modifier = Modifier
-                            .graphicsLayer(
-                                scaleX = scale.value * pressScale, // Combine infinite and press animations
-                                scaleY = scale.value * pressScale,
-                                alpha = animatedAlpha.value * pressAlpha // Corrected: Use .value for animatedAlpha
-                            )
-                            .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
-                            .fillMaxWidth()
-                            .height(170.dp)
-                    ) {
-                        Column(
-                            Modifier.fillMaxSize().padding(16.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = icons[index % icons.size], // Using placeholder icon
-                                contentDescription = title,
-                                modifier = Modifier.size(60.dp)
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InitialSetupDialog(
     sharedPrefsManager: SharedPreferencesManager,
@@ -2173,179 +1429,389 @@ fun InitialSetupDialog(
     onSetupComplete: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // States for selections
-    var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-    // RE-ADDED: State for language setting
-    var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
-    val languages = listOf("English", "Spanish", "French", "German", "Bengali") // Example languages
-
-    // State for permission status
-    var hasStoragePermission by remember {
-        mutableStateOf(checkStoragePermission(context))
-    }
-
-    // Permission launcher
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(), // Explicitly specify contract
-        onResult = { permissions ->
-            val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                permissions[Manifest.permission.READ_MEDIA_IMAGES] == true &&
-                permissions[Manifest.permission.READ_MEDIA_VIDEO] == true &&
-                permissions[Manifest.permission.READ_MEDIA_AUDIO] == true
-            } else {
-                @Suppress("DEPRECATION")
-                permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
-            }
-            hasStoragePermission = granted
-            if (granted) {
-                Toast.makeText(context, "Storage permission granted!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "Storage permission denied.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    )
+    val haptic = LocalHapticFeedback.current
+    var currentPage by rememberSaveable { mutableStateOf(0) }
+    val totalPages = 2
 
     AlertDialog(
-        onDismissRequest = { /* Dialog is not dismissible until setup is complete */ },
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false), // Corrected import
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        icon = { Icon(Icons.Filled.Settings, contentDescription = "Setup Icon") },
-        title = { Text("Configure App", style = MaterialTheme.typography.headlineSmall) },
+        onDismissRequest = { /* Not dismissible */ },
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Initial Setup", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    "Step ${currentPage + 1} of $totalPages",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
         text = {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .height(200.dp)
             ) {
-                // Theme Mode Section
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Filled.ColorLens, contentDescription = "Theme Icon", modifier = Modifier.size(24.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Theme Mode", style = MaterialTheme.typography.titleMedium)
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        ThemeSetting.values().forEachIndexed { index, theme ->
-                            SegmentedButton(
-                                selected = theme == selectedTheme,
-                                onClick = {
-                                    soundEffectManager.playClickSound()
-                                    selectedTheme = theme
-                                    sharedPrefsManager.setThemeSetting(theme)
-                                },
-                                shape = SegmentedButtonDefaults.shape(index, ThemeSetting.values().size), // Corrected shape usage
-                                label = { Text(theme.name.replace("_", " ")) }
-                            )
-                        }
-                    }
-                }
-
-                HorizontalDivider()
-
-                // RE-ADDED: Language Section
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.AutoMirrored.Filled.Language, contentDescription = "Language Icon", modifier = Modifier.size(24.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Language", style = MaterialTheme.typography.titleMedium)
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        languages.forEachIndexed { index, language ->
-                            SegmentedButton(
-                                selected = language == selectedLanguage,
-                                onClick = {
-                                    soundEffectManager.playClickSound()
-                                    selectedLanguage = language
-                                    sharedPrefsManager.setLanguageSetting(language)
-                                },
-                                shape = SegmentedButtonDefaults.shape(index, languages.size), // Corrected shape usage
-                                label = { Text(language) }
-                            )
-                        }
-                    }
-                }
-
-                HorizontalDivider()
-
-                // Storage Permission Section
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Filled.Storage, contentDescription = "Storage Icon", modifier = Modifier.size(24.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Storage Permission", style = MaterialTheme.typography.titleMedium)
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            soundEffectManager.playClickSound()
-                            if (!hasStoragePermission) {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    requestPermissionLauncher.launch(
-                                        arrayOf(
-                                            Manifest.permission.READ_MEDIA_IMAGES,
-                                            Manifest.permission.READ_MEDIA_VIDEO,
-                                            Manifest.permission.READ_MEDIA_AUDIO
-                                        )
-                                    )
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    requestPermissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
-                                }
-                            }
-                        },
-                        enabled = !hasStoragePermission, // Disable button if permission already granted
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (hasStoragePermission) {
-                            Icon(Icons.Filled.CheckCircle, contentDescription = "Permission Granted")
-                            Spacer(Modifier.width(8.dp))
-                            Text("Permission Granted")
+                AnimatedContent(
+                    targetState = currentPage,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            slideInHorizontally { it } + fadeIn() togetherWith slideOutHorizontally { -it } + fadeOut()
                         } else {
-                            Text("Grant Storage Permission")
+                            slideInHorizontally { -it } + fadeIn() togetherWith slideOutHorizontally { it } + fadeOut()
                         }
+                    }, label = "setup_page_transition"
+                ) { page ->
+                    when (page) {
+                        0 -> ThemeSelectionPage(sharedPrefsManager, soundEffectManager)
+                        1 -> LanguageAndSoundPage(sharedPrefsManager, soundEffectManager)
                     }
                 }
             }
         },
         confirmButton = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (currentPage > 0) {
+                    TextButton(onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        currentPage--
+                    }) {
+                        Text("Previous")
+                    }
+                }
+                Button(onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (currentPage < totalPages - 1) {
+                        currentPage++
+                    } else {
+                        onSetupComplete()
+                    }
+                }) {
+                    Text(if (currentPage < totalPages - 1) "Next" else "Finish")
+                }
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    )
+}
+
+@Composable
+fun ThemeSelectionPage(sharedPrefsManager: SharedPreferencesManager, soundEffectManager: SoundEffectManager) {
+    val themeOptions = remember { ThemeSetting.entries.toList() }
+    var selectedTheme by rememberSaveable { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text("Choose your preferred theme.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+        Spacer(modifier = Modifier.height(16.dp))
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            themeOptions.forEachIndexed { index, theme ->
+                SegmentedButton(
+                    selected = theme == selectedTheme,
+                    onClick = {
+                        selectedTheme = theme
+                        sharedPrefsManager.setThemeSetting(theme)
+                        soundEffectManager.playClickSound()
+                    },
+                    shape = SegmentedButtonDefaults.baseShape,
+                ) {
+                    Text(theme.name, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LanguageAndSoundPage(sharedPrefsManager: SharedPreferencesManager, soundEffectManager: SoundEffectManager) {
+    var soundEnabled by rememberSaveable { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
+    val languages = listOf("English", "Spanish", "French")
+    var language by rememberSaveable { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text("Configure app settings.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Text("Sound Effects", style = MaterialTheme.typography.titleMedium)
+            Switch(
+                checked = soundEnabled,
+                onCheckedChange = {
+                    soundEnabled = it
+                    sharedPrefsManager.setSoundEnabled(it)
+                    if (it) soundEffectManager.playClickSound()
+                }
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Text("Language", style = MaterialTheme.typography.titleMedium)
+            // A simple Text for language for this dialog
+            Text(language, color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+fun LoginScreen(
+    onLoginSuccess: (String) -> Unit,
+    soundEffectManager: SoundEffectManager
+) {
+    var usernameInput by rememberSaveable { mutableStateOf("") }
+    var passwordInput by rememberSaveable { mutableStateOf("") }
+    var errorMessage by rememberSaveable { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .blur(if (isLoading) 5.dp else 0.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                focusManager.clearFocus()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 400.dp)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Welcome Back!",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Sign in to continue.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Custom TextField for Username
+            CustomTextField(
+                value = usernameInput,
+                onValueChange = { usernameInput = it },
+                label = "Username",
+                leadingIcon = Icons.Outlined.AccountCircle,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Custom SecureTextField for Password
+            SecureTextField(
+                value = passwordInput,
+                onValueChange = { passwordInput = it },
+                label = "Password",
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AnimatedVisibility(visible = errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+
             Button(
                 onClick = {
                     soundEffectManager.playClickSound()
-                    // Only allow finishing if permission is granted
-                    if (hasStoragePermission) {
-                        onSetupComplete()
-                    } else {
-                        Toast.makeText(context, "Please grant storage permission to continue.", Toast.LENGTH_SHORT).show()
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    focusManager.clearFocus()
+                    isLoading = true
+                    coroutineScope.launch {
+                        delay(1000) // Simulate network delay
+                        if (usernameInput.isNotBlank() && passwordInput.isNotBlank() && usernameInput == "user") {
+                            onLoginSuccess(usernameInput)
+                            errorMessage = ""
+                        } else {
+                            errorMessage = "Invalid username or password"
+                            isLoading = false
+                        }
                     }
                 },
-                enabled = hasStoragePermission // Enable "Continue" only if permission is granted
+                enabled = usernameInput.isNotBlank() && passwordInput.isNotBlank() && !isLoading,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Continue")
+                AnimatedVisibility(visible = isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                }
+                AnimatedVisibility(visible = !isLoading) {
+                    Text("Sign In", fontWeight = FontWeight.Bold)
+                }
             }
         }
+        AnimatedVisibility(visible = isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+/**
+ * A custom, animated, and themed text field.
+ */
+@Composable
+fun CustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    leadingIcon: ImageVector,
+    keyboardOptions: KeyboardOptions,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.height(64.dp),
+        label = { Text(label) },
+        leadingIcon = { Icon(imageVector = leadingIcon, contentDescription = null) },
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(12.dp),
+        keyboardOptions = keyboardOptions
     )
 }
 
 /**
- * Helper function to check if storage permission is granted.
+ * A custom secure text field with a password visibility toggle.
+ * It uses haptic feedback on toggle for a more interactive feel.
  */
-fun checkStoragePermission(context: Context): Boolean {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED &&
-        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED &&
-        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED
-    } else {
-        @Suppress("DEPRECATION")
-        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+@Composable
+fun SecureTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.height(64.dp),
+        label = { Text(label) },
+        leadingIcon = { Icon(imageVector = Icons.Outlined.Lock, contentDescription = null) },
+        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+        trailingIcon = {
+            IconButton(
+                onClick = {
+                    passwordVisible = !passwordVisible
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+            ) {
+                Icon(
+                    imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                    contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                )
+            }
+        },
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+        ),
+        shape = RoundedCornerShape(12.dp)
+    )
+}
+
+/**
+ * A custom image Composable with a placeholder, loading state, and error handling.
+ * This is a foundational custom widget to improve UI and UX.
+ */
+@Composable
+fun ThemedImage(
+    drawableRes: Int,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    placeholderColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+) {
+    var isLoading by remember { mutableStateOf(true) }
+    var hasError by remember { mutableStateOf(false) }
+
+    // Use a LaunchedEffect to simulate a loading delay
+    LaunchedEffect(drawableRes) {
+        isLoading = true
+        hasError = false
+        delay(500) // Simulate image loading time
+        isLoading = false
+    }
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoading) {
+            // Show a placeholder while loading
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(placeholderColor)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        } else if (hasError) {
+            // Show an error icon if loading fails
+            Icon(
+                imageVector = Icons.Filled.BrokenImage,
+                contentDescription = "Image Load Error",
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.error
+            )
+        } else {
+            Image(
+                painter = painterResource(id = drawableRes),
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
