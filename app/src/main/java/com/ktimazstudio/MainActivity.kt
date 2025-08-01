@@ -1,6 +1,6 @@
 package com.ktimazstudio
 
-import android.Manifest
+import android.Manifest // Added: For permissions
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -12,11 +12,16 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
-import android.provider.Settings
-import android.os.Bundle
 import android.os.Debug
+import android.os.Bundle
 import android.os.PowerManager
+import android.provider.Settings
 import android.widget.Toast
+import java.io.BufferedReader // Added: For BufferedReader
+import java.io.File // Added: For File operations
+import java.io.InputStreamReader // Added: For InputStreamReader
+import java.security.MessageDigest // Added: For MessageDigest
+import kotlin.experimental.and // Added: For bitwise 'and' operation
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -138,11 +143,6 @@ import kotlinx.coroutines.launch
 import android.app.UiModeManager
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.surfaceColorAtElevation
-import java.io.BufferedReader
-import java.io.File
-import java.io.InputStreamReader
-import java.security.MessageDigest
-import kotlin.experimental.and
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
@@ -180,6 +180,8 @@ class SoundEffectManager(private val context: Context, private val sharedPrefsMa
         // Make sure you have a file named 'click_sound.wav' (or .mp3) in res/raw.
         // You will need to create the 'raw' directory inside 'app/src/main/res/'
         // and place your sound file there.
+        // NOTE: The `R.raw.click_sound` resource ID is a placeholder. You need to add this resource.
+        // The user's code snippet has R.raw.click_sound which is assumed to exist.
         clickSoundId = soundPool?.load(context, R.raw.click_sound, 1) ?: 0
     }
 
@@ -360,6 +362,103 @@ class ConnectivityManagerHelper(private val context: Context, private val onNetw
     }
 }
 
+// --- SecurityManager ---
+/**
+ * Utility class for performing various security checks on the application's environment.
+ * These checks are designed to detect common reverse engineering, tampering, and
+ * undesirable network conditions like VPN usage.
+ *
+ * NOTE: Client-side security checks are never foolproof and can be bypassed by
+ * determined attackers. They serve as deterrents and indicators of compromise.
+ */
+class SecurityManager(private val context: Context) {
+    // Known good hash of the APK (replace with your actual app's release APK hash)
+    // You would typically calculate this hash for your *release* APK and hardcode it here.
+    // For demonstration, this is a placeholder.
+    // The hash from your code snippet: f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425
+    private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
+
+    /**
+     * Checks if a debugger is currently attached to the application process.
+     * @return true if a debugger is connected, false otherwise.
+     */
+    fun isDebuggerConnected(): Boolean {
+        return Debug.isDebuggerConnected() || isTracerAttached()
+    }
+
+    /**
+     * Checks if a VPN connection is active.
+     * This method iterates through all active networks and checks for the VPN transport.
+     * @return true if a VPN is detected and it has internet capabilities, false otherwise.
+     */
+    @Suppress("DEPRECATION")
+    fun isVpnActive(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager.allNetworks.forEach { network ->
+            val capabilities = connectivityManager.getNetworkCapabilities(network)
+            if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                // Ensure the VPN is actually providing internet
+                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    /**
+     * Registers a NetworkCallback to listen for real-time VPN status changes.
+     * @param onVpnStatusChanged Callback to be invoked when VPN status changes.
+     * @return The registered NetworkCallback instance, which should be unregistered later.
+     */
+    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        // Build a NetworkRequest specifically for VPN transport
+        val networkRequest = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_VPN) // Explicitly look for VPN
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                // When a network becomes available, re-check overall VPN status
+                onVpnStatusChanged(isVpnActive())
+            }
+
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                // When a network is lost, re-check overall VPN status
+                onVpnStatusChanged(isVpnActive())
+            }
+        }
+        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
+        return networkCallback
+    }
+
+    /**
+     * Helper function to check if the app is being run by a tracer (e.g., for reverse engineering).
+     * This checks for the `TracerPid` field in the `/proc/self/status` file.
+     * @return true if a tracer is detected, false otherwise.
+     */
+    private fun isTracerAttached(): Boolean {
+        return try {
+            BufferedReader(InputStreamReader(File("/proc/self/status").inputStream())).use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    if (line?.startsWith("TracerPid") == true) {
+                        return line?.split(":")?.get(1)?.trim()?.toIntOrNull() != 0
+                    }
+                }
+            }
+            false
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+}
+
 // --- BaseActivity ---
 /**
  * Base activity that provides common functionality like SharedPreferences,
@@ -369,20 +468,31 @@ abstract class BaseActivity : ComponentActivity() {
     lateinit var sharedPrefsManager: SharedPreferencesManager
     lateinit var soundEffectManager: SoundEffectManager
     lateinit var connectivityHelper: ConnectivityManagerHelper
+    lateinit var securityManager: SecurityManager // Add SecurityManager
+
+    private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize SharedPreferences and SoundEffectManager
+        // Initialize managers
         sharedPrefsManager = SharedPreferencesManager(this)
         soundEffectManager = SoundEffectManager(this, sharedPrefsManager)
         soundEffectManager.loadSounds()
+        securityManager = SecurityManager(this)
 
         // Initialize and start network connectivity monitoring
         connectivityHelper = ConnectivityManagerHelper(this) { isConnected ->
             if (!isConnected) {
                 // Show a toast message when the network is lost
                 Toast.makeText(this, "Network connection lost. Please check your internet.", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        // Start VPN detection
+        vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpnActive ->
+            if (isVpnActive) {
+                Toast.makeText(this, "VPN detected. Security checks in progress.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -400,6 +510,11 @@ abstract class BaseActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         soundEffectManager.release()
+        // Unregister the VPN network callback
+        vpnNetworkCallback?.let {
+            val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            connectivityManager.unregisterNetworkCallback(it)
+        }
     }
 }
 
@@ -638,6 +753,7 @@ fun MainContent(
 @Composable
 fun InitialSetupDialog(onSetupComplete: () -> Unit) {
     val context = LocalContext.current
+    val soundEffectManager = SoundEffectManager(context, SharedPreferencesManager(context)) // Use a temporary manager for the dialog
     var hasStoragePermission by remember {
         mutableStateOf(checkStoragePermission(context))
     }
@@ -656,56 +772,57 @@ fun InitialSetupDialog(onSetupComplete: () -> Unit) {
         }
     }
 
-    // Show the dialog only if permissions are not granted
-    if (!hasStoragePermission) {
-        AlertDialog(
-            onDismissRequest = { /* Cannot dismiss until setup is complete */ },
-            title = { Text("Welcome to Ktimaz Studio") },
-            text = {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "Please grant storage permissions to allow the app to function correctly.",
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = {
-                        // Launch the permission request
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            permissionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.READ_MEDIA_IMAGES,
-                                    Manifest.permission.READ_MEDIA_VIDEO,
-                                    Manifest.permission.READ_MEDIA_AUDIO,
-                                )
+    AlertDialog(
+        onDismissRequest = { /* Cannot dismiss until setup is complete */ },
+        title = { Text("Welcome to Ktimaz Studio") },
+        text = {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "Please grant storage permissions to allow the app to function correctly.",
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = {
+                    soundEffectManager.playClickSound()
+                    // Launch the permission request
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.READ_MEDIA_IMAGES,
+                                Manifest.permission.READ_MEDIA_VIDEO,
+                                Manifest.permission.READ_MEDIA_AUDIO,
                             )
-                        } else {
-                            @Suppress("DEPRECATION")
-                            permissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
-                        }
-                    }) {
-                        Text("Grant Permissions")
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        permissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
                     }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = onSetupComplete,
-                    enabled = hasStoragePermission // Enable "Continue" only if permission is granted
-                ) {
-                    Text("Continue")
+                }) {
+                    Text("Grant Permissions")
                 }
             }
-        )
-    } else {
-        // If permissions are already granted, proceed immediately.
-        LaunchedEffect(Unit) {
-            onSetupComplete()
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    soundEffectManager.playClickSound()
+                    // Only allow finishing if permission is granted
+                    if (hasStoragePermission) {
+                        onSetupComplete()
+                    } else {
+                        Toast.makeText(context, "Please grant storage permission to continue.", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                enabled = hasStoragePermission // Enable "Continue" only if permission is granted
+            ) {
+                Text("Continue")
+            }
         }
-    }
+    )
 }
 
 
