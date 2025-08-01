@@ -53,16 +53,16 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.* // NEW: Import for semantics
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties // NEW: Import for DialogProperties
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
-import androidx.core.util.Pair // NEW: Import for androidx.core.util.Pair
+import androidx.core.util.Pair
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.delay
@@ -79,11 +79,74 @@ import kotlin.experimental.and
 // Constants
 private const val SECURITY_CHECK_INTERVAL_MS = 30_000L
 private const val ANIMATION_DURATION_MS = 300
-private const val ANIMATION_DELAY_MS = 100
 private const val SEARCH_DEBOUNCE_MS = 300L
 private const val TAG = "MainActivity"
 
-// ... (ThemeSetting, SoundEffectManager, SharedPreferencesManager unchanged from previous response)
+// NEW: Define ThemeSetting enum
+enum class ThemeSetting {
+    LIGHT, DARK, SYSTEM, BATTERY_SAVER
+}
+
+// NEW: Define SoundEffectManager class
+class SoundEffectManager(private val context: Context, private val sharedPrefsManager: SharedPreferencesManager) {
+    private var soundPool: SoundPool? = null
+    private var clickSoundId: Int = 0
+
+    fun loadSounds() {
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        soundPool = SoundPool.Builder()
+            .setMaxStreams(1)
+            .setAudioAttributes(audioAttributes)
+            .build()
+        clickSoundId = soundPool?.load(context, R.raw.click_sound, 1) ?: 0
+    }
+
+    fun playClickSound() {
+        if (sharedPrefsManager.isSoundEnabled()) {
+            soundPool?.play(clickSoundId, 1f, 1f, 1, 0, 1f)
+        }
+    }
+
+    fun release() {
+        soundPool?.release()
+        soundPool = null
+    }
+}
+
+// NEW: Define SharedPreferencesManager class
+class SharedPreferencesManager(context: Context) {
+    companion object {
+        const val PREFS_NAME = "KtimazStudioPrefs"
+        const val KEY_THEME_SETTING = "theme_setting"
+        const val KEY_LANGUAGE_SETTING = "language_setting"
+        const val KEY_SOUND_ENABLED = "sound_enabled"
+        const val KEY_LOGGED_IN = "logged_in"
+        const val KEY_USERNAME = "username"
+        const val KEY_INITIAL_SETUP = "initial_setup"
+    }
+
+    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    fun isSoundEnabled(): Boolean = prefs.getBoolean(KEY_SOUND_ENABLED, true)
+    fun setSoundEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_SOUND_ENABLED, enabled).apply()
+    fun getThemeSetting(): ThemeSetting = ThemeSetting.valueOf(prefs.getString(KEY_THEME_SETTING, ThemeSetting.SYSTEM.name) ?: ThemeSetting.SYSTEM.name)
+    fun setThemeSetting(theme: ThemeSetting) = prefs.edit().putString(KEY_THEME_SETTING, theme.name).apply()
+    fun getLanguageSetting(): String = prefs.getString(KEY_LANGUAGE_SETTING, "English") ?: "English"
+    fun setLanguageSetting(language: String) = prefs.edit().putString(KEY_LANGUAGE_SETTING, language).apply()
+    fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_LOGGED_IN, false)
+    fun setLoggedIn(loggedIn: Boolean, username: String? = null) {
+        prefs.edit().putBoolean(KEY_LOGGED_IN, loggedIn).apply()
+        if (username != null) {
+            prefs.edit().putString(KEY_USERNAME, username).apply()
+        }
+    }
+    fun getUsername(): String? = prefs.getString(KEY_USERNAME, null)
+    fun isInitialSetupComplete(): Boolean = prefs.getBoolean(KEY_INITIAL_SETUP, false)
+    fun setInitialSetupComplete(completed: Boolean) = prefs.edit().putBoolean(KEY_INITIAL_SETUP, completed).apply()
+}
 
 fun isConnected(context: Context): Boolean {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -112,7 +175,111 @@ class SecurityManager(private val context: Context) {
         return Debug.isDebuggerConnected() || isTracerAttached()
     }
 
-    // ... (isVpnActive, registerVpnDetectionCallback, unregisterVpnDetectionCallback, isRunningOnEmulator, isDeviceRooted, getSignatureSha256Hash, getApkSha256Hash_UNUSED, isHookingFrameworkDetected, isApkTampered, getAppSize, isTracerAttached unchanged)
+    fun isVpnActive(): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+    }
+
+    fun registerVpnDetectionCallback(callback: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val request = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+            .build()
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                callback(true)
+            }
+            override fun onLost(network: Network) {
+                callback(false)
+            }
+        }
+        cm.registerNetworkCallback(request, networkCallback)
+        return networkCallback
+    }
+
+    fun unregisterVpnDetectionCallback(callback: ConnectivityManager.NetworkCallback) {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        cm.unregisterNetworkCallback(callback)
+    }
+
+    fun isRunningOnEmulator(): Boolean {
+        return Build.FINGERPRINT.contains("generic", ignoreCase = true) ||
+                Build.MODEL.contains("Emulator", ignoreCase = true) ||
+                Build.MANUFACTURER.contains("Genymotion", ignoreCase = true) ||
+                Build.BRAND.contains("generic", ignoreCase = true)
+    }
+
+    fun isDeviceRooted(): Boolean {
+        if (isRootedCached != null) return isRootedCached!!
+        val paths = arrayOf(
+            "/system/app/Superuser.apk",
+            "/sbin/su",
+            "/system/bin/su",
+            "/system/xbin/su",
+            "/data/local/xbin/su",
+            "/data/local/bin/su",
+            "/system/sd/xbin/su",
+            "/system/bin/failsafe/su",
+            "/data/local/su"
+        )
+        isRootedCached = paths.any { File(it).exists() }
+        return isRootedCached!!
+    }
+
+    fun isHookingFrameworkDetected(): Boolean {
+        if (isHookingDetectedCached != null) return isHookingDetectedCached!!
+        try {
+            throw Exception()
+        } catch (e: Exception) {
+            val stackTrace = e.stackTrace
+            isHookingDetectedCached = stackTrace.any {
+                it.className.contains("de.robv.android.xposed") ||
+                        it.className.contains("com.zte.heartyservice")
+            }
+        }
+        return isHookingDetectedCached!!
+    }
+
+    fun isApkTampered(): Boolean {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            val signatures = packageInfo.signatures
+            if (signatures.isEmpty()) return true
+            val digest = MessageDigest.getInstance("SHA-256")
+            signatures.forEach { signature ->
+                val hash = digest.digest(signature.toByteArray())
+                val hashString = hash.joinToString("") { byte -> "%02x".format(byte and 0xff.toByte()) }
+                if (hashString.lowercase() != EXPECTED_APK_HASH) {
+                    return true
+                }
+            }
+            return false
+        } catch (e: Exception) {
+            Log.e(TAG, "APK tampering check failed: ${e.message}")
+            return true
+        }
+    }
+
+    fun isTracerAttached(): Boolean {
+        try {
+            val process = Runtime.getRuntime().exec("cat /proc/self/status")
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            var tracerPid = ""
+            reader.useLines { lines ->
+                lines.forEach { line ->
+                    if (line.contains("TracerPid")) {
+                        tracerPid = line.split(":")[1].trim()
+                    }
+                }
+            }
+            return tracerPid != "0"
+        } catch (e: Exception) {
+            Log.e(TAG, "Tracer check failed: ${e.message}")
+            return false
+        }
+    }
 
     fun getSecurityIssue(isInspectionMode: Boolean): SecurityIssue {
         if (isInspectionMode) return SecurityIssue.NONE
@@ -138,11 +305,6 @@ class SecurityManager(private val context: Context) {
 
     fun isCertificatePinningValid(): Boolean {
         return true
-    }
-
-    private fun logSecurityEvent(event: String) {
-        Log.w(TAG, "Security Event: $event")
-        Toast.makeText(context, "Security Event: $event", Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -367,7 +529,7 @@ fun InitialSetupDialog(
     onSetupComplete: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+    var selectedTheme by remember { mutableStateOf<ThemeSetting>(sharedPrefsManager.getThemeSetting()) }
     var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
     var permissionsGranted by remember { mutableStateOf(false) }
     var showPermissionRationale by remember { mutableStateOf(false) }
@@ -410,17 +572,22 @@ fun InitialSetupDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("Please configure your preferences to get started.")
-                SingleChoiceSegmentedButtonRow {
+                // FIXED: Moved SegmentedButton to Composable scope
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     ThemeSetting.entries.forEachIndexed { index, theme ->
-                        SegmentedButton(
-                            selected = selectedTheme == theme,
+                        OutlinedButton(
                             onClick = {
                                 soundEffectManager.playClickSound()
                                 sharedPrefsManager.setThemeSetting(theme)
                                 selectedTheme = theme
                             },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeSetting.entries.size),
-                            icon = { SegmentedButtonDefaults.Icon(active = selectedTheme == theme) }
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (selectedTheme == theme) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                            )
                         ) {
                             Text(theme.name.replace("_", " "), style = MaterialTheme.typography.labelLarge)
                         }
@@ -511,7 +678,7 @@ fun InitialSetupDialog(
                 }
             }
         },
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false) // FIXED: Now properly imported
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
     )
 }
 
@@ -601,7 +768,7 @@ fun MainApplicationUI(
                                     fontSize = 22.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.semantics { contentDescription = "App Title" } // FIXED: Added semantics import
+                                    modifier = Modifier.semantics { contentDescription = "App Title" }
                                 )
                             }
                         }
@@ -695,7 +862,7 @@ fun AnimatedCardGrid(
         }
     }
     var isFiltering by remember { mutableStateOf(false) }
-    val context = LocalContext.current // NEW: Moved context access outside lambda
+    val context = LocalContext.current
 
     LaunchedEffect(searchQuery) {
         isFiltering = true
@@ -721,15 +888,14 @@ fun AnimatedCardGrid(
                     }
                     intent.putExtra("transition_name", "card_$cardTitle")
                     try {
-                        // NEW: Moved transition logic outside Composable scope
                         val activity = context as? ComponentActivity
                         activity?.let {
                             val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                                 it,
-                                Pair(View(context), "card_$cardTitle") // FIXED: Use androidx.core.util.Pair
+                                Pair(View(context), "card_$cardTitle")
                             )
                             context.startActivity(intent, options.toBundle())
-                        } ?: context.startActivity(intent) // Fallback if activity is null
+                        } ?: context.startActivity(intent)
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to start activity with transition: ${e.message}")
                         context.startActivity(intent)
@@ -799,7 +965,7 @@ fun AnimatedCardItem(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             }
-            .semantics { contentDescription = "Card: $title" }, // FIXED: Added semantics import
+            .semantics { contentDescription = "Card: $title" },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
@@ -823,7 +989,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var soundEnabled by remember { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
-    var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+    var selectedTheme by remember { mutableStateOf<ThemeSetting>(sharedPrefsManager.getThemeSetting()) }
     var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
 
     Column(
@@ -865,17 +1031,22 @@ fun SettingsScreen(
                     description = "Choose your preferred theme",
                     soundEffectManager = soundEffectManager
                 ) {
-                    SingleChoiceSegmentedButtonRow {
-                        ThemeSetting.entries.forEachIndexed { index, theme ->
-                            SegmentedButton(
-                                selected = selectedTheme == theme,
+                    // FIXED: Moved SegmentedButton to Composable scope
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ThemeSetting.entries.forEach { theme ->
+                            OutlinedButton(
                                 onClick = {
                                     soundEffectManager.playClickSound()
                                     sharedPrefsManager.setThemeSetting(theme)
                                     selectedTheme = theme
                                 },
-                                shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeSetting.entries.size),
-                                icon = { SegmentedButtonDefaults.Icon(active = selectedTheme == theme) }
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (selectedTheme == theme) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                                )
                             ) {
                                 Text(theme.name.replace("_", " "))
                             }
@@ -1033,7 +1204,6 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    // NEW: Check resources outside Composable scope
     val isLogoAvailable = try {
         context.resources.getResourceEntryName(R.mipmap.ic_launcher_round)
         true
