@@ -1,10 +1,13 @@
+
 package com.ktimazstudio
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.net.ConnectivityManager
@@ -15,7 +18,53 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Debug
 import android.provider.Settings
+import android.util.Log // NEW: Added for debugging
+import android.view.View
+import android.view.Window
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityOptionsCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.ktimazstudio.ui.theme.ktimaz
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -23,160 +72,22 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.Locale
-import android.content.res.Configuration
 import kotlin.experimental.and
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.automirrored.filled.ArrowLeft // FIXED: Replaced Language with ArrowLeft
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.HistoryEdu
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.material3.rememberTooltipState
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import com.ktimazstudio.ui.theme.ktimaz
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import android.app.UiModeManager
-import android.os.PowerManager
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.surfaceColorAtElevation
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.semantics.semantics // FIXED: Added for semantics
-import androidx.compose.ui.semantics.contentDescription // FIXED: Added for contentDescription
 
-// ENHANCED: Constants for repeated values
-private const val SECURITY_CHECK_INTERVAL_MS = 10_000L
+// Constants
+private const val SECURITY_CHECK_INTERVAL_MS = 30_000L
 private const val ANIMATION_DURATION_MS = 300
 private const val ANIMATION_DELAY_MS = 100
 private const val SEARCH_DEBOUNCE_MS = 300L
+private const val TAG = "MainActivity" // NEW: For logging
 
-// --- Theme Settings Enum ---
 enum class ThemeSetting {
     LIGHT, DARK, SYSTEM, BATTERY_SAVER
 }
 
-// --- SoundEffectManager ---
-/**
- * Manages playing short sound effects using SoundPool for low-latency audio feedback.
- * This is used for click sounds and other UI interactions.
- *
- * IMPORTANT: For this to work, you must place an audio file (e.g., click_sound.wav)
- * in your `res/raw` directory.
- */
 class SoundEffectManager(private val context: Context, private val sharedPrefsManager: SharedPreferencesManager) {
     private var soundPool: SoundPool? = null
     private var clickSoundId: Int = 0
-    // ENHANCED: Track if sound file is missing
     private var isSoundFileMissing: Boolean = false
 
     fun loadSounds() {
@@ -194,12 +105,13 @@ class SoundEffectManager(private val context: Context, private val sharedPrefsMa
             clickSoundId = soundPool?.load(context, R.raw.click_sound, 1) ?: 0
         } catch (e: Exception) {
             isSoundFileMissing = true
+            Log.e(TAG, "Failed to load sound: ${e.message}") // NEW: Log error
             Toast.makeText(context, "Click sound file missing. Sound effects disabled.", Toast.LENGTH_LONG).show()
         }
     }
 
     fun playClickSound() {
-        if (sharedPrefsManager.isSoundEnabled() && clickSoundId != 0 && !isSoundFileMissing) {
+        if (sharedPrefsManager.isSoundEnabled() && clickSoundId != 0 && !isSoundFileMissing && soundPool != null) {
             soundPool?.play(clickSoundId, 1.0f, 1.0f, 0, 0, 1.0f)
         }
     }
@@ -210,11 +122,6 @@ class SoundEffectManager(private val context: Context, private val sharedPrefsMa
     }
 }
 
-// --- SharedPreferencesManager ---
-/**
- * Manages user login status, username, theme settings, sound settings,
- * initial setup completion, and language setting using SharedPreferences for persistent storage.
- */
 class SharedPreferencesManager(context: Context) {
     val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
     private val context: Context = context
@@ -309,13 +216,13 @@ class SharedPreferencesManager(context: Context) {
             "Bengali" -> Locale("bn")
             else -> Locale("en")
         }
+        Locale.setDefault(locale)
         val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
         context.resources.updateConfiguration(config, context.resources.displayMetrics)
+        (context as? ComponentActivity)?.recreate()
     }
 }
-
-// --- Top-level utility functions ---
 
 fun isConnected(context: Context): Boolean {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -335,16 +242,10 @@ fun openWifiSettings(context: Context) {
     }
 }
 
-/**
- * Utility class for performing various security checks on the application's environment.
- * These checks are designed to detect common reverse engineering, tampering, and
- * undesirable network conditions like VPN usage.
- *
- * NOTE: Client-side security checks are never foolproof and can be bypassed by
- * determined attackers. They serve as deterrents and indicators of compromise.
- */
 class SecurityManager(private val context: Context) {
     private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
+    private var isRootedCached: Boolean? = null
+    private var isHookingDetectedCached: Boolean? = null
 
     fun isDebuggerConnected(): Boolean {
         return Debug.isDebuggerConnected() || isTracerAttached()
@@ -414,6 +315,7 @@ class SecurityManager(private val context: Context) {
     }
 
     fun isDeviceRooted(): Boolean {
+        isRootedCached?.let { return it }
         val paths = arrayOf(
             "/system/app/Superuser.apk",
             "/sbin/su",
@@ -429,55 +331,55 @@ class SecurityManager(private val context: Context) {
         for (path in paths) {
             if (File(path).exists()) {
                 logSecurityEvent("Root binary detected at: $path")
+                isRootedCached = true
                 return true
             }
         }
-
         if (Build.TAGS != null && Build.TAGS.contains("test-keys")) {
             logSecurityEvent("Test-keys detected in Build.TAGS")
+            isRootedCached = true
             return true
         }
-
         var process: Process? = null
         try {
             process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             if (reader.readLine() != null) {
                 logSecurityEvent("su command executable found")
+                isRootedCached = true
                 return true
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Root check failed: ${e.message}") // NEW: Log error
         } finally {
             process?.destroy()
         }
-
+        isRootedCached = false
         return false
     }
 
     @Suppress("DEPRECATION")
     fun getSignatureSha256Hash(): String? {
-        try {
+        return try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
             } else {
                 context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
             }
-
             val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 packageInfo.signingInfo?.apkContentsSigners
             } else {
                 packageInfo.signatures
             }
-
-            if (signatures != null && signatures.isNotEmpty()) {
+            signatures?.takeIf { it.isNotEmpty() }?.let {
                 val md = MessageDigest.getInstance("SHA-256")
-                val hashBytes = md.digest(signatures[0].toByteArray())
-                return hashBytes.joinToString("") { "%02x".format(it.and(0xff.toByte())) }
+                val hashBytes = md.digest(it[0].toByteArray())
+                hashBytes.joinToString("") { "%02x".format(it.and(0xff.toByte())) }
             }
         } catch (e: Exception) {
-            logSecurityEvent("Failed to calculate signature hash: ${e.message}")
+            Log.e(TAG, "Failed to calculate signature hash: ${e.message}") // NEW: Log error
+            null
         }
-        return null
     }
 
     @Suppress("DEPRECATION")
@@ -493,12 +395,14 @@ class SecurityManager(private val context: Context) {
                 return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
             }
         } catch (e: Exception) {
-            logSecurityEvent("Failed to calculate APK hash: ${e.message}")
+            Log.e(TAG, "Failed to calculate APK hash: ${e.message}") // NEW: Log error
+            null
         }
         return null
     }
 
     fun isHookingFrameworkDetected(): Boolean {
+        isHookingDetectedCached?.let { return it }
         val knownHookFiles = arrayOf(
             "/system/app/XposedInstaller.apk",
             "/system/bin/app_process_xposed",
@@ -517,10 +421,10 @@ class SecurityManager(private val context: Context) {
         for (path in knownHookFiles) {
             if (File(path).exists()) {
                 logSecurityEvent("Hooking framework file detected at: $path")
+                isHookingDetectedCached = true
                 return true
             }
         }
-
         val props = listOf("xposed.active", "xposed.api_level", "xposed.installed")
         try {
             val process = Runtime.getRuntime().exec("getprop")
@@ -532,24 +436,24 @@ class SecurityManager(private val context: Context) {
                 for (prop in props) {
                     if (line.contains("[$prop]:")) {
                         logSecurityEvent("Hooking framework property detected: $prop")
+                        isHookingDetectedCached = true
                         return true
                     }
                 }
             }
             process.destroy()
         } catch (e: Exception) {
-            logSecurityEvent("Error checking system properties: ${e.message}")
+            Log.e(TAG, "Error checking system properties: ${e.message}") // NEW: Log error
         }
-
         try {
             context.packageManager.getPackageInfo("de.robv.android.xposed.installer", PackageManager.GET_ACTIVITIES)
             logSecurityEvent("Xposed installer package detected")
+            isHookingDetectedCached = true
             return true
         } catch (e: PackageManager.NameNotFoundException) {
         } catch (e: Exception) {
-            logSecurityEvent("Error checking Xposed installer package: ${e.message}")
+            Log.e(TAG, "Error checking Xposed installer package: ${e.message}") // NEW: Log error
         }
-
         try {
             val process = Runtime.getRuntime().exec("ps -A")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
@@ -557,14 +461,15 @@ class SecurityManager(private val context: Context) {
             while (reader.readLine().also { line = it } != null) {
                 if (line?.contains("frida-server") == true) {
                     logSecurityEvent("Frida server process detected")
+                    isHookingDetectedCached = true
                     return true
                 }
             }
             process.destroy()
         } catch (e: Exception) {
-            logSecurityEvent("Error checking for Frida processes: ${e.message}")
+            Log.e(TAG, "Error checking for Frida processes: ${e.message}") // NEW: Log error
         }
-
+        isHookingDetectedCached = false
         return false
     }
 
@@ -585,9 +490,9 @@ class SecurityManager(private val context: Context) {
             val file = File(apkPath)
             return file.length()
         } catch (e: Exception) {
-            logSecurityEvent("Failed to get app size: ${e.message}")
+            Log.e(TAG, "Failed to get app size: ${e.message}") // NEW: Log error
+            return -1L
         }
-        return -1L
     }
 
     fun isTracerAttached(): Boolean {
@@ -606,24 +511,31 @@ class SecurityManager(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            logSecurityEvent("Error checking TracerPid: ${e.message}")
+            Log.e(TAG, "Error checking TracerPid: ${e.message}") // NEW: Log error
         }
         return false
     }
 
     fun getSecurityIssue(isInspectionMode: Boolean): SecurityIssue {
-        if (isInspectionMode) {
+        if (isInspectionMode) return SecurityIssue.NONE
+        try {
+            if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
+            if (isTracerAttached()) return SecurityIssue.DEBUGGER_ATTACHED
+            if (isRunningOnEmulator()) return SecurityIssue.EMULATOR_DETECTED
+            if (isDeviceRooted()) return SecurityIssue.ROOT_DETECTED
+            if (isHookingFrameworkDetected()) return SecurityIssue.HOOKING_FRAMEWORK_DETECTED
+            if (isApkTampered()) return SecurityIssue.APK_TAMPERED
+            if (isVpnActive()) return SecurityIssue.VPN_ACTIVE
             return SecurityIssue.NONE
+        } catch (e: Exception) {
+            Log.e(TAG, "Security check failed: ${e.message}") // NEW: Log error
+            return SecurityIssue.UNKNOWN
         }
+    }
 
-        if (isDebuggerConnected()) return SecurityIssue.DEBUGGER_ATTACHED
-        if (isTracerAttached()) return SecurityIssue.DEBUGGER_ATTACHED
-        if (isRunningOnEmulator()) return SecurityIssue.EMULATOR_DETECTED
-        if (isDeviceRooted()) return SecurityIssue.ROOT_DETECTED
-        if (isHookingFrameworkDetected()) return SecurityIssue.HOOKING_FRAMEWORK_DETECTED
-        if (isApkTampered()) return SecurityIssue.APK_TAMPERED
-        if (isVpnActive()) return SecurityIssue.VPN_ACTIVE
-        return SecurityIssue.NONE
+    fun resetCache() {
+        isRootedCached = null
+        isHookingDetectedCached = null
     }
 
     fun isCertificatePinningValid(): Boolean {
@@ -631,6 +543,7 @@ class SecurityManager(private val context: Context) {
     }
 
     private fun logSecurityEvent(event: String) {
+        Log.w(TAG, "Security Event: $event") // NEW: Log instead of Toast to reduce UI thread load
         Toast.makeText(context, "Security Event: $event", Toast.LENGTH_SHORT).show()
     }
 }
@@ -652,7 +565,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var securityManager: SecurityManager
@@ -664,7 +577,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
         soundEffectManager = SoundEffectManager(applicationContext, sharedPrefsManager)
-        soundEffectManager.loadSounds()
+        try {
+            soundEffectManager.loadSounds()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load sounds: ${e.message}") // NEW: Log error
+            Toast.makeText(this, "Failed to load resources. Please reinstall the app.", Toast.LENGTH_LONG).show()
+            finishAffinity()
+            return
+        }
         securityManager = SecurityManager(applicationContext)
 
         setContent {
@@ -683,7 +603,7 @@ class MainActivity : ComponentActivity() {
 
             ktimaz(darkTheme = useDarkTheme) {
                 if (initialSecurityIssue != SecurityIssue.NONE) {
-                    SecurityAlertScreen(issue = initialSecurityIssue, onExitApp = { finishAffinity() }) // FIXED: Added onExitApp
+                    SecurityAlertScreen(issue = initialSecurityIssue, onExitApp = { finishAffinity() })
                 } else if (showInitialSetupDialog) {
                     InitialSetupDialog(
                         sharedPrefsManager = sharedPrefsManager,
@@ -706,8 +626,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
-                    var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
+                    var isLoggedIn by rememberSaveable { mutableStateOf(sharedPrefsManager.isLoggedIn()) } // NEW: Use rememberSaveable
+                    var currentUsername by rememberSaveable { mutableStateOf(sharedPrefsManager.getUsername() ?: "User") } // NEW: Default to "User"
                     var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
                     var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
 
@@ -737,10 +657,15 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // NEW: Log state changes to debug login-to-main crash
+                    LaunchedEffect(isLoggedIn, currentUsername) {
+                        Log.d(TAG, "Login state: isLoggedIn=$isLoggedIn, username=$currentUsername")
+                    }
+
                     if (currentSecurityIssue != SecurityIssue.NONE) {
                         SecurityAlertScreen(
                             issue = currentSecurityIssue,
-                            onExitApp = { finishAffinity() }, // FIXED: Added onExitApp
+                            onExitApp = { finishAffinity() },
                             onRetry = {
                                 if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE) {
                                     currentSecurityIssue = securityManager.getSecurityIssue(isInspectionMode)
@@ -748,34 +673,32 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        AnimatedContent(
+                        Crossfade(
                             targetState = isLoggedIn,
-                            transitionSpec = {
-                                (fadeIn(animationSpec = tween(ANIMATION_DURATION_MS, delayMillis = ANIMATION_DELAY_MS)) +
-                                        scaleIn(initialScale = 0.92f, animationSpec = tween(ANIMATION_DURATION_MS, delayMillis = ANIMATION_DELAY_MS)))
-                                    .togetherWith(
-                                        fadeOut(animationSpec = tween(ANIMATION_DURATION_MS / 2)) +
-                                                scaleOut(targetScale = 0.92f, animationSpec = tween(ANIMATION_DURATION_MS / 2))
-                                    )
-                                    .using(SizeTransform(clip = false))
-                            },
+                            animationSpec = tween(ANIMATION_DURATION_MS),
                             label = "LoginScreenTransition"
                         ) { targetIsLoggedIn ->
                             if (targetIsLoggedIn) {
+                                Log.d(TAG, "Transitioning to MainApplicationUI with username: $currentUsername") // NEW: Log transition
                                 MainApplicationUI(
-                                    username = currentUsername ?: "User",
+                                    username = currentUsername,
                                     onLogout = {
+                                        Log.d(TAG, "Logout triggered") // NEW: Log logout
                                         sharedPrefsManager.setLoggedIn(false)
                                         isLoggedIn = false
+                                        currentUsername = "User"
                                     },
                                     soundEffectManager = soundEffectManager,
                                     sharedPrefsManager = sharedPrefsManager
                                 )
                             } else {
+                                Log.d(TAG, "Showing LoginScreen") // NEW: Log login screen
                                 LoginScreen(
                                     onLoginSuccess = { loggedInUsername ->
+                                        Log.d(TAG, "Login success for username: $loggedInUsername") // NEW: Log success
                                         sharedPrefsManager.setLoggedIn(true, loggedInUsername)
                                         isLoggedIn = true
+                                        currentUsername = loggedInUsername
                                     },
                                     soundEffectManager = soundEffectManager
                                 )
@@ -802,7 +725,7 @@ fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
         ThemeSetting.DARK -> true
         ThemeSetting.SYSTEM -> systemInDarkTheme
         ThemeSetting.BATTERY_SAVER -> {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
                 powerManager.isPowerSaveMode
             } else {
@@ -840,7 +763,6 @@ fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit, onRetry: ((
     }
 }
 
-// FIXED: Added InitialSetupDialog
 @Composable
 fun InitialSetupDialog(
     sharedPrefsManager: SharedPreferencesManager,
@@ -872,7 +794,11 @@ fun InitialSetupDialog(
         } else {
             arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
-        permissionLauncher.launch(permissions)
+        if (permissions.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }) {
+            permissionsGranted = true
+        } else {
+            permissionLauncher.launch(permissions)
+        }
     }
 
     AlertDialog(
@@ -992,7 +918,7 @@ fun InitialSetupDialog(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainApplicationUI(
     username: String,
@@ -1020,11 +946,10 @@ fun MainApplicationUI(
         }
     }
 
-    val primaryGradient = Brush.verticalGradient(
+    val primaryGradient = Brush.linearGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.90f),
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
-            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.6f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
         )
     )
 
@@ -1061,17 +986,10 @@ fun MainApplicationUI(
                 val isScrolled = scrollBehavior.state.contentOffset > 0.1f
                 CenterAlignedTopAppBar(
                     title = {
-                        AnimatedContent(
+                        Crossfade(
                             targetState = isSearching,
-                            transitionSpec = {
-                                if (targetState) {
-                                    slideInHorizontally { it } + fadeIn(animationSpec = tween(ANIMATION_DURATION_MS)) togetherWith
-                                            slideOutHorizontally { -it } + fadeOut(animationSpec = tween(ANIMATION_DURATION_MS / 2))
-                                } else {
-                                    slideInHorizontally { -it } + fadeIn(animationSpec = tween(ANIMATION_DURATION_MS)) togetherWith
-                                            slideOutHorizontally { it } + fadeOut(animationSpec = tween(ANIMATION_DURATION_MS / 2))
-                                }
-                            }, label = "search_bar_transition"
+                            animationSpec = tween(ANIMATION_DURATION_MS),
+                            label = "search_bar_transition"
                         ) { searching ->
                             if (searching) {
                                 CustomSearchBar(
@@ -1129,14 +1047,10 @@ fun MainApplicationUI(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             containerColor = Color.Transparent
         ) { paddingValues ->
-            AnimatedContent(
+            Crossfade(
                 targetState = selectedDestination,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(ANIMATION_DURATION_MS, easing = LinearOutSlowInEasing)) +
-                            slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(ANIMATION_DURATION_MS)) togetherWith
-                            fadeOut(animationSpec = tween(ANIMATION_DURATION_MS, easing = FastOutLinearInEasing)) +
-                            slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -300 else 300 }, animationSpec = tween(ANIMATION_DURATION_MS))
-                }, label = "nav_rail_content_transition"
+                animationSpec = tween(ANIMATION_DURATION_MS),
+                label = "nav_rail_content_transition"
             ) { targetDestination ->
                 Box(modifier = Modifier.padding(paddingValues)) {
                     when (targetDestination) {
@@ -1168,7 +1082,6 @@ fun MainApplicationUI(
     }
 }
 
-// FIXED: Added AnimatedCardGrid
 @Composable
 fun AnimatedCardGrid(
     searchQuery: String,
@@ -1179,18 +1092,16 @@ fun AnimatedCardGrid(
         "System Config", "Network Monitor", "Security Scan", "Performance",
         "Storage Manager", "Battery Health", "App Updates", "Data Backup"
     )
-    val coroutineScope = rememberCoroutineScope()
-    var filteredCards by remember { mutableStateOf(cards) }
+    val filteredCards by remember(searchQuery) {
+        derivedStateOf {
+            if (searchQuery.isEmpty()) cards else cards.filter { it.contains(searchQuery, ignoreCase = true) }
+        }
+    }
     var isFiltering by remember { mutableStateOf(false) }
 
     LaunchedEffect(searchQuery) {
         isFiltering = true
         delay(SEARCH_DEBOUNCE_MS)
-        filteredCards = if (searchQuery.isEmpty()) {
-            cards
-        } else {
-            cards.filter { it.contains(searchQuery, ignoreCase = true) }
-        }
         isFiltering = false
     }
 
@@ -1205,7 +1116,23 @@ fun AnimatedCardGrid(
             val cardTitle = filteredCards[index]
             AnimatedCardItem(
                 title = cardTitle,
-                onClick = { onCardClick(cardTitle) },
+                onClick = {
+                    val intent = when (cardTitle) {
+                        "System Config" -> Intent(LocalContext.current, SettingsActivity::class.java)
+                        else -> Intent(LocalContext.current, ComingActivity::class.java).putExtra("CARD_TITLE", cardTitle)
+                    }
+                    intent.putExtra("transition_name", "card_$cardTitle")
+                    try {
+                        LocalContext.current.startActivity(intent, ActivityOptionsCompat.makeSceneTransitionAnimation(
+                            LocalContext.current as ComponentActivity,
+                            Pair(View(LocalContext.current), "card_$cardTitle")
+                        ).toBundle())
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to start activity with transition: ${e.message}") // NEW: Log error
+                        LocalContext.current.startActivity(intent) // Fallback without transition
+                    }
+                    onCardClick(cardTitle)
+                },
                 soundEffectManager = soundEffectManager,
                 index = index
             )
@@ -1227,7 +1154,6 @@ fun AnimatedCardGrid(
     }
 }
 
-// FIXED: Added AnimatedCardItem
 @Composable
 fun AnimatedCardItem(
     title: String,
@@ -1239,12 +1165,11 @@ fun AnimatedCardItem(
         targetValue = 1f,
         animationSpec = tween(
             durationMillis = ANIMATION_DURATION_MS,
-            delayMillis = index * ANIMATION_DELAY_MS,
+            delayMillis = index * 50,
             easing = LinearOutSlowInEasing
         ),
         label = "card_animation"
     )
-
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -1257,7 +1182,7 @@ fun AnimatedCardItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
+            .height(100.dp)
             .graphicsLayer(
                 scaleX = scale * animatedProgress,
                 scaleY = scale * animatedProgress,
@@ -1270,24 +1195,24 @@ fun AnimatedCardItem(
                 soundEffectManager.playClickSound()
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
-            },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            }
+            .semantics { contentDescription = "Card: $title" },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(12.dp)
             )
         }
     }
 }
 
-// FIXED: Added SettingsScreen
 @Composable
 fun SettingsScreen(
     soundEffectManager: SoundEffectManager,
@@ -1356,7 +1281,7 @@ fun SettingsScreen(
                 }
                 HorizontalDivider()
                 SettingItem(
-                    icon = Icons.AutoMirrored.Filled.ArrowLeft, // FIXED: Used ArrowLeft
+                    icon = Icons.AutoMirrored.Filled.ArrowLeft,
                     title = "Language",
                     description = "Select app language",
                     soundEffectManager = soundEffectManager
@@ -1405,7 +1330,6 @@ fun SettingsScreen(
     }
 }
 
-// FIXED: Added SettingItem
 @Composable
 fun SettingItem(
     icon: ImageVector,
@@ -1484,7 +1408,7 @@ fun CustomSearchBar(
             focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
             unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
-            unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
         shape = RoundedCornerShape(28.dp),
         modifier = Modifier
@@ -1522,32 +1446,18 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
         errorTrailingIconColor = MaterialTheme.colorScheme.error
     )
 
-    val backgroundGradient = Brush.verticalGradient(
+    val backgroundGradient = Brush.linearGradient( // NEW: Simplified gradient
         colors = listOf(
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            MaterialTheme.colorScheme.surfaceContainerLow,
-            MaterialTheme.colorScheme.surfaceContainerHigh
+            MaterialTheme.colorScheme.surface
         )
     )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "login_background")
-    val offset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(5000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "login_background_offset"
-    )
-
+    // NEW: Remove infiniteTransition to reduce CPU usage
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundGradient)
-            .graphicsLayer {
-                translationY = offset * 50f
-            },
+            .background(backgroundGradient),
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -1566,16 +1476,32 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher_round),
-                    contentDescription = stringResource(id = R.string.app_name) + " Logo",
-                    modifier = Modifier
-                        .size(96.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-                        .padding(8.dp),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
-                )
+                // NEW: Validate resource existence
+                try {
+                    Image(
+                        painter = painterResource(id = R.mipmap.ic_launcher_round),
+                        contentDescription = stringResource(id = R.string.app_name) + " Logo",
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                            .padding(8.dp),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load logo: ${e.message}") // NEW: Log error
+                    Icon(
+                        imageVector = Icons.Filled.AccountCircle,
+                        contentDescription = "Fallback Logo",
+                        modifier = Modifier
+                            .size(96.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                            .padding(8.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
                 Text(
                     text = stringResource(id = R.string.app_name),
                     style = MaterialTheme.typography.headlineMedium,
@@ -1617,7 +1543,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                         isLoading = true
                         errorMessage = null
                         coroutineScope.launch {
-                            delay(2000)
+                            delay(1000) // NEW: Reduced delay for faster feedback
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 soundEffectManager.playClickSound()
@@ -1678,7 +1604,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                         isLoading = true
                         errorMessage = null
                         coroutineScope.launch {
-                            delay(2000)
+                            delay(1000) // NEW: Reduced delay
                             if (usernameInput == "admin" && passwordInput == "admin") {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 soundEffectManager.playClickSound()
@@ -1721,10 +1647,9 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
 fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () -> Unit, soundEffectManager: SoundEffectManager) {
     val context = LocalContext.current
 
-    val profileBackgroundGradient = Brush.verticalGradient(
+    val profileBackgroundGradient = Brush.linearGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            MaterialTheme.colorScheme.background,
             MaterialTheme.colorScheme.background
         )
     )
@@ -1935,7 +1860,7 @@ fun AppNavigationRail(
     modifier: Modifier = Modifier
 ) {
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
-    val railWidth by animateDpAsState( // FIXED: Completed incomplete line
+    val railWidth by animateDpAsState(
         targetValue = if (isExpanded) 200.dp else 80.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
         label = "rail_width_animation"
