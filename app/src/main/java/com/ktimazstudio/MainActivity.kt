@@ -1,5 +1,6 @@
 package com.ktimazstudio
 
+import android.Manifest // Added: For permissions
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -15,17 +16,23 @@ import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
 import android.widget.Toast
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import java.io.BufferedReader // Added: For BufferedReader
+import java.io.File // Added: For File operations
+import java.io.InputStreamReader // Added: For InputStreamReader
+import java.security.MessageDigest // Added: For MessageDigest
+import kotlin.experimental.and // Added: For bitwise 'and' operation
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts // Added: For ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border // Added: For border modifier
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.LocalIndication // Added: For LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -39,9 +46,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
+import androidx.compose.material.icons.automirrored.filled.Language // Added: For Language icon
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CheckCircle // Added: For CheckCircle icon
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ColorLens
@@ -54,55 +63,87 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage // Added: For Storage icon
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog // Explicit import for Material3 AlertDialog
+import androidx.compose.material3.Button // Explicit import for Material3 Button
+import androidx.compose.material3.ButtonDefaults // Explicit import for Material3 ButtonDefaults
+import androidx.compose.material3.Card // Explicit import for Material3 Card
+import androidx.compose.material3.CardDefaults // Explicit import for Material3 CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar // Explicit import for Material3 CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator // Explicit import for Material3 CircularProgressIndicator
+import androidx.compose.material3.Divider // Explicit import for Material3 Divider
+import androidx.compose.material3.DropdownMenu // Explicit import for Material3 DropdownMenu
+import androidx.compose.material3.DropdownMenuItem // Explicit import for Material3 DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api // Explicit import for ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider // Explicit import for HorizontalDivider
+import androidx.compose.material3.Icon // Explicit import for Material3 Icon
+import androidx.compose.material3.IconButton // Explicit import for Material3 IconButton
+import androidx.compose.material3.MaterialTheme // Explicit import for Material3 MaterialTheme
+import androidx.compose.material3.NavigationRail // Explicit import for Material3 NavigationRail
+import androidx.compose.material3.NavigationRailItem // Explicit import for Material3 NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults // Explicit import for Material3 NavigationRailItemDefaults
+import androidx.compose.material3.OutlinedButton // Explicit import for Material3 OutlinedButton
+import androidx.compose.material3.OutlinedTextField // Explicit import for Material3 OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults // Explicit import for Material3 OutlinedTextFieldDefaults
+import androidx.compose.material3.PlainTooltip // Explicit import for Material3 PlainTooltip
+import androidx.compose.material3.Scaffold // Explicit import for Material3 Scaffold
+import androidx.compose.material3.SegmentedButton // Explicit import for SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults // Explicit import for SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow // Explicit import for SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration // Explicit import for Material3 SnackbarDuration
+import androidx.compose.material3.SnackbarHost // Explicit import for Material3 SnackbarHost
+import androidx.compose.material3.SnackbarHostState // Explicit import for Material3 SnackbarHostState
+import androidx.compose.material3.SnackbarResult // Explicit import for Material3 SnackbarResult
+import androidx.compose.material3.Switch // Explicit import for Material3 Switch
+import androidx.compose.material3.Text // Explicit import for Material3 Text
+import androidx.compose.material3.TextButton // Explicit import for Material3 TextButton
+import androidx.compose.material3.TooltipBox // Explicit import for Material3 TooltipBox
+import androidx.compose.material3.TooltipDefaults // Explicit import for Material3 TooltipDefaults
+import androidx.compose.material3.TopAppBarDefaults // Explicit import for Material3 TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState // Explicit import for Material3 rememberTopAppBarState
+import androidx.compose.material3.rememberTooltipState // Explicit import for Material3 rememberTooltipState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment // Added: For Alignment
+import androidx.compose.ui.Modifier // Added: For Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Brush // Added: For Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.vector.ImageVector // Added: For ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType // Added: For HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalContext // Added: For LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
+import androidx.compose.ui.res.painterResource // Added: For painterResource
+import androidx.compose.ui.res.stringResource // Added: For stringResource
+import androidx.compose.ui.text.font.FontWeight // Added: For FontWeight
+import androidx.compose.ui.text.input.ImeAction // Added: For ImeAction
+import androidx.compose.ui.text.input.KeyboardType // Added: For KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation // Added: For PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation // Added: For VisualTransformation
+import androidx.compose.ui.text.style.TextAlign // Added: For TextAlign
+import androidx.compose.ui.unit.dp // Added: For dp unit
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties // Added: For DialogProperties
+import androidx.core.content.ContextCompat // Added: For ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.delay // Added: For delay
 import kotlinx.coroutines.launch
-import java.io.File
-import java.security.MessageDigest
-import kotlin.experimental.and
-import androidx.compose.foundation.border
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
 import android.app.UiModeManager
 import android.os.PowerManager
-import androidx.compose.foundation.isSystemInDarkTheme // ADDED THIS IMPORT
-import androidx.compose.material3.PlainTooltip // ADDED THIS IMPORT
-import androidx.compose.material3.TooltipBox // ADDED THIS IMPORT
-import androidx.compose.material3.TooltipDefaults // ADDED THIS IMPORT
-import androidx.compose.material3.rememberTooltipState // ADDED THIS IMPORT
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.surfaceColorAtElevation // Added: For surfaceColorAtElevation
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
@@ -165,8 +206,8 @@ class SoundEffectManager(private val context: Context, private val sharedPrefsMa
 
 // --- SharedPreferencesManager ---
 /**
- * Manages user login status, username, theme settings, and sound settings
- * using SharedPreferences for persistent storage.
+ * Manages user login status, username, theme settings, sound settings,
+ * initial setup completion, and language setting using SharedPreferences for persistent storage.
  */
 class SharedPreferencesManager(context: Context) {
     val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
@@ -177,6 +218,8 @@ class SharedPreferencesManager(context: Context) {
         private const val KEY_USERNAME = "username_key"
         const val KEY_THEME_SETTING = "theme_setting_key" // Made public
         const val KEY_SOUND_ENABLED = "sound_enabled_key" // Made public
+        private const val KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete" // NEW
+        private const val KEY_LANGUAGE_SETTING = "language_setting_key" // NEW
     }
 
     /**
@@ -249,6 +292,36 @@ class SharedPreferencesManager(context: Context) {
     fun setSoundEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SOUND_ENABLED, enabled).apply()
     }
+
+    /**
+     * Checks if the initial setup dialog has been completed.
+     */
+    fun isInitialSetupComplete(): Boolean {
+        return prefs.getBoolean(KEY_INITIAL_SETUP_COMPLETE, false)
+    }
+
+    /**
+     * Sets the initial setup completion status.
+     */
+    fun setInitialSetupComplete(complete: Boolean) {
+        prefs.edit().putBoolean(KEY_INITIAL_SETUP_COMPLETE, complete).apply()
+    }
+
+    /**
+     * Retrieves the current language setting.
+     * return The language string. Defaults to "English".
+     */
+    fun getLanguageSetting(): String {
+        return prefs.getString(KEY_LANGUAGE_SETTING, "English") ?: "English"
+    }
+
+    /**
+     * Sets the new language setting.
+     * @param language The language string to store.
+     */
+    fun setLanguageSetting(language: String) {
+        prefs.edit().putString(KEY_LANGUAGE_SETTING, language).apply()
+    }
 }
 
 // --- Top-level utility functions ---
@@ -305,7 +378,6 @@ class SecurityManager(private val context: Context) {
      * return true if a debugger is connected, false otherwise.
      */
     fun isDebuggerConnected(): Boolean {
-        // LocalInspectionMode.current check is handled at the call site in Composable
         return Debug.isDebuggerConnected() || isTracerAttached()
     }
 
@@ -422,7 +494,7 @@ class SecurityManager(private val context: Context) {
         var process: Process? = null
         try {
             process = Runtime.getRuntime().exec(arrayOf("/system/xbin/which", "su"))
-            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
             if (reader.readLine() != null) return true
         } catch (e: Exception) {
             // Command not found or other error, likely not rooted
@@ -513,7 +585,6 @@ class SecurityManager(private val context: Context) {
 
 
     fun isHookingFrameworkDetected(): Boolean {
-        // LocalInspectionMode.current check is handled at the call site in Composable
         // 1. Check for common Xposed/Magisk/Frida related files/directories
         val knownHookFiles = arrayOf(
             "/system/app/XposedInstaller.apk",
@@ -572,7 +643,6 @@ class SecurityManager(private val context: Context) {
      * return true if the signature hash matches, false otherwise.
      */
     fun isApkTampered(): Boolean {
-        // LocalInspectionMode.current check is handled at the call site in Composable
         val currentSignatureHash = getSignatureSha256Hash()
         // Compare with the signature SHA-256 hash provided by you.
         return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
@@ -597,7 +667,6 @@ class SecurityManager(private val context: Context) {
     }
 
     fun isTracerAttached(): Boolean {
-        // LocalInspectionMode.current check is handled at the call site in Composable
         try {
             val statusFile = File("/proc/self/status")
             if (statusFile.exists()) {
@@ -674,7 +743,7 @@ class MainActivity : ComponentActivity() {
         soundEffectManager.loadSounds() // Load sounds
         securityManager = SecurityManager(applicationContext)
 
-        setContent {
+        setContent { // All @Composable calls must be inside setContent
             val context = LocalContext.current
             val isInspectionMode = LocalInspectionMode.current
             // Determine if the app should be in dark theme based on setting
@@ -686,25 +755,38 @@ class MainActivity : ComponentActivity() {
                 securityManager.getSecurityIssue(isInspectionMode)
             }
 
-            if (initialSecurityIssue != SecurityIssue.NONE) {
-                ktimaz(darkTheme = useDarkTheme) {
+            // State to control initial setup dialog visibility
+            var showInitialSetupDialog by rememberSaveable {
+                mutableStateOf(!sharedPrefsManager.isInitialSetupComplete())
+            }
+
+            ktimaz(darkTheme = useDarkTheme) { // Theme wrapper
+                if (initialSecurityIssue != SecurityIssue.NONE) {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
-                }
-            } else {
-                // Now that we are in a composable context, we can handle the theme listener
-                DisposableEffect(Unit) {
-                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                        if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
-                            currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
+                } else if (showInitialSetupDialog) {
+                    // Show the initial setup dialog if it hasn't been completed
+                    InitialSetupDialog(
+                        sharedPrefsManager = sharedPrefsManager,
+                        soundEffectManager = soundEffectManager,
+                        onSetupComplete = {
+                            sharedPrefsManager.setInitialSetupComplete(true)
+                            showInitialSetupDialog = false
+                        }
+                    )
+                } else {
+                    // Now that we are in a composable context, we can handle the theme listener
+                    DisposableEffect(Unit) {
+                        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                            if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
+                                currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
+                            }
+                        }
+                        sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
+                        onDispose {
+                            sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
                         }
                     }
-                    sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
-                    onDispose {
-                        sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
-                    }
-                }
 
-                ktimaz(darkTheme = useDarkTheme) {
                     var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
                     var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
                     var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
@@ -804,7 +886,7 @@ fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
     val systemInDarkTheme = isSystemInDarkTheme()
     return when (themeSetting) {
         ThemeSetting.LIGHT -> false
-        ThemeSetting.DARK -> true
+        ThemeSetting.DARK -> true // Corrected from Theme.DARK
         ThemeSetting.SYSTEM -> systemInDarkTheme
         ThemeSetting.BATTERY_SAVER -> {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -851,7 +933,7 @@ fun MainApplicationUI(
     username: String,
     onLogout: () -> Unit,
     soundEffectManager: SoundEffectManager,
-    sharedPrefsManager: SharedPreferencesManager // FIXED: Add sharedPrefsManager parameter
+    sharedPrefsManager: SharedPreferencesManager
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -1045,7 +1127,7 @@ fun CustomSearchBar(
             }
         },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.Transparent,
@@ -1441,7 +1523,7 @@ fun ProfileScreen(modifier: Modifier = Modifier, username: String, onLogout: () 
             modifier = Modifier
                 .fillMaxWidth(0.7f)
                 .height(56.dp)
-                .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha) // Apply press animation directly
+                .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha), // Apply press animation directly
         ) {
             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout Icon")
             Spacer(Modifier.width(16.dp))
@@ -2011,7 +2093,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                         interactionSource = interactionSource, // Pass interactionSource here
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha.value) // Corrected alpha access
                         ),
                         border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -2019,7 +2101,7 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                             .graphicsLayer(
                                 scaleX = scale * pressScale, // Combine infinite and press animations
                                 scaleY = scale * pressScale,
-                                alpha = animatedAlpha * pressAlpha // Combine infinite and press animations
+                                alpha = animatedAlpha.value * pressAlpha // Combine infinite and press animations
                             )
                             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
                             .fillMaxWidth()
@@ -2048,5 +2130,198 @@ fun AnimatedCardGrid(modifier: Modifier = Modifier, searchQuery: String, onCardC
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InitialSetupDialog(
+    sharedPrefsManager: SharedPreferencesManager,
+    soundEffectManager: SoundEffectManager,
+    onSetupComplete: () -> Unit
+) {
+    val context = LocalContext.current
+
+    // States for selections
+    var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+    var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
+    val languages = listOf("English", "Spanish", "French", "German", "Bengali") // Example languages
+
+    // State for permission status
+    var hasStoragePermission by remember {
+        mutableStateOf(checkStoragePermission(context))
+    }
+
+    // Permission launcher
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions[Manifest.permission.READ_MEDIA_IMAGES] == true &&
+            permissions[Manifest.permission.READ_MEDIA_VIDEO] == true &&
+            permissions[Manifest.permission.READ_MEDIA_AUDIO] == true
+        } else {
+            permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
+        }
+        hasStoragePermission = granted
+        if (granted) {
+            Toast.makeText(context, "Storage permission granted!", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Storage permission denied.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { /* Dialog is not dismissible until setup is complete */ },
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false), // Corrected import
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        icon = { Icon(Icons.Filled.Settings, contentDescription = "Setup Icon") },
+        title = { Text("Configure App", style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Theme Mode Section
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Filled.ColorLens, contentDescription = "Theme Icon", modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Theme Mode", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ThemeSetting.values().forEachIndexed { index, theme ->
+                            SegmentedButton(
+                                selected = theme == selectedTheme,
+                                onClick = {
+                                    soundEffectManager.playClickSound()
+                                    selectedTheme = theme
+                                    sharedPrefsManager.setThemeSetting(theme)
+                                },
+                                shape = SegmentedButtonDefaults.shape(index, ThemeSetting.values().size),
+                                label = { Text(theme.name.replace("_", " ")) }
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Language Section
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.AutoMirrored.Filled.Language, contentDescription = "Language Icon", modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Language", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    var languageExpanded by remember { mutableStateOf(false) }
+                    OutlinedButton(
+                        onClick = {
+                            soundEffectManager.playClickSound()
+                            languageExpanded = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(selectedLanguage) // Display the selected language directly
+                        Icon(Icons.Filled.ArrowDropDown, contentDescription = "Select Language")
+                    }
+                    DropdownMenu(
+                        expanded = languageExpanded,
+                        onDismissRequest = { languageExpanded = false }
+                    ) {
+                        languages.forEach { language ->
+                            DropdownMenuItem(
+                                text = { Text(language) },
+                                onClick = {
+                                    soundEffectManager.playClickSound()
+                                    selectedLanguage = language
+                                    sharedPrefsManager.setLanguageSetting(language)
+                                    languageExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Storage Permission Section
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Filled.Storage, contentDescription = "Storage Icon", modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Storage Permission", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            soundEffectManager.playClickSound()
+                            if (!hasStoragePermission) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    requestPermissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.READ_MEDIA_IMAGES,
+                                            Manifest.permission.READ_MEDIA_VIDEO,
+                                            Manifest.permission.READ_MEDIA_AUDIO
+                                        )
+                                    )
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    requestPermissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
+                                }
+                            }
+                        },
+                        enabled = !hasStoragePermission, // Disable button if permission already granted
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (hasStoragePermission) {
+                            Icon(Icons.Filled.CheckCircle, contentDescription = "Permission Granted")
+                            Spacer(Modifier.width(8.dp))
+                            Text("Permission Granted")
+                        } else {
+                            Text("Grant Storage Permission")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    soundEffectManager.playClickSound()
+                    // Only allow finishing if permission is granted
+                    if (hasStoragePermission) {
+                        onSetupComplete()
+                    } else {
+                        Toast.makeText(context, "Please grant storage permission to continue.", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                enabled = hasStoragePermission // Enable "Continue" only if permission is granted
+            ) {
+                Text("Continue")
+            }
+        }
+    )
+}
+
+/**
+ * Helper function to check if storage permission is granted.
+ */
+fun checkStoragePermission(context: Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED
+    } else {
+        @Suppress("DEPRECATION")
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
     }
 }
