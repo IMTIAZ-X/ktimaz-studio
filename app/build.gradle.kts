@@ -14,7 +14,7 @@ android {
         applicationId = "com.ktimazstudio"
         minSdk = 25
         targetSdk = 35
-        versionCode = 500
+        versionCode = 1000
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -68,12 +68,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_23
-        targetCompatibility = JavaVersion.VERSION_23
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlin {
-        jvmToolchain(23)
+        jvmToolchain(17)
     }
 
     // composeOptions should be inside android block
@@ -124,8 +124,7 @@ dependencies {
     implementation(libs.androidx.material3)
 
     implementation("androidx.compose.material:material-icons-core:1.7.8")
-  //  implementation("androidx.compose.material:material-icons-extended:1.7.8")
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
