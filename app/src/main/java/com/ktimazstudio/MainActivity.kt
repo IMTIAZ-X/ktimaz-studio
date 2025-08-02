@@ -498,10 +498,14 @@ class MainActivity : ComponentActivity() {
                         AnimatedContent(
                             targetState = isLoggedIn,
                             transitionSpec = {
-                                slideInHorizontally({ fullWidth -> fullWidth }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
-                                        fadeIn(animationSpec = tween(600, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f))) togetherWith
-                                        slideOutHorizontally({ fullWidth -> -fullWidth }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
-                                        fadeOut(animationSpec = tween(400, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)))
+                                slideInHorizontally(
+                                    initialOffsetX = { fullWidth -> fullWidth },
+                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                ) + fadeIn(animationSpec = tween(600)) togetherWith
+                                        slideOutHorizontally(
+                                            targetOffsetX = { fullWidth -> -fullWidth },
+                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                        ) + fadeOut(animationSpec = tween(400))
                             },
                             label = "LoginScreenTransition"
                         ) { targetIsLoggedIn ->
@@ -774,10 +778,14 @@ fun MainApplicationUI(
                         AnimatedContent(
                             targetState = isSearching,
                             transitionSpec = {
-                                slideInHorizontally({ fullWidth -> fullWidth }, animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
-                                        fadeIn(animationSpec = tween(400, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f))) togetherWith
-                                        slideOutHorizontally({ fullWidth -> -fullWidth }, animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
-                                        fadeOut(animationSpec = tween(300, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)))
+                                slideInHorizontally(
+                                    initialOffsetX = { fullWidth -> fullWidth },
+                                    animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                                ) + fadeIn(animationSpec = tween(400)) togetherWith
+                                        slideOutHorizontally(
+                                            targetOffsetX = { fullWidth -> -fullWidth },
+                                            animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                                        ) + fadeOut(animationSpec = tween(300))
                             },
                             label = "search_bar_transition"
                         ) { searching ->
@@ -840,10 +848,14 @@ fun MainApplicationUI(
             AnimatedContent(
                 targetState = selectedDestination,
                 transitionSpec = {
-                    slideInVertically({ fullHeight -> fullHeight / 2 }, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) +
-                            fadeIn(animationSpec = tween(500, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f))) togetherWith
-                            slideOutVertically({ fullHeight -> -fullHeight / 2 }, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) +
-                            fadeOut(animationSpec = tween(300, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)))
+                    slideInVertically(
+                        initialOffsetY = { fullHeight -> fullHeight / 2 },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
+                    ) + fadeIn(animationSpec = tween(500)) togetherWith
+                            slideOutVertically(
+                                targetOffsetY = { fullHeight -> -fullHeight / 2 },
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
+                            ) + fadeOut(animationSpec = tween(300))
                 },
                 label = "nav_rail_content_transition"
             ) { targetDestination ->
@@ -1825,9 +1837,7 @@ fun SettingsScreen(
                         showChangelogDialog = false
                     }) { Text("Awesome!") }
                 },
-                modifier = Differ(
-                    modifier = Modifier.shadow(6.dp, RoundedCornerShape(16.dp))
-                )
+                modifier = Modifier.shadow(6.dp, RoundedCornerShape(16.dp))
             )
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
