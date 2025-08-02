@@ -77,8 +77,9 @@ import kotlin.experimental.and
 
 // Ensure these dependencies are in build.gradle:
 // implementation "androidx.compose.material3:material3:1.2.1"
-// implementation "androidx.compose.animation:animation:1.6.8"
+// implementation "androidx.compose.animation:animation:1.7.8"
 // implementation "androidx.activity:activity-compose:1.9.1"
+// implementation "androidx.compose.material:material-icons-core:1.7.8"
 
 // Theme Settings Enum
 enum class ThemeSetting {
@@ -524,6 +525,7 @@ class MainActivity : ComponentActivity() {
                                     onLoginSuccess = { loggedInUsername ->
                                         sharedPrefsManager.setLoggedIn(true, loggedInUsername)
                                         isLoggedIn = true
+                                        currentUsername = loggedInUsername
                                     },
                                     soundEffectManager = soundEffectManager
                                 )
@@ -1980,14 +1982,13 @@ fun AnimatedCardGrid(
                         soundEffectManager.playClickSound()
                         onCardClick(title)
                     }
-                    .shadow(elevation.dp, RoundedCornerShape(16.dp))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Icon(
                         imageVector = icon,
@@ -1999,12 +2000,10 @@ fun AnimatedCardGrid(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
-                        maxLines = 2
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
         }
-    }
-}
