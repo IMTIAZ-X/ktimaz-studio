@@ -18,9 +18,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -64,6 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz
@@ -75,6 +74,11 @@ import java.io.InputStreamReader
 import java.security.MessageDigest
 import java.util.Base64
 import kotlin.experimental.and
+
+// Ensure these dependencies are in build.gradle:
+// implementation "androidx.compose.material3:material3:1.2.1"
+// implementation "androidx.compose.animation:animation:1.6.8"
+// implementation "androidx.activity:activity-compose:1.9.1"
 
 // Theme Settings Enum
 enum class ThemeSetting {
@@ -396,6 +400,19 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Profile : Screen("profile", "Profile", Icons.Filled.Person)
 }
 
+// Utility Functions
+fun isConnected(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+}
+
+fun openWifiSettings(context: Context) {
+    context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
@@ -481,9 +498,9 @@ class MainActivity : ComponentActivity() {
                         AnimatedContent(
                             targetState = isLoggedIn,
                             transitionSpec = {
-                                slideInHorizontally({ it }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
+                                slideInHorizontally({ fullWidth -> fullWidth }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
                                         fadeIn(animationSpec = tween(600, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f))) togetherWith
-                                        slideOutHorizontally({ -it }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
+                                        slideOutHorizontally({ fullWidth -> -fullWidth }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
                                         fadeOut(animationSpec = tween(400, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)))
                             },
                             label = "LoginScreenTransition"
@@ -585,6 +602,95 @@ fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
     }
 }
 
+@Composable
+fun InitialSetupDialog(
+    sharedPrefsManager: SharedPreferencesManager,
+    soundEffectManager: SoundEffectManager,
+    onSetupComplete: () -> Unit
+) {
+    val context = LocalContext.current
+    var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+    var selectedLanguage by remember { mutableStateOf(sharedPrefsManager.getLanguageSetting()) }
+    val languages = listOf("English", "Spanish", "French", "German", "Bengali")
+
+    AlertDialog(
+        onDismissRequest = { /* Not dismissible */ },
+        title = { Text("Initial Setup", style = MaterialTheme.typography.titleLarge) },
+        text = {
+            Column {
+                Text(
+                    "Customize your app experience",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                Text("Theme", style = MaterialTheme.typography.labelLarge)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    ThemeSetting.values().forEach { theme ->
+                        FilterChip(
+                            selected = selectedTheme == theme,
+                            onClick = {
+                                soundEffectManager.playClickSound()
+                                selectedTheme = theme
+                            },
+                            label = { Text(theme.name.replace("_", " ")) }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Language", style = MaterialTheme.typography.labelLarge)
+                Spacer(modifier = Modifier.height(8.dp))
+                var expanded by remember { mutableStateOf(false) }
+                Box {
+                    OutlinedTextField(
+                        value = selectedLanguage,
+                        onValueChange = { },
+                        readOnly = true,
+                        trailingIcon = {
+                            IconButton(onClick = { expanded = true }) {
+                                Icon(Icons.Filled.ArrowDropDown, "Expand language options")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        languages.forEach { language ->
+                            DropdownMenuItem(
+                                text = { Text(language) },
+                                onClick = {
+                                    soundEffectManager.playClickSound()
+                                    selectedLanguage = language
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    soundEffectManager.playClickSound()
+                    sharedPrefsManager.setThemeSetting(selectedTheme)
+                    sharedPrefsManager.setLanguageSetting(selectedLanguage)
+                    onSetupComplete()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save")
+            }
+        },
+        modifier = Modifier.shadow(8.dp, RoundedCornerShape(16.dp))
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun MainApplicationUI(
@@ -668,9 +774,9 @@ fun MainApplicationUI(
                         AnimatedContent(
                             targetState = isSearching,
                             transitionSpec = {
-                                slideInHorizontally({ it }, animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
+                                slideInHorizontally({ fullWidth -> fullWidth }, animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
                                         fadeIn(animationSpec = tween(400, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f))) togetherWith
-                                        slideOutHorizontally({ -it }, animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
+                                        slideOutHorizontally({ fullWidth -> -fullWidth }, animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
                                         fadeOut(animationSpec = tween(300, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)))
                             },
                             label = "search_bar_transition"
@@ -734,9 +840,9 @@ fun MainApplicationUI(
             AnimatedContent(
                 targetState = selectedDestination,
                 transitionSpec = {
-                    slideInVertically({ it / 2 }, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) +
+                    slideInVertically({ fullHeight -> fullHeight / 2 }, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) +
                             fadeIn(animationSpec = tween(500, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f))) togetherWith
-                            slideOutVertically({ -it / 2 }, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) +
+                            slideOutVertically({ fullHeight -> -fullHeight / 2 }, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) +
                             fadeOut(animationSpec = tween(300, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)))
                 },
                 label = "nav_rail_content_transition"
@@ -1407,6 +1513,7 @@ fun AppNavigationRail(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -1541,7 +1648,6 @@ fun SettingsScreen(
                                 soundEffectManager.playClickSound()
                                 sharedPrefsManager.setLanguageSetting(language)
                                 selectedLanguage.value = language
-                                // TODO: Implement actual locale change
                                 expanded = false
                             }
                         )
@@ -1687,7 +1793,7 @@ fun SettingsScreen(
                             "✨ New Features:",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            modifier = ModalNavigationDrawer.kt:Modifier.padding(top = 12.dp, bottom = 6.dp)
+                            modifier = Modifier.padding(bottom = 6.dp)
                         )
                         Text(" • Flutter-like smooth animations.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Enhanced security with certificate pinning.", style = MaterialTheme.typography.bodyMedium)
@@ -1699,9 +1805,9 @@ fun SettingsScreen(
                             "🐞 Bug Fixes & Improvements:",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
+                            modifier = Modifier.padding(bottom = 6.dp)
                         )
-                        Text(" • Fixed compilation errors for Language icon and SegmentedButton.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Fixed compilation errors for animations and composables.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Optimized recomposition in Compose.", style = MaterialTheme.typography.bodyMedium)
                         Text(" • Enhanced root detection with Magisk checks.", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(20.dp))
@@ -1719,7 +1825,9 @@ fun SettingsScreen(
                         showChangelogDialog = false
                     }) { Text("Awesome!") }
                 },
-                modifier = Modifier.shadow(6.dp, RoundedCornerShape(16.dp))
+                modifier = Differ(
+                    modifier = Modifier.shadow(6.dp, RoundedCornerShape(16.dp))
+                )
             )
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
@@ -1781,7 +1889,7 @@ fun SettingItem(
         }
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
             Text(
-                title,
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium
@@ -1789,7 +1897,7 @@ fun SettingItem(
             if (description != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    description,
+                    text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1812,129 +1920,81 @@ fun AnimatedCardGrid(
     soundEffectManager: SoundEffectManager
 ) {
     val cards = listOf(
-        "Spectrum Analyzer", "Image Synthesizer", "Holovid Player", "Neural Net Link",
-        "Encrypted Notes", "Quantum Web", "Bio Scanner", "Interface Designer",
-        "Sonic Emitter", "AI Core Access", "System Config"
-    )
-    val icons = List(cards.size) { painterResource(id = R.mipmap.ic_launcher_round) }
-    val haptic = LocalHapticFeedback.current
-
-    val filteredCards = remember(cards, searchQuery) {
-        if (searchQuery.isBlank()) cards else cards.filter { it.contains(searchQuery, ignoreCase = true) }
+        "System Config" to Icons.Filled.Computer,
+        "Network Monitor" to Icons.Filled.Wifi,
+        "Data Analytics" to Icons.Filled.BarChart,
+        "Security Scan" to Icons.Filled.Security,
+        "Performance" to Icons.Filled.Speed,
+        "Logs" to Icons.Filled.Description
+    ).filter {
+        searchQuery.isEmpty() || it.first.contains(searchQuery, ignoreCase = true)
     }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 180.dp),
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxSize()
     ) {
-        itemsIndexed(filteredCards, key = { _, title -> title }) { index, title ->
-            var itemVisible by remember { mutableStateOf(false) }
-            LaunchedEffect(key1 = title) {
-                delay(index * 100L + 150L) // Staggered animation
-                itemVisible = true
-            }
+        items(cards.size) { index ->
+            val (title, icon) = cards[index]
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.95f else 1.0f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
+                label = "card_scale_${title}"
+            )
+            val elevation by animateFloatAsState(
+                targetValue = if (isPressed) 12f else 6f,
+                animationSpec = tween(300, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)),
+                label = "card_elevation_${title}"
+            )
 
-            AnimatedVisibility(
-                visible = itemVisible,
-                enter = fadeIn(animationSpec = tween(400, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f))) +
-                        slideInVertically(
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
-                            initialOffsetY = { it / 2 }
-                        ) +
-                        scaleIn(
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
-                            initialScale = 0.7f
-                        ),
-                exit = fadeOut(animationSpec = tween(200)) + scaleOut(
-                    targetScale = 0.8f,
-                    animationSpec = tween(200)
-                )
-            ) {
-                val infiniteTransition = rememberInfiniteTransition(label = "card_effects_$title")
-                val scale by infiniteTransition.animateFloat(
-                    initialValue = 0.98f,
-                    targetValue = 1.0f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(2000, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "card_scale_$title"
-                )
-                val animatedAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.8f,
-                    targetValue = 0.65f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(2000, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "card_alpha_$title"
-                )
-
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val pressScale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.94f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
-                    label = "card_press_scale"
-                )
-                val glow by animateFloatAsState(
-                    targetValue = if (isPressed) 8f else 2f,
-                    animationSpec = tween(300, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)),
-                    label = "card_press_glow"
-                )
-
-                Card(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onCardClick(title)
-                    },
-                    interactionSource = interactionSource,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = animatedAlpha)
-                    ),
-                    border = BorderStroke(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier = Modifier
-                        .graphicsLayer(
-                            scaleX = scale * pressScale,
-                            scaleY = scale * pressScale,
-                            alpha = animatedAlpha
-                        )
-                        .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
-                        .fillMaxWidth()
-                        .height(170.dp)
-                        .shadow(glow.dp, RoundedCornerShape(24.dp))
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = elevation.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .graphicsLayer(scaleX = scale, scaleY = scale)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = LocalIndication.current
                     ) {
-                        Image(
-                            painter = icons[cards.indexOf(title)],
-                            contentDescription = title,
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-                                .padding(8.dp)
-                        )
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        )
+                        soundEffectManager.playClickSound()
+                        onCardClick(title)
                     }
+                    .shadow(elevation.dp, RoundedCornerShape(16.dp))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
                 }
             }
         }
     }
+}
