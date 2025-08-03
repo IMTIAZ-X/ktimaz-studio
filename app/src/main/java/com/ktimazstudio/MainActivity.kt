@@ -11,14 +11,13 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
-import android.provider.Settings
 import android.os.Bundle
 import android.os.Debug
+import android.provider.Settings
 import android.widget.Toast
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -44,8 +43,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
@@ -68,7 +65,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -102,37 +98,10 @@ import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
-import com.airbnb.lottie.compose.* // Added for Lottie animations
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.accessibility.semantics
-import androidx.compose.ui.accessibility.contentDescription
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.listSaver
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.SoftwareKeyboardController
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import kotlin.math.roundToInt
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
@@ -645,11 +614,118 @@ enum class SecurityIssue(val message: String) {
     UNKNOWN("An unknown security issue occurred.")
 }
 
-// --- Navigation Destinations ---
-sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
-    object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Dashboard)
-    object AppSettings : Screen("settings", "Settings", Icons.Filled.Settings)
-    object Profile : Screen("profile", "Profile", Icons.Filled.Person)
+/**
+ * Sealed class representing navigation destinations in the app.
+ */
+sealed class Screen(val route: String, val icon: ImageVector, val label: String) {
+    object Dashboard : Screen("dashboard", Icons.Filled.Person, "Dashboard")
+    object Profile : Screen("profile", Icons.Filled.Person, "Profile")
+    object AppSettings : Screen("settings", Icons.Filled.Settings, "Settings")
+}
+
+/**
+ * Navigation rail composable for navigating between app screens.
+ * @param selectedDestination The currently selected screen.
+ * @param onDestinationSelected Callback invoked when a destination is selected.
+ * @param isExpanded Whether the navigation rail is expanded to show labels.
+ * @param onMenuClick Callback invoked when the menu toggle is clicked.
+ * @param soundEffectManager The SoundEffectManager for playing UI sounds.
+ */
+@Composable
+fun AppNavigationRail(
+    selectedDestination: Screen,
+    onDestinationSelected: (Screen) -> Unit,
+    isExpanded: Boolean,
+    onMenuClick: () -> Unit,
+    soundEffectManager: SoundEffectManager
+) {
+    val destinations = listOf(Screen.Dashboard, Screen.Profile, Screen.AppSettings)
+    val backgroundColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f)
+
+    NavigationRail(
+        modifier = Modifier
+            .width(if (isExpanded) 200.dp else 80.dp)
+            .fillMaxHeight()
+            .background(backgroundColor),
+        containerColor = Color.Transparent,
+        header = {
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier
+                    .size(48.dp)
+                    .padding(12.dp)
+                    .semantics { contentDescription = if (isExpanded) "Collapse Menu" else "Expand Menu" }
+            ) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    ) {
+        destinations.forEachIndexed { index, screen ->
+            var isVisible by remember { mutableStateOf(false) }
+            val animatedAlpha by animateFloatAsState(
+                targetValue = if (isVisible) 1f else 0f,
+                animationSpec = tween(
+                    durationMillis = 400,
+                    delayMillis = index * 100,
+                    easing = LinearOutSlowInEasing
+                ),
+                label = "nav_rail_alpha_anim_${screen.route}"
+            )
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.95f else 1.0f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
+                label = "nav_rail_scale_anim_${screen.route}"
+            )
+
+            LaunchedEffect(Unit) {
+                isVisible = true
+            }
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = {
+                    PlainTooltip {
+                        Text(screen.label)
+                    }
+                },
+                state = rememberTooltipState()
+            ) {
+                NavigationRailItem(
+                    selected = selectedDestination == screen,
+                    onClick = {
+                        soundEffectManager.playClickSound()
+                        onDestinationSelected(screen)
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = screen.icon,
+                            contentDescription = screen.label,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    label = {
+                        if (isExpanded) {
+                            Text(
+                                text = screen.label,
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = animatedAlpha)
+                        .clip(MaterialTheme.shapes.medium)
+                        .semantics { contentDescription = "${screen.label} navigation item" }
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -668,112 +744,11 @@ class MainActivity : ComponentActivity() {
         securityManager = SecurityManager(applicationContext)
 
         setContent {
-            val context = LocalContext.current
-            val isInspectionMode = LocalInspectionMode.current
-            val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
-            val isFirstLaunch = remember { mutableStateOf(sharedPrefsManager.prefs.getBoolean("is_first_launch", true)) }
-
-            ktimaz(darkTheme = useDarkTheme) {
-                if (isFirstLaunch.value) {
-                    OnboardingScreen(
-                        onComplete = {
-                            sharedPrefsManager.prefs.edit().putBoolean("is_first_launch", false).apply()
-                            isFirstLaunch.value = false
-                        },
-                        soundEffectManager = soundEffectManager
-                    )
-                } else {
-                    val initialSecurityIssue = remember {
-                        securityManager.getSecurityIssue(isInspectionMode)
-                    }
-
-                    if (initialSecurityIssue != SecurityIssue.NONE) {
-                        SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
-                    } else {
-                        DisposableEffect(Unit) {
-                            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                                if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
-                                    currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
-                                }
-                            }
-                            sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
-                            onDispose {
-                                sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
-                            }
-                        }
-
-                        var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
-                        var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
-                        var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
-                        var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
-
-                        DisposableEffect(Unit) {
-                            vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
-                                liveVpnDetected = isVpn
-                                if (isVpn) {
-                                    currentSecurityIssue = SecurityIssue.VPN_ACTIVE
-                                } else {
-                                    currentSecurityIssue = securityManager.getSecurityIssue(isInspectionMode)
-                                }
-                            }
-                            onDispose {
-                                vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
-                            }
-                        }
-
-                        LaunchedEffect(Unit) {
-                            while (true) {
-                                delay(5000)
-                                val issue = securityManager.getSecurityIssue(isInspectionMode)
-                                if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
-                                    currentSecurityIssue = issue
-                                } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
-                                    currentSecurityIssue = SecurityIssue.NONE
-                                }
-                            }
-                        }
-
-                        if (currentSecurityIssue != SecurityIssue.NONE) {
-                            SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
-                        } else {
-                            AnimatedContent(
-                                targetState = isLoggedIn,
-                                transitionSpec = {
-                                    (fadeIn(animationSpec = tween(400, delayMillis = 200)) +
-                                            scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)))
-                                        .togetherWith(
-                                            fadeOut(animationSpec = tween(200)) +
-                                                    scaleOut(targetScale = 0.92f, animationSpec = tween(200))
-                                        )
-                                        .using(SizeTransform(clip = false))
-                                },
-                                label = "LoginScreenTransition"
-                            ) { targetIsLoggedIn ->
-                                if (targetIsLoggedIn) {
-                                    MainApplicationUI(
-                                        username = currentUsername ?: "User",
-                                        onLogout = {
-                                            sharedPrefsManager.setLoggedIn(false)
-                                            isLoggedIn = false
-                                        },
-                                        soundEffectManager = soundEffectManager,
-                                        sharedPrefsManager = sharedPrefsManager
-                                    )
-                                } else {
-                                    LoginScreen(
-                                        onLoginSuccess = { loggedInUsername ->
-                                            sharedPrefsManager.setLoggedIn(true, loggedInUsername)
-                                            isLoggedIn = true
-                                        },
-                                        soundEffectManager = soundEffectManager
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            MainContent(
+                sharedPrefsManager = sharedPrefsManager,
+                soundEffectManager = soundEffectManager,
+                securityManager = securityManager
+            )
         }
     }
 
@@ -783,6 +758,124 @@ class MainActivity : ComponentActivity() {
         soundEffectManager.release()
     }
 }
+
+/**
+ * Main content composable to encapsulate the app's UI logic.
+ */
+@Composable
+fun MainContent(
+    sharedPrefsManager: SharedPreferencesManager,
+    soundEffectManager: SoundEffectManager,
+    securityManager: SecurityManager
+) {
+    val context = LocalContext.current
+    val isInspectionMode = LocalInspectionMode.current
+    val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
+    val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
+    val isFirstLaunch = remember { mutableStateOf(sharedPrefsManager.prefs.getBoolean("is_first_launch", true)) }
+
+    ktimaz(darkTheme = useDarkTheme) {
+        if (isFirstLaunch.value) {
+            OnboardingScreen(
+                onComplete = {
+                    sharedPrefsManager.prefs.edit().putBoolean("is_first_launch", false).apply()
+                    isFirstLaunch.value = false
+                },
+                soundEffectManager = soundEffectManager
+            )
+        } else {
+            val initialSecurityIssue = remember {
+                securityManager.getSecurityIssue(isInspectionMode)
+            }
+
+            if (initialSecurityIssue != SecurityIssue.NONE) {
+                SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
+            } else {
+                DisposableEffect(Unit) {
+                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                        if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
+                            currentThemeSetting.value = sharedPrefsManager.getThemeSetting()
+                        }
+                    }
+                    sharedPrefsManager.prefs.registerOnSharedPreferenceChangeListener(listener)
+                    onDispose {
+                        sharedPrefsManager.prefs.unregisterOnSharedPreferenceChangeListener(listener)
+                    }
+                }
+
+                var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
+                var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
+                var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
+                var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
+
+                DisposableEffect(Unit) {
+                    vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
+                        liveVpnDetected = isVpn
+                        if (isVpn) {
+                            currentSecurityIssue = SecurityIssue.VPN_ACTIVE
+                        } else {
+                            currentSecurityIssue = securityManager.getSecurityIssue(isInspectionMode)
+                        }
+                    }
+                    onDispose {
+                        vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        delay(5000)
+                        val issue = securityManager.getSecurityIssue(isInspectionMode)
+                        if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
+                            currentSecurityIssue = issue
+                        } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
+                            currentSecurityIssue = SecurityIssue.NONE
+                        }
+                    }
+                }
+
+                if (currentSecurityIssue != SecurityIssue.NONE) {
+                    SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
+                } else {
+                    AnimatedContent(
+                        targetState = isLoggedIn,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(400, delayMillis = 200)) +
+                                    scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)))
+                                .togetherWith(
+                                    fadeOut(animationSpec = tween(200)) +
+                                            scaleOut(targetScale = 0.92f, animationSpec = tween(200))
+                                )
+                                .using(SizeTransform(clip = false))
+                        },
+                        label = "LoginScreenTransition"
+                    ) { targetIsLoggedIn ->
+                        if (targetIsLoggedIn) {
+                            MainApplicationUI(
+                                username = currentUsername ?: "User",
+                                onLogout = {
+                                    sharedPrefsManager.setLoggedIn(false)
+                                    isLoggedIn = false
+                                },
+                                soundEffectManager = soundEffectManager,
+                                sharedPrefsManager = sharedPrefsManager
+                            )
+                        } else {
+                            LoginScreen(
+                                onLoginSuccess = { loggedInUsername ->
+                                    sharedPrefsManager.setLoggedIn(true, loggedInUsername)
+                                    isLoggedIn = true
+                                },
+                                soundEffectManager = soundEffectManager
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 /**
  * Determines if the app should be in dark theme based on the ThemeSetting.
  * Marked as @Composable because it calls isSystemInDarkTheme().
@@ -840,14 +933,14 @@ fun AnimatedButton(
         modifier = modifier
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha)
             .height(56.dp)
-            .semantics { contentDescription = "$text button" }, // Accessibility
+            .semantics { contentDescription = "$text button" },
         shape = RoundedCornerShape(20.dp),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
         enabled = enabled,
         colors = colors
     ) {
         if (isLoading) {
-            LottieLoadingAnimation()
+            CustomLoadingAnimation()
         } else {
             if (icon != null) {
                 Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -885,7 +978,7 @@ fun GradientCard(
         elevation = CardDefaults.cardElevation(
             defaultElevation = 4.dp,
             pressedElevation = 8.dp,
-            hoveredElevation = 6.dp // Added hover elevation
+            hoveredElevation = 6.dp
         ),
         modifier = modifier
             .graphicsLayer(scaleX = scale, scaleY = scale)
@@ -903,16 +996,41 @@ fun GradientCard(
 }
 
 /**
- * Lottie animation for loading states.
+ * Custom loading animation with three staggered spinning circles.
  */
 @Composable
-fun LottieLoadingAnimation(modifier: Modifier = Modifier) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading_animation))
-    LottieAnimation(
-        composition = composition,
-        iterations = LottieConstants.IterateForever,
-        modifier = modifier.size(40.dp)
-    )
+fun CustomLoadingAnimation(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.size(40.dp), contentAlignment = Alignment.Center) {
+        val infiniteTransition = rememberInfiniteTransition(label = "loading_animation")
+        val circleCount = 3
+        for (i in 0 until circleCount) {
+            val scale by infiniteTransition.animateFloat(
+                initialValue = 0.5f,
+                targetValue = 1.0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, delayMillis = i * 200, easing = EaseInOutQuad),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "loading_circle_scale_$i"
+            )
+            val rotation by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1200, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "loading_circle_rotation_$i"
+            )
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .offset(x = (i * 8).dp)
+                    .graphicsLayer(scaleX = scale, scaleY = scale, rotationZ = rotation)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+            )
+        }
+    }
 }
 
 /**
@@ -949,7 +1067,9 @@ fun SecurityAlertScreen(issue: SecurityIssue, onExitApp: () -> Unit) {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError
-                    )
+                    ),
+                    isLoading = false,
+                    soundEffectManager = null // Sound disabled for critical exit
                 )
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -1120,7 +1240,11 @@ fun MainApplicationUI(
                             soundEffectManager = soundEffectManager,
                             sharedPrefsManager = sharedPrefsManager
                         )
-                        Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
+                        Screen.Profile -> ProfileScreen(
+                            username = username,
+                            onLogout = onLogout,
+                            soundEffectManager = soundEffectManager
+                        )
                     }
                 }
             }
@@ -1183,128 +1307,10 @@ fun CustomSearchBar(
             .fillMaxWidth()
             .height(56.dp)
             .padding(vertical = 4.dp)
-            .semantics { contentDescription = "Search bar" } // Accessibility
+            .semantics { contentDescription = "Search bar" }
     )
 }
 
-@Composable
-fun AppNavigationRail(
-    selectedDestination: Screen,
-    onDestinationSelected: (Screen) -> Unit,
-    isExpanded: Boolean,
-    onMenuClick: () -> Unit,
-    soundEffectManager: SoundEffectManager,
-    modifier: Modifier = Modifier
-) {
-    val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
-    val railWidth by animateDpAsState(
-        targetValue = if (isExpanded) 180.dp else 80.dp,
-        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
-        label = "nav_rail_width_anim"
-    )
-    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f)
-
-    NavigationRail(
-        modifier = modifier
-            .statusBarsPadding()
-            .fillMaxHeight()
-            .width(railWidth)
-            .padding(vertical = 12.dp, horizontal = 4.dp),
-        containerColor = railContainerColor,
-        header = {
-            val interactionSource = remember { MutableInteractionSource() }
-            val isPressed by interactionSource.collectIsPressedAsState()
-            val scale by animateFloatAsState(
-                targetValue = if (isPressed) 0.9f else 1.0f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                label = "menu_icon_scale"
-            )
-
-            IconButton(
-                onClick = onMenuClick,
-                interactionSource = interactionSource,
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .graphicsLayer(scaleX = scale, scaleY = scale)
-                    .minimumInteractiveComponentSize() // Accessibility: 48.dp touch target
-            ) {
-                AnimatedContent(
-                    targetState = isExpanded,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(200, delayMillis = 150)) + scaleIn(initialScale = 0.8f, animationSpec = tween(200, delayMillis = 150)) togetherWith
-                                fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f, animationSpec = tween(150))
-                    }, label = "menu_icon_transition"
-                ) { expanded ->
-                    Icon(
-                        imageVector = if (expanded) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
-                        contentDescription = if (expanded) "Collapse Menu" else "Expand Menu",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    ) {
-        Spacer(Modifier.weight(0.05f))
-        destinations.forEachIndexed { index, screen ->
-            var itemVisible by remember { mutableStateOf(isExpanded) }
-            LaunchedEffect(isExpanded) {
-                delay(index * 50L)
-                itemVisible = isExpanded
-            }
-            AnimatedVisibility(
-                visible = itemVisible,
-                enter = fadeIn(animationSpec = tween(300, easing = EaseInOutQuad)) +
-                        slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300, easing = EaseInOutQuad)),
-                exit = fadeOut(animationSpec = tween(200)) +
-                        slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(200))
-            ) {
-                val isSelected = selectedDestination == screen
-                val iconScale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.1f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "nav_item_icon_scale_anim_${screen.route}"
-                )
-                val indicatorColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else Color.Transparent
-                val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-
-                NavigationRailItem(
-                    selected = isSelected,
-                    onClick = { onDestinationSelected(screen) },
-                    icon = {
-                        Icon(
-                            imageVector = screen.icon,
-                            contentDescription = screen.label,
-                            modifier = Modifier.graphicsLayer(scaleX = iconScale, scaleY = iconScale)
-                        )
-                    },
-                    label = {
-                        AnimatedVisibility(
-                            visible = isExpanded,
-                            enter = fadeIn(animationSpec = tween(200, delayMillis = 150)) + expandHorizontally(animationSpec = tween(300, delayMillis = 100), expandFrom = Alignment.Start),
-                            exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally(animationSpec = tween(250), shrinkTowards = Alignment.Start)
-                        ) { Text(screen.label, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
-                    },
-                    alwaysShowLabel = isExpanded,
-                    colors = NavigationRailItemDefaults.colors(
-                        selectedIconColor = contentColor,
-                        selectedTextColor = contentColor,
-                        indicatorColor = indicatorColor,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier
-                        .padding(vertical = 6.dp)
-                        .height(56.dp)
-                        .minimumInteractiveComponentSize() // Accessibility: 48.dp touch target
-                )
-            }
-            if (destinations.last() != screen) {
-                Spacer(Modifier.height(6.dp))
-            }
-        }
-        Spacer(Modifier.weight(1f))
-    }
-}
 /**
  * Login Screen with animated Card and input fields for username and password.
  * The login process is simulated with a delay to mimic server authentication.
@@ -1356,7 +1362,7 @@ fun LoginScreen(
                     scaleY = scale
                     rotationY = rotation
                 }
-                .semantics { contentDescription = "Login card" } // Accessibility
+                .semantics { contentDescription = "Login card" }
         ) {
             Column(
                 modifier = Modifier
@@ -1387,7 +1393,7 @@ fun LoginScreen(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics { contentDescription = "Username input" } // Accessibility
+                        .semantics { contentDescription = "Username input" }
                 )
 
                 OutlinedTextField(
@@ -1442,7 +1448,7 @@ fun LoginScreen(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics { contentDescription = "Password input" } // Accessibility
+                        .semantics { contentDescription = "Password input" }
                 )
 
                 AnimatedVisibility(
@@ -1501,6 +1507,12 @@ fun LoginScreen(
     }
 }
 
+/**
+ * Profile Screen displaying user information and options like account details, privacy policy, and logout.
+ * @param username The username of the logged-in user.
+ * @param onLogout Callback invoked when the user logs out.
+ * @param soundEffectManager The SoundEffectManager for playing UI sounds.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -1584,6 +1596,13 @@ fun ProfileScreen(
     }
 }
 
+/**
+ * Composable for a single profile option item in the ProfileScreen.
+ * @param title The title of the option.
+ * @param icon The icon to display.
+ * @param onClick Callback invoked when the item is clicked.
+ * @param soundEffectManager The SoundEffectManager for playing UI sounds.
+ */
 @Composable
 fun ProfileOptionItem(
     title: String,
@@ -1643,6 +1662,11 @@ fun ProfileOptionItem(
     }
 }
 
+/**
+ * Settings Screen for configuring app preferences like theme and sound effects.
+ * @param soundEffectManager The SoundEffectManager for playing UI sounds.
+ * @param sharedPrefsManager The SharedPreferencesManager for managing settings.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -1735,6 +1759,14 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * Composable for a single setting item in the SettingsScreen.
+ * @param title The title of the setting.
+ * @param icon The icon to display.
+ * @param description The description of the current setting value.
+ * @param onClick Callback invoked when the item is clicked.
+ * @param soundEffectManager The SoundEffectManager for playing UI sounds.
+ */
 @Composable
 fun SettingItem(
     title: String,
@@ -1801,6 +1833,12 @@ fun SettingItem(
     }
 }
 
+/**
+ * Animated grid of cards representing app modules, filterable by search query.
+ * @param searchQuery The current search query to filter the cards.
+ * @param onCardClick Callback invoked when a card is clicked, passing the card title.
+ * @param soundEffectManager The SoundEffectManager for playing UI sounds.
+ */
 @Composable
 fun AnimatedCardGrid(
     searchQuery: String,
@@ -1908,6 +1946,11 @@ fun AnimatedCardGrid(
     }
 }
 
+/**
+ * Onboarding Screen for first-time users, displaying a series of pages with a pager.
+ * @param onComplete Callback invoked when the onboarding is completed.
+ * @param soundEffectManager The SoundEffectManager for playing UI sounds.
+ */
 @Composable
 fun OnboardingScreen(
     onComplete: () -> Unit,
@@ -1959,6 +2002,12 @@ fun OnboardingScreen(
     }
 }
 
+/**
+ * Composable for a single onboarding page.
+ * @param title The title of the page.
+ * @param description The description text.
+ * @param iconResId The resource ID of the icon to display.
+ */
 @Composable
 fun OnboardingPage(
     title: String,
