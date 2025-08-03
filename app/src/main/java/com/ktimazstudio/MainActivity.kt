@@ -923,7 +923,7 @@ fun MainApplicationUI(
                                             slideOutHorizontally { -it } + fadeOut()
                                 } else {
                                     slideInHorizontally { -it } + fadeIn() togetherWith
-                                            slideOutHorizontally { it } + fadeOut()
+                                    slideOutHorizontally { it } + fadeOut()
                                 }
                             }, label = "search_bar_transition"
                         ) { searching ->
