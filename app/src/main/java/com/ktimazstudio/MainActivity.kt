@@ -46,6 +46,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -82,13 +83,6 @@ enum class ThemeSetting {
 }
 
 // --- SoundEffectManager ---
-/**
- * Manages playing short sound effects using SoundPool for low-latency audio feedback.
- * This is used for click sounds and other UI interactions.
- *
- * IMPORTANT: For this to work, you must place an audio file (e.g., click_sound.wav)
- * in your `res/raw` directory.
- */
 class SoundEffectManager(private val context: Context, private val sharedPrefsManager: SharedPreferencesManager) {
     private var soundPool: SoundPool? = null
     private var clickSoundId: Int = 0
@@ -120,10 +114,6 @@ class SoundEffectManager(private val context: Context, private val sharedPrefsMa
 }
 
 // --- SharedPreferencesManager ---
-/**
- * Manages user login status, username, theme settings, and sound settings
- * using SharedPreferences for persistent storage.
- */
 class SharedPreferencesManager(context: Context) {
     val prefs: SharedPreferences = context.getSharedPreferences("AppPrefsKtimazStudio", Context.MODE_PRIVATE)
 
@@ -175,10 +165,8 @@ class SharedPreferencesManager(context: Context) {
         prefs.edit().putBoolean(KEY_SOUND_ENABLED, enabled).apply()
     }
 }
+
 // --- SecurityManager ---
-/**
- * Utility class for performing various security checks on the application's environment.
- */
 class SecurityManager(private val context: Context) {
     private val EXPECTED_APK_HASH = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425".lowercase()
 
@@ -723,7 +711,7 @@ fun AnimatedButton(
             onClick()
         },
         modifier = modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
+            .graphicsLayer { scaleX = scale; scaleY = scale; alpha = alpha }
             .height(56.dp)
             .semantics { contentDescription = "$text button" },
         shape = RoundedCornerShape(20.dp),
@@ -1098,6 +1086,7 @@ fun LoginScreen(
     var showPassword by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val scale by animateFloatAsState(
@@ -1157,7 +1146,8 @@ fun LoginScreen(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics { contentDescription = "Username input" }
+                        .semantics { contentDescription = "Username input" },
+                    isError = isError
                 )
 
                 OutlinedTextField(
@@ -1189,12 +1179,14 @@ fun LoginScreen(
                                     delay(1500)
                                     if (username.isNotBlank() && password.isNotBlank()) {
                                         onLoginSuccess(username)
+                                        isError = false
                                     } else {
                                         errorMessage = if (username.isBlank()) {
                                             "Please enter a username."
                                         } else {
                                             "Please enter a password."
                                         }
+                                        isError = true
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     }
                                     isLoading = false
@@ -1212,7 +1204,8 @@ fun LoginScreen(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics { contentDescription = "Password input" }
+                        .semantics { contentDescription = "Password input" },
+                    isError = isError
                 )
 
                 AnimatedVisibility(
@@ -1237,12 +1230,14 @@ fun LoginScreen(
                                 delay(1500)
                                 if (username.isNotBlank() && password.isNotBlank()) {
                                     onLoginSuccess(username)
+                                    isError = false
                                 } else {
                                     errorMessage = if (username.isBlank()) {
                                         "Please enter a username."
                                     } else {
                                         "Please enter a password."
                                     }
+                                    isError = true
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 }
                                 isLoading = false
@@ -1380,7 +1375,7 @@ fun ProfileOptionItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
+            .graphicsLayer { scaleX = scale; scaleY = scale; alpha = alpha }
             .clickable(
                 interactionSource = interactionSource,
                 indication = defaultIndication,
@@ -1533,7 +1528,7 @@ fun SettingItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
+            .graphicsLayer { scaleX = scale; scaleY = scale; alpha = alpha }
             .clickable(
                 interactionSource = interactionSource,
                 indication = defaultIndication,
