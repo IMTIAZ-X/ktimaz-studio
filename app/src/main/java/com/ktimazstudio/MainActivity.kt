@@ -38,21 +38,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -77,7 +71,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -85,24 +78,24 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
-import com.ktimazstudio.ui.theme.ktimaz // Assuming this theme exists
+import com.ktimazstudio.ui.theme.KtimazStudioTheme // Corrected import
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.security.MessageDigest
 import kotlin.experimental.and
-import androidx.compose.foundation.border
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.ui.platform.LocalInspectionMode // For detecting preview mode
-import android.app.UiModeManager
+import androidx.compose.foundation.isSystemInDarkTheme
 import android.os.PowerManager
-import androidx.compose.foundation.isSystemInDarkTheme // ADDED THIS IMPORT
-import androidx.compose.material3.PlainTooltip // ADDED THIS IMPORT
-import androidx.compose.material3.TooltipBox // ADDED THIS IMPORT
-import androidx.compose.material3.TooltipDefaults // ADDED THIS IMPORT
-import androidx.compose.material3.rememberTooltipState // ADDED THIS IMPORT
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
@@ -655,13 +648,15 @@ class MainActivity : ComponentActivity() {
             )
 
             // Apply the theme with the animated background color
-            ktimaz.KtimazStudioTheme(darkTheme = darkTheme) {
+            KtimazStudioTheme(darkTheme = darkTheme) { // Corrected theme function call
                 // A state to manage the main app content visibility
                 var showMainContent by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
 
                 // The Surface is the main container, animated with the theme change
                 Surface(
-                    modifier = Modifier.fillMaxSize().background(animatedBackground.value),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(animatedBackground.value),
                     color = Color.Transparent // Surface background is now transparent to show the animated color
                 ) {
                     // Use an AnimatedContent transition for a smooth switch between screens
@@ -670,19 +665,15 @@ class MainActivity : ComponentActivity() {
                         label = "screenTransition",
                         transitionSpec = {
                             if (targetState) {
-                                // Fade in for the main content
-                                slideInVertically { height -> height } + fadeIn()
-                                    .togetherWith(
-                                        // Fade out and slide up for the login screen
-                                        slideOutVertically { height -> -height } + fadeOut()
-                                    )
+                                // Fade in and slide in from right for the main content
+                                slideInHorizontally { width -> width } + fadeIn() togetherWith
+                                // Fade out and slide out to left for the login screen
+                                slideOutHorizontally { width -> -width } + fadeOut()
                             } else {
-                                // Fade in and slide up for the login screen
-                                slideInVertically { height -> -height } + fadeIn()
-                                    .togetherWith(
-                                        // Fade out for the main content
-                                        slideOutVertically { height -> height } + fadeOut()
-                                    )
+                                // Fade in and slide in from left for the login screen
+                                slideInHorizontally { width -> -width } + fadeIn() togetherWith
+                                // Fade out and slide out to right for the main content
+                                slideOutHorizontally { width -> width } + fadeOut()
                             }.using(
                                 SizeTransform(clip = false)
                             )
@@ -1156,15 +1147,17 @@ fun GridContentCard(title: String, icon: ImageVector, onClick: () -> Unit) {
         targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy), label = "pressScaleAnimation"
     )
-    val animatedAlpha by infiniteRepeatable(
-        animation = tween(2000, easing = LinearEasing),
-        repeatMode = RepeatMode.Reverse
-    ).let {
-        animateFloatAsState(targetValue = 0.5f, animationSpec = it, label = "infiniteAlphaAnimation")
-    }
-    val pressAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 1f else 0.8f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow), label = "pressAlphaAnimation"
+
+    // Using rememberInfiniteTransition for a cleaner infinite animation
+    val infiniteTransition = rememberInfiniteTransition(label = "alphaAnimation")
+    val animatedAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "animatedAlpha"
     )
 
     Card(
@@ -1174,13 +1167,15 @@ fun GridContentCard(title: String, icon: ImageVector, onClick: () -> Unit) {
             .graphicsLayer(
                 scaleX = scale,
                 scaleY = scale,
-                alpha = if (isPressed) 1.0f else animatedAlpha * pressAlpha // Combine infinite and press animations
+                alpha = animatedAlpha
             )
             .then(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Modifier.blur(2.dp) else Modifier)
             .clickable(
                 onClick = onClick,
                 interactionSource = interactionSource,
-                indication = rememberRipple(bounded = true, color = MaterialTheme.colorScheme.onPrimary)
+                // Remove the explicit rememberRipple and use the default ripple provided by Material 3
+                // indication = rememberRipple(bounded = true, color = MaterialTheme.colorScheme.onPrimary)
+                indication = LocalIndication.current
             ),
         shape = RoundedCornerShape(24.dp),
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
