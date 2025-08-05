@@ -26,6 +26,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.ktimazstudio.data.ThemeSetting
+import androidx.compose.animation.ExperimentalAnimationApi // Ensure this import is present
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalLayoutApi::class)
 class MainActivity : ComponentActivity() {
