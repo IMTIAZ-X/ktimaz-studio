@@ -22,10 +22,12 @@ import android.net.ConnectivityManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.animation.core.SizeTransform
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.ktimazstudio.data.ThemeSetting
 
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalLayoutApi::class)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var securityManager: SecurityManager
@@ -111,7 +113,7 @@ class MainActivity : ComponentActivity() {
                                         fadeOut(animationSpec = tween(200)) +
                                                 scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                                     )
-                                    .using(SizeTransform(clip = false, spring(stiffness = Spring.StiffnessLow)))
+                                    .using(SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> spring(stiffness = Spring.StiffnessLow) }))
                             },
                             label = "LoginScreenTransition"
                         ) { targetIsLoggedIn ->
