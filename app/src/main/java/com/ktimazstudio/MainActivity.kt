@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.unit.IntSize // Import IntSize
 import com.ktimazstudio.data.SecurityIssue
 import com.ktimazstudio.manager.SecurityManager
 import com.ktimazstudio.manager.SharedPreferencesManager
@@ -124,7 +125,7 @@ class MainActivity : ComponentActivity() {
                                         fadeOut(animationSpec = tween(200)) +
                                                 scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                                     )
-                                    .using(SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> spring(stiffness = Spring.StiffnessLow) }))
+                                    .using(SizeTransform(clip = false, sizeAnimationSpec = { initialSize: IntSize, targetSize: IntSize -> spring(stiffness = Spring.StiffnessLow) }))
                             },
                             label = "LoginScreenTransition"
                         ) { targetIsLoggedIn ->
