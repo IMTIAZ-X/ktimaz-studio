@@ -1,32 +1,44 @@
 package com.ktimazstudio
 
+import android.content.SharedPreferences
+import android.net.ConnectivityManager
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.*
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.SizeTransform
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import com.ktimazstudio.data.SecurityIssue
+import com.ktimazstudio.data.ThemeSetting
 import com.ktimazstudio.manager.SecurityManager
 import com.ktimazstudio.manager.SharedPreferencesManager
 import com.ktimazstudio.manager.SoundEffectManager
-import com.ktimazstudio.ui.screens.*
+import com.ktimazstudio.ui.screens.LoginScreen
+import com.ktimazstudio.ui.screens.MainApplicationUI
+import com.ktimazstudio.ui.screens.SecurityAlertScreen
 import com.ktimazstudio.ui.theme.ktimaz
 import com.ktimazstudio.util.isAppInDarkTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import android.content.SharedPreferences
-import android.net.ConnectivityManager
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.animation.core.SizeTransform
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import com.ktimazstudio.data.ThemeSetting
-import androidx.compose.animation.ExperimentalAnimationApi // Ensure this import is present
+
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalLayoutApi::class)
 class MainActivity : ComponentActivity() {
