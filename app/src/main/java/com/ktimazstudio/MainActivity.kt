@@ -6,26 +6,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.SizeTransform // Fixed import
+import androidx.compose.animation.core.tween // ✅ FIXED: Missing import
+import androidx.compose.animation.SizeTransform
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.unit.IntSize // Import IntSize
+import androidx.compose.ui.unit.IntSize
 import com.ktimazstudio.data.SecurityIssue
 import com.ktimazstudio.manager.SecurityManager
 import com.ktimazstudio.manager.SharedPreferencesManager
@@ -47,6 +37,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
         soundEffectManager = SoundEffectManager(applicationContext, sharedPrefsManager)
         soundEffectManager.loadSounds()
@@ -88,11 +79,8 @@ class MainActivity : ComponentActivity() {
                     DisposableEffect(Unit) {
                         vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
                             liveVpnDetected = isVpn
-                            if (isVpn) {
-                                currentSecurityIssue = SecurityIssue.VPN_ACTIVE
-                            } else {
-                                currentSecurityIssue = securityManager.getSecurityIssue(isInspectionMode)
-                            }
+                            currentSecurityIssue = if (isVpn) SecurityIssue.VPN_ACTIVE
+                            else securityManager.getSecurityIssue(isInspectionMode)
                         }
                         onDispose {
                             vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
@@ -123,7 +111,7 @@ class MainActivity : ComponentActivity() {
                                         fadeOut(animationSpec = tween(200)) +
                                                 scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                                     )
-                                    .using(SizeTransform(clip = false, sizeAnimationSpec = { initialSize: IntSize, targetSize: IntSize ->
+                                    .using(SizeTransform(clip = false, sizeAnimationSpec = { _: IntSize, _: IntSize ->
                                         spring(stiffness = Spring.StiffnessLow)
                                     }))
                             },
