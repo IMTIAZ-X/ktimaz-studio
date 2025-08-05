@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import com.ktimazstudio.data.SecurityIssue
-import com.ktimazstudio.data.ThemeSetting
 import com.ktimazstudio.manager.SecurityManager
 import com.ktimazstudio.manager.SharedPreferencesManager
 import com.ktimazstudio.manager.SoundEffectManager
@@ -37,7 +36,6 @@ import com.ktimazstudio.ui.screens.SecurityAlertScreen
 import com.ktimazstudio.ui.theme.ktimaz
 import com.ktimazstudio.util.isAppInDarkTheme
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalLayoutApi::class)
