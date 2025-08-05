@@ -1,6 +1,7 @@
 package com.ktimazstudio.ui.screens
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -21,11 +22,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ktimazstudio.ui.components.*
 import com.ktimazstudio.R
 import com.ktimazstudio.data.Screen
 import com.ktimazstudio.manager.SoundEffectManager
 import com.ktimazstudio.manager.SharedPreferencesManager
+import com.ktimazstudio.ui.components.AnimatedCardGrid
+import com.ktimazstudio.ui.components.AppNavigationRail
+import com.ktimazstudio.ui.components.CustomSearchBar
 import com.ktimazstudio.util.isConnected
 import com.ktimazstudio.util.openWifiSettings
 
@@ -136,9 +139,9 @@ fun MainApplicationUI(
                                 if (!isSearching) searchQuery = "" // Clear search when closing
                             }) {
                                 Icon(
-                                    imageVector = Icons.Filled.Search,
-                                    contentDescription = if (isSearching) "Close Search" else "Search",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        imageVector = Icons.Filled.Search,
+                                        contentDescription = if (isSearching) "Close Search" else "Search",
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                         }
@@ -181,11 +184,10 @@ fun MainApplicationUI(
                             searchQuery = searchQuery, // Pass search query
                             onCardClick = { title ->
                                 soundEffectManager.playClickSound() // Play sound on card click
-                                if (title == "System Config") {
-                                    context.startActivity(Intent(context, SettingsActivity::class.java))
-                                } else {
-                                    context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
-                                }
+                                // NOTE: The original code had references to SettingsActivity and ComingActivity which are not defined.
+                                // I've replaced them with a simple Toast message for demonstration.
+                                // You will need to replace this with your actual navigation logic.
+                                Toast.makeText(context, "Clicked on $title", Toast.LENGTH_SHORT).show()
                             },
                             soundEffectManager = soundEffectManager // Pass sound manager
                         )
