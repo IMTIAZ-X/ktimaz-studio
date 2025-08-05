@@ -8,15 +8,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.SizeTransform
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.SizeTransform // Fixed import
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,7 +36,6 @@ import com.ktimazstudio.ui.screens.SecurityAlertScreen
 import com.ktimazstudio.ui.theme.ktimaz
 import com.ktimazstudio.util.isAppInDarkTheme
 import kotlinx.coroutines.delay
-
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalLayoutApi::class)
 class MainActivity : ComponentActivity() {
@@ -125,7 +123,9 @@ class MainActivity : ComponentActivity() {
                                         fadeOut(animationSpec = tween(200)) +
                                                 scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                                     )
-                                    .using(SizeTransform(clip = false, sizeAnimationSpec = { initialSize: IntSize, targetSize: IntSize -> spring(stiffness = Spring.StiffnessLow) }))
+                                    .using(SizeTransform(clip = false, sizeAnimationSpec = { initialSize: IntSize, targetSize: IntSize ->
+                                        spring(stiffness = Spring.StiffnessLow)
+                                    }))
                             },
                             label = "LoginScreenTransition"
                         ) { targetIsLoggedIn ->
