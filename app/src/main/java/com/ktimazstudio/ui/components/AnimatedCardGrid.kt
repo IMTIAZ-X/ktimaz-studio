@@ -10,14 +10,24 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Report
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,26 +35,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ktimazstudio.R
 import com.ktimazstudio.manager.SoundEffectManager
+import kotlinx.coroutines.delay
 
 /**
  * Data class for each card's content.
  */
 data class DashboardCard(
     val title: String,
-    val icon: Painter,
+    val icon: ImageVector,
     val description: String? = null
-)
-
-private val dashboardCards = listOf(
-    DashboardCard("Dashboard", painterResource(R.drawable.dashboard_icon)),
-    DashboardCard("System Config", painterResource(R.drawable.system_config_icon)),
-    DashboardCard("Logs", painterResource(R.drawable.logs_icon)),
-    DashboardCard("Backup", painterResource(R.drawable.backup_icon)),
-    DashboardCard("Security", painterResource(R.drawable.security_icon)),
-    DashboardCard("Reporting", painterResource(R.drawable.reporting_icon)),
-    DashboardCard("Automation", painterResource(R.drawable.automation_icon)),
-    DashboardCard("Notifications", painterResource(R.drawable.notifications_icon)),
-    DashboardCard("User Management", painterResource(R.drawable.user_management_icon))
 )
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -54,6 +53,21 @@ fun AnimatedCardGrid(
     onCardClick: (String) -> Unit,
     soundEffectManager: SoundEffectManager
 ) {
+    // This list is initialized inside the composable to use remember and painterResource
+    val dashboardCards = remember {
+        listOf(
+            DashboardCard("Dashboard", Icons.Default.Dashboard),
+            DashboardCard("System Config", Icons.Default.Build),
+            DashboardCard("Logs", Icons.Default.Info),
+            DashboardCard("Backup", Icons.Default.Star),
+            DashboardCard("Security", Icons.Default.Lock),
+            DashboardCard("Reporting", Icons.Default.Report),
+            DashboardCard("Automation", Icons.Default.Settings),
+            DashboardCard("Notifications", Icons.Default.Notifications),
+            DashboardCard("User Management", Icons.Default.Person)
+        )
+    }
+    
     val filteredCards = remember(searchQuery) {
         dashboardCards.filter {
             it.title.contains(searchQuery, ignoreCase = true)
@@ -121,11 +135,11 @@ private fun AnimatedCardItem(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Image(
-                    painter = card.icon,
+                Icon(
+                    imageVector = card.icon,
                     contentDescription = card.title,
                     modifier = Modifier.size(64.dp),
-                    contentScale = ContentScale.Fit
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
