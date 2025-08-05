@@ -9,10 +9,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.ktimazstudio.R
 import com.ktimazstudio.manager.SoundEffectManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +26,7 @@ fun CustomSearchBar(
         onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        placeholder = { Text("Search...") }, // Replaced with hardcoded string
+        placeholder = { Text("Search...") },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") },
@@ -45,7 +43,8 @@ fun CustomSearchBar(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     )
 }
