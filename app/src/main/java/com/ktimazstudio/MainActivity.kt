@@ -1,52 +1,54 @@
 package com.ktimazstudio
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.unit.IntSize
-import com.ktimazstudio.data.SecurityIssue
-import com.ktimazstudio.manager.SecurityManager
-import com.ktimazstudio.manager.SharedPreferencesManager
-import com.ktimazstudio.manager.SoundEffectManager
-import com.ktimazstudio.ui.screens.LoginScreen
-import com.ktimazstudio.ui.screens.MainApplicationUI
-import com.ktimazstudio.ui.components.SecurityAlertScreen
+import androidx.lifecycle.lifecycleScope
 import com.ktimazstudio.ui.theme.ktimaz
-import com.ktimazstudio.util.isAppInDarkTheme
-import kotlinx.coroutines.delay
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import com.ktimazstudio.managers.SharedPreferencesManager
+import com.ktimazstudio.managers.SoundEffectManager
+import com.ktimazstudio.managers.SecurityManager
+import com.ktimazstudio.enums.SecurityIssue
+import com.ktimazstudio.ui.screens.SecurityAlertScreen
+import com.ktimazstudio.ui.screens.LoginScreen
+import com.ktimazstudio.ui.MainApplicationUI
+import com.ktimazstudio.utils.isAppInDarkTheme
 
-@OptIn(ExperimentalAnimationApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPrefsManager: SharedPreferencesManager
     private lateinit var securityManager: SecurityManager
-    private lateinit var soundEffectManager: SoundEffectManager
+    private lateinit var soundEffectManager: SoundEffectManager // Initialize SoundEffectManager
     private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         sharedPrefsManager = SharedPreferencesManager(applicationContext)
+        // Pass sharedPrefsManager to SoundEffectManager
         soundEffectManager = SoundEffectManager(applicationContext, sharedPrefsManager)
-        soundEffectManager.loadSounds()
+        soundEffectManager.loadSounds() // Load sounds
         securityManager = SecurityManager(applicationContext)
 
         setContent {
             val context = LocalContext.current
             val isInspectionMode = LocalInspectionMode.current
+            // Determine if the app should be in dark theme based on setting
             val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
             val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
 
+            // Perform initial security checks, passing isInspectionMode
             val initialSecurityIssue = remember {
                 securityManager.getSecurityIssue(isInspectionMode)
             }
@@ -56,6 +58,7 @@ class MainActivity : ComponentActivity() {
                     SecurityAlertScreen(issue = initialSecurityIssue) { finishAffinity() }
                 }
             } else {
+                // Now that we are in a composable context, we can handle the theme listener
                 DisposableEffect(Unit) {
                     val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
                         if (key == SharedPreferencesManager.KEY_THEME_SETTING) {
@@ -74,12 +77,16 @@ class MainActivity : ComponentActivity() {
                     var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
                     var currentSecurityIssue by remember { mutableStateOf(SecurityIssue.NONE) }
 
+                    // Live VPN detection
                     DisposableEffect(Unit) {
                         vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
                             liveVpnDetected = isVpn
+                            // If VPN is detected, set it as the current issue.
+                            // Otherwise, re-evaluate all security issues.
                             if (isVpn) {
                                 currentSecurityIssue = SecurityIssue.VPN_ACTIVE
                             } else {
+                                // Pass isInspectionMode to getSecurityIssue
                                 currentSecurityIssue = securityManager.getSecurityIssue(isInspectionMode)
                             }
                         }
@@ -88,18 +95,24 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // Periodic security checks for other issues (debugger, root, emulator, tampering, hooking)
+                    // This runs every 5 seconds to catch issues that might appear after app launch.
                     LaunchedEffect(Unit) {
                         while (true) {
-                            delay(5000)
+                            delay(5000) // Check every 5 seconds
+                            // Pass isInspectionMode to getSecurityIssue
                             val issue = securityManager.getSecurityIssue(isInspectionMode)
+                            // Only update if a new issue is found, or if the current issue was VPN and it's now gone.
                             if (issue != SecurityIssue.NONE && issue != currentSecurityIssue) {
                                 currentSecurityIssue = issue
                             } else if (currentSecurityIssue == SecurityIssue.VPN_ACTIVE && issue == SecurityIssue.NONE) {
+                                // If VPN was active and now no issue is found, clear the alert
                                 currentSecurityIssue = SecurityIssue.NONE
                             }
                         }
                     }
 
+                    // Observe currentSecurityIssue and display alert if needed
                     if (currentSecurityIssue != SecurityIssue.NONE) {
                         SecurityAlertScreen(issue = currentSecurityIssue) { finishAffinity() }
                     } else {
@@ -112,7 +125,7 @@ class MainActivity : ComponentActivity() {
                                         fadeOut(animationSpec = tween(200)) +
                                                 scaleOut(targetScale = 0.92f, animationSpec = tween(200))
                                     )
-                                    .using(SizeTransform(clip = false, sizeAnimationSpec = { initialSize, targetSize -> spring(stiffness = Spring.StiffnessLow) }))
+                                    .using(SizeTransform(clip = false))
                             },
                             label = "LoginScreenTransition"
                         ) { targetIsLoggedIn ->
@@ -123,8 +136,8 @@ class MainActivity : ComponentActivity() {
                                         sharedPrefsManager.setLoggedIn(false)
                                         isLoggedIn = false
                                     },
-                                    soundEffectManager = soundEffectManager,
-                                    sharedPrefsManager = sharedPrefsManager
+                                    soundEffectManager = soundEffectManager, // Pass sound manager
+                                    sharedPrefsManager = sharedPrefsManager // FIXED: Pass sharedPrefsManager
                                 )
                             } else {
                                 LoginScreen(
@@ -132,7 +145,7 @@ class MainActivity : ComponentActivity() {
                                         sharedPrefsManager.setLoggedIn(true, loggedInUsername)
                                         isLoggedIn = true
                                     },
-                                    soundEffectManager = soundEffectManager
+                                    soundEffectManager = soundEffectManager // Pass sound manager
                                 )
                             }
                         }
@@ -145,6 +158,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
-        soundEffectManager.release()
+        soundEffectManager.release() // Release SoundPool resources
     }
 }
