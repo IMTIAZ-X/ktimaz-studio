@@ -6,7 +6,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -386,10 +385,9 @@ fun AnimatedCardGrid(
             modifier = Modifier.fillMaxSize()
         ) {
             items(items = filteredCards, key = { it.title }) { card ->
-                // The card composable is here
                 ElevatedCard(
                     onClick = {
-                        soundEffectManager.playClickSound() // Play sound on card click
+                        soundEffectManager.playClickSound()
                         onCardClick(card.title)
                     },
                     modifier = Modifier
@@ -444,18 +442,15 @@ fun AnimatedCardGrid(
     }
 }
 
-
 @Composable
 fun SettingsScreen(
     soundEffectManager: SoundEffectManager,
     sharedPrefsManager: SharedPreferencesManager
 ) {
-    // SharedPrefs state management
     var isSoundEnabled by remember { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
     var selectedTheme by remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Listen for changes from outside this composable (e.g., from MainApplicationUI)
     DisposableEffect(Unit) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == SharedPreferencesManager.KEY_SOUND_ENABLED) {
@@ -484,12 +479,10 @@ fun SettingsScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // General Settings Section
         Divider(modifier = Modifier.padding(vertical = 8.dp))
         Text(text = "General", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Sound Effects Toggle
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -506,7 +499,6 @@ fun SettingsScreen(
             )
         }
 
-        // Theme Selection
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = "Theme", style = MaterialTheme.typography.bodyLarge)
         Row(
@@ -551,14 +543,12 @@ fun ProfileScreen(
             modifier = Modifier.padding(bottom = 32.dp)
         )
         
-        // Profile Info
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                // Profile Picture Placeholder
                 Box(
                     modifier = Modifier
                         .size(100.dp)
@@ -583,7 +573,6 @@ fun ProfileScreen(
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Logout Button
         ElevatedButton(
             onClick = {
                 soundEffectManager.playClickSound()
