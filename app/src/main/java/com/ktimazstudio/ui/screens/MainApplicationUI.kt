@@ -2,7 +2,7 @@ package com.ktimazstudio.ui.screens
 
 import android.content.Intent
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -210,41 +210,4 @@ fun MainApplicationUI(
             }
         }
     }
-}
-
-@Composable
-fun AppNavigationRail(
-    selectedDestination: Screen,
-    onDestinationSelected: (Screen) -> Unit,
-    isExpanded: Boolean,
-    onMenuClick: () -> Unit,
-    soundEffectManager: SoundEffectManager
-) {
-    // Implementation not provided in original code, placeholder provided.
-}
-
-@Composable
-fun AnimatedCardGrid(
-    searchQuery: String,
-    onCardClick: (String) -> Unit,
-    soundEffectManager: SoundEffectManager
-) {
-    // Implementation not provided in original code, placeholder provided.
-}
-
-@Composable
-fun SettingsScreen(
-    soundEffectManager: SoundEffectManager,
-    sharedPrefsManager: SharedPreferencesManager
-) {
-    // Implementation not provided in original code, placeholder provided.
-}
-
-@Composable
-fun ProfileScreen(
-    username: String,
-    onLogout: () -> Unit,
-    soundEffectManager: SoundEffectManager
-) {
-    // Implementation not provided in original code, placeholder provided.
 }
