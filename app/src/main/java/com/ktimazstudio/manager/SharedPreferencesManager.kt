@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.ktimazstudio.data.ThemeSetting
 
+// --- SharedPreferencesManager ---
 /**
  * Manages user login status, username, theme settings, and sound settings
  * using SharedPreferences for persistent storage.

@@ -15,16 +15,7 @@ import java.io.InputStreamReader
 import java.security.MessageDigest
 import kotlin.experimental.and
 
-/**
- * Utility class for performing various security checks on the application's environment.
- * These checks are designed to detect common reverse engineering, tampering, and
- * undesirable network conditions like VPN usage.
- *
- * NOTE: Client-side security checks are never foolproof and can be bypassed by
- * determined attackers. They serve as deterrents and indicators of compromise.
- */
 class SecurityManager(private val context: Context) {
-
     // Known good hash of the APK (replace with your actual app's release APK hash)
     // You would typically calculate this hash for your *release* APK and hardcode it here.
     // For demonstration, this is a placeholder.
@@ -170,7 +161,7 @@ class SecurityManager(private val context: Context) {
      * for signed APKs regardless of minor build variations.
      * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
      */
-     fun getSignatureSha256Hash(): String? {
+    fun getSignatureSha256Hash(): String? {
         try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
@@ -198,7 +189,44 @@ class SecurityManager(private val context: Context) {
         return null
     }
 
-     /**
+    /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * return true if the signature hash matches, false otherwise.
+     */
+
+    /**
+     * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
+     * Kept for reference or if needed for other purposes.
+     *
+     * Calculates the SHA-256 hash of the application's APK file.
+     * This can be used to detect if the APK has been tampered with.
+     * return The SHA-256 hash as a hexadecimal string, or null if calculation fails.
+     */
+    fun getApkSha256Hash_UNUSED(): String? {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return null
+            val file = File(apkPath)
+            if (file.exists()) {
+                val bytes = file.readBytes()
+                val digest = MessageDigest.getInstance("SHA-256")
+                val hashBytes = digest.digest(bytes)
+                return hashBytes.joinToString("") { "%02x".format(it and 0xff.toByte()) }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+
+    /**
+     * Checks if the APK's *signature hash* matches the expected hash.
+     * This is now the primary integrity check.
+     * return true if the signature hash matches, false otherwise.
+     */
+
+    /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, or system properties.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
@@ -230,12 +258,12 @@ class SecurityManager(private val context: Context) {
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             while (true) {
-            line = reader.readLine()
-           if (line == null) break
-            for (prop in props) {
-            if (line.contains("[$prop]:")) return true
-    }
-}
+                line = reader.readLine()
+                if (line == null) break
+                for (prop in props) {
+                    if (line.contains("[$prop]:")) return true
+                }
+            }
             process.destroy()
         } catch (e: Exception) {
             // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
@@ -268,6 +296,24 @@ class SecurityManager(private val context: Context) {
         val currentSignatureHash = getSignatureSha256Hash()
         // Compare with the signature SHA-256 hash provided by you.
         return currentSignatureHash != null && currentSignatureHash.lowercase() != EXPECTED_APK_HASH.lowercase()
+    }
+
+    /**
+     * Gets the size of the installed application (APK + data).
+     * This can be used as a very basic indicator of tampering if the size changes unexpectedly.
+     * return The app size in bytes, or -1 if unable to retrieve.
+     */
+    fun getAppSize(): Long {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            // Safely access applicationInfo.sourceDir as applicationInfo can be null
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return -1L
+            val file = File(apkPath)
+            return file.length()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return -1L
     }
 
     fun isTracerAttached(): Boolean {

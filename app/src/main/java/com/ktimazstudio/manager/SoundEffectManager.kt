@@ -3,9 +3,9 @@ package com.ktimazstudio.manager
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.SoundPool
-import com.ktimazstudio.manager.SharedPreferencesManager
 import com.ktimazstudio.R
 
+// --- SoundEffectManager ---
 /**
  * Manages playing short sound effects using SoundPool for low-latency audio feedback.
  * This is used for click sounds and other UI interactions.
@@ -36,7 +36,7 @@ class SoundEffectManager(private val context: Context, private val sharedPrefsMa
         // Make sure you have a file named 'click_sound.wav' (or .mp3) in res/raw.
         // You will need to create the 'raw' directory inside 'app/src/main/res/'
         // and place your sound file there.
-        clickSoundId = soundPool?.load(context, R.raw.click_sound, 1) ?: 0
+        clickSoundId = soundPool?.load(context, com.ktimazstudio.R.raw.click_sound, 1) ?: 0
     }
 
     /**
