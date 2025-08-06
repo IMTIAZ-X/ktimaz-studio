@@ -6,10 +6,10 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.provider.Settings
+import android.os.PowerManager
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.isSystemInDarkTheme
-import android.os.PowerManager
 import com.ktimazstudio.data.ThemeSetting
 
 /**
