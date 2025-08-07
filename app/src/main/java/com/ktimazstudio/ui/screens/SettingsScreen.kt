@@ -22,6 +22,7 @@ import com.ktimazstudio.BuildConfig
 import com.ktimazstudio.enums.ThemeSetting
 import com.ktimazstudio.managers.SoundEffectManager
 import com.ktimazstudio.managers.SharedPreferencesManager
+import com.ktimazstudio.ui.components.SettingItem
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
