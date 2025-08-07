@@ -61,6 +61,7 @@ class SecurityManager(private val context: Context) {
         }
         return false
     }
+    }
 
     /**
      * Registers a NetworkCallback to listen for real-time VPN status changes.
