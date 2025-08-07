@@ -34,6 +34,7 @@ import com.ktimazstudio.ui.screens.DashboardScreen
 import com.ktimazstudio.ui.screens.SettingsScreen
 import com.ktimazstudio.ui.screens.ProfileScreen
 import com.ktimazstudio.utils.isConnected
+import com.ktimazstudio.utils.openWifiSettings
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
