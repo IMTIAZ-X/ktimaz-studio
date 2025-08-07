@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
 import com.ktimazstudio.ui.theme.ktimaz
 import com.ktimazstudio.managers.SharedPreferencesManager
 import com.ktimazstudio.managers.SoundEffectManager
