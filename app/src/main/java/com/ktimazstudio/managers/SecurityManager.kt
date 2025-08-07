@@ -61,7 +61,6 @@ class SecurityManager(private val context: Context) {
         }
         return false
     }
-    }
 
     /**
      * Registers a NetworkCallback to listen for real-time VPN status changes.
@@ -106,7 +105,6 @@ class SecurityManager(private val context: Context) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
-
 
     /**
      * Attempts to detect if the application is running on an emulator.
@@ -201,12 +199,6 @@ class SecurityManager(private val context: Context) {
     }
 
     /**
-     * Checks if the APK's *signature hash* matches the expected hash.
-     * This is now the primary integrity check.
-     * return true if the signature hash matches, false otherwise.
-     */
-
-    /**
      * REMOVED: This method is no longer used for integrity check, as signature hash is more reliable.
      * Kept for reference or if needed for other purposes.
      *
@@ -231,20 +223,12 @@ class SecurityManager(private val context: Context) {
         return null
     }
 
-     /**
-     * Checks if the APK's *signature hash* matches the expected hash.
-     * This is now the primary integrity check.
-     * return true if the signature hash matches, false otherwise.
-     */
-
-       /**
+    /**
      * Attempts to detect common hooking frameworks (like Xposed or Frida) by checking
      * for known files, installed packages, or system properties.
      * This is not exhaustive and can be bypassed, but adds a layer of defense.
      * return true if a hooking framework is likely detected, false otherwise.
      */
-
-
     fun isHookingFrameworkDetected(): Boolean {
         // LocalInspectionMode.current check is handled at the call site in Composable
         // 1. Check for common Xposed/Magisk/Frida related files/directories
@@ -271,12 +255,12 @@ class SecurityManager(private val context: Context) {
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             while (true) {
-            line = reader.readLine()
-           if (line == null) break
-            for (prop in props) {
-            if (line.contains("[$prop]:")) return true
-    }
-}
+                line = reader.readLine()
+                if (line == null) break
+                for (prop in props) {
+                    if (line.contains("[$prop]:")) return true
+                }
+            }
             process.destroy()
         } catch (e: Exception) {
             // Log.e("SecurityCheck", "Error checking system properties: ${e.message}")
@@ -368,3 +352,4 @@ class SecurityManager(private val context: Context) {
         // Add other checks here as needed
         return SecurityIssue.NONE
     }
+}
