@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
             val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
 
             // Perform initial security checks, passing isInspectionMode
-            val initialSecurityIssue = remember {
+            val initialSecurityIssue: SecurityIssue = remember {
                 securityManager.getSecurityIssue(isInspectionMode)
             }
 
@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
 
                     // Live VPN detection
                     DisposableEffect(Unit) {
-                        vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn ->
+                        vpnNetworkCallback = securityManager.registerVpnDetectionCallback { isVpn: Boolean ->
                             liveVpnDetected = isVpn
                             // If VPN is detected, set it as the current issue.
                             // Otherwise, re-evaluate all security issues.
@@ -92,7 +92,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         onDispose {
-                            vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+                            vpnNetworkCallback?.let { callback: ConnectivityManager.NetworkCallback -> 
+                                securityManager.unregisterVpnDetectionCallback(callback) 
+                            }
                         }
                     }
 
@@ -158,7 +160,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        vpnNetworkCallback?.let { securityManager.unregisterVpnDetectionCallback(it) }
+        vpnNetworkCallback?.let { callback: ConnectivityManager.NetworkCallback -> 
+            securityManager.unregisterVpnDetectionCallback(callback) 
+        }
         soundEffectManager.release() // Release SoundPool resources
     }
 }
