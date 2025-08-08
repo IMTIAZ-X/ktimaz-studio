@@ -8,7 +8,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -63,17 +66,28 @@ class ComingActivity : ComponentActivity() {
 fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
     val cardAnimation = remember { Animatable(0f) }
     val shimmerAnimation = remember { Animatable(0f) }
+    val buttonPulse = remember { Animatable(1f) }
 
     LaunchedEffect(Unit) {
         cardAnimation.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 800, easing = LiquidEasing)
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            )
         )
         shimmerAnimation.animateTo(
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 2000, easing = LinearEasing),
+                animation = tween(durationMillis = 1800, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart
+            )
+        )
+        buttonPulse.animateTo(
+            targetValue = 1.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = PremiumEasing),
+                repeatMode = RepeatMode.Reverse
             )
         )
     }
@@ -84,8 +98,8 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF0288D1), // Deep Blue
-                        Color(0xFF80DEEA) // Cyan
+                        Color(0xFF1A237E), // Deep Indigo
+                        Color(0xFF26A69A) // Vibrant Teal
                     )
                 )
             )
@@ -97,31 +111,31 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            GlassCard(
+            PremiumGlassCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.85f)
+                    .fillMaxWidth(0.9f)
                     .alpha(cardAnimation.value)
-                    .scale(0.9f + cardAnimation.value * 0.1f) // Subtle liquid scale effect
+                    .scale(0.92f + cardAnimation.value * 0.08f) // Subtle bounce effect
             ) {
                 CustomTitleText(
                     text = "$title Coming Soon",
-                    modifier = Modifier.padding(top = 24.dp),
+                    modifier = Modifier.padding(top = 32.dp),
                     shimmerProgress = shimmerAnimation.value
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 CustomDescriptionText(
-                    text = "This feature is in active development. Get ready for a seamless experience—stay tuned!",
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                    text = "Crafted with precision, this feature is on its way. Stay tuned for a premium experience!",
+                    modifier = Modifier.padding(horizontal = 28.dp),
                     shimmerProgress = shimmerAnimation.value
                 )
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(40.dp))
                 GradientOutlineButton(
-                    text = "Back to Home",
+                    text = "Return to Home",
                     onClick = onBackClick,
                     modifier = Modifier
-                        .padding(bottom = 24.dp)
-                        .size(width = 200.dp, height = 48.dp)
-                        .scale(0.95f + cardAnimation.value * 0.05f) // Subtle button scale
+                        .padding(bottom = 32.dp)
+                        .size(width = 220.dp, height = 52.dp)
+                        .scale(buttonPulse.value) // Pulsating effect
                 )
             }
         }
@@ -129,32 +143,33 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
 }
 
 @Composable
-fun GlassCard(
+fun PremiumGlassCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.2f),
-                        Color.White.copy(alpha = 0.1f)
+                        Color.White.copy(alpha = 0.15f),
+                        Color.White.copy(alpha = 0.05f)
                     )
                 )
             )
+            .shadow(12.dp, RoundedCornerShape(24.dp), ambientColor = Color(0xFF26A69A))
             .border(
-                width = 1.dp,
+                width = 1.5.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFFFFFFFF).copy(alpha = 0.5f),
-                        Color(0xFF80DEEA).copy(alpha = 0.3f)
+                        Color(0xFFFFFFFF).copy(alpha = 0.6f),
+                        Color(0xFF26A69A).copy(alpha = 0.4f)
                     )
                 ),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(24.dp)
             )
-            .padding(20.dp),
+            .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -178,26 +193,28 @@ fun CustomTitleText(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF0288D1),
-                        Color(0xFF0288D1),
-                        Color(0xFF80DEEA),
-                        Color(0xFF0288D1),
-                        Color(0xFF0288D1)
+                        Color(0xFF1A237E),
+                        Color(0xFF1A237E),
+                        Color(0xFF26A69A),
+                        Color(0xFF1A237E),
+                        Color(0xFF1A237E)
                     ),
-                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f + 200f, 0f)
+                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f + 250f, 0f)
                 ),
-                alpha = 0.2f
+                alpha = 0.25f
             )
-            .padding(4.dp)
+            .padding(8.dp)
     ) {
         Text(
             text = text,
-            fontSize = 30.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Black,
             color = Color.White,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(4.dp, ambientColor = Color(0xFF26A69A))
         )
     }
 }
@@ -214,27 +231,29 @@ fun CustomDescriptionText(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFFFFFFFF).copy(alpha = 0.3f),
-                        Color(0xFFFFFFFF).copy(alpha = 0.3f),
-                        Color(0xFF80DEEA).copy(alpha = 0.5f),
-                        Color(0xFFFFFFFF).copy(alpha = 0.3f),
-                        Color(0xFFFFFFFF).copy(alpha = 0.3f)
+                        Color(0xFFFFFFFF).copy(alpha = 0.4f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.4f),
+                        Color(0xFF26A69A).copy(alpha = 0.6f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.4f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.4f)
                     ),
-                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 800f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 800f + 150f, 0f)
+                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f + 200f, 0f)
                 ),
-                alpha = 0.2f
+                alpha = 0.25f
             )
-            .padding(4.dp)
+            .padding(8.dp)
     ) {
         Text(
             text = text,
-            fontSize = 16.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.9f),
+            color = Color.White.copy(alpha = 0.95f),
             textAlign = TextAlign.Center,
-            lineHeight = 24.sp,
-            modifier = Modifier.fillMaxWidth()
+            lineHeight = 26.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(2.dp, ambientColor = Color(0xFF26A69A))
         )
     }
 }
@@ -248,37 +267,38 @@ fun GradientOutlineButton(
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(Color.Transparent)
             .border(
-                width = 2.dp,
+                width = 2.5.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF0288D1),
-                        Color(0xFF80DEEA)
+                        Color(0xFF1A237E),
+                        Color(0xFF26A69A),
+                        Color(0xFFFFFFFF).copy(alpha = 0.7f)
                     )
                 ),
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(28.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(color = Color(0xFF80DEEA))
+                indication = ripple(color = Color(0xFF26A69A), bounded = true)
             ) { onClick() }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold,
             color = Color.White,
             textAlign = TextAlign.Center
         )
     }
 }
 
-object LiquidEasing : Easing {
+object PremiumEasing : Easing {
     override fun transform(fraction: Float): Float {
-        return (Math.sin(fraction * Math.PI * 2).toFloat() * 0.5f + 0.5f) * fraction
+        return (Math.sin(fraction * Math.PI * 1.5).toFloat() * 0.4f + 0.6f) * fraction
     }
 }
