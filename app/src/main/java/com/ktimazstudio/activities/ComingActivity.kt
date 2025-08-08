@@ -60,7 +60,7 @@ class ComingActivity : ComponentActivity() {
 }
 
 @Composable
-fun ComingSeasonScreen(title: String, onBackClick: () -> Unit) {
+fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
     val cardAnimation = remember { Animatable(0f) }
     val shimmerAnimation = remember { Animatable(0f) }
 
