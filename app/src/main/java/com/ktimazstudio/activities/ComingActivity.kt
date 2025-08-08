@@ -1,4 +1,4 @@
-package com.ktimazstudio 
+package com.ktimazstudio
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,10 +20,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -186,7 +186,7 @@ fun CustomButton(
             )
             .clickable(
                 interactionSource = interactionSource,
-                indication = rememberRipple(color = Color.White)
+                indication = ripple(color = Color.White)
             ) { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
