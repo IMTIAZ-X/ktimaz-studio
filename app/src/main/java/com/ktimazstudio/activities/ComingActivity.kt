@@ -1,4 +1,4 @@
-package com.ktimazstudio.activities
+package com.ktimazstudio
 
 import android.content.Context
 import android.os.Bundle
