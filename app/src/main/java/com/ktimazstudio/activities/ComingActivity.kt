@@ -236,8 +236,8 @@ fun TitleText(
                     start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1400f, 0f),
                     end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1400f + 400f, 0f)
                 ),
-                alpha = 0.45f
             )
+            .alpha(0.45f)
             .padding(10.dp)
     ) {
         Text(
@@ -274,8 +274,8 @@ fun DescriptionText(
                     start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f, 0f),
                     end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f + 350f, 0f)
                 ),
-                alpha = 0.45f
             )
+            .alpha(0.45f)
             .padding(10.dp)
     ) {
         Text(
