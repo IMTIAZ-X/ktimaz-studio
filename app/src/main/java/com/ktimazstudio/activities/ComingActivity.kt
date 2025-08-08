@@ -5,6 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,7 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -44,7 +48,7 @@ class ComingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val cardTitle = intent.getStringExtra("CardTitle") ?: "Unknown Module"
+        val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "Unknown Module"
         setContent {
             ktimaz {
                 ComingSoonScreen(cardTitle) {
@@ -56,13 +60,21 @@ class ComingActivity : ComponentActivity() {
 }
 
 @Composable
-fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
-    val animationProgress = remember { Animatable(0f) }
+fun ComingSeasonScreen(title: String, onBackClick: () -> Unit) {
+    val cardAnimation = remember { Animatable(0f) }
+    val shimmerAnimation = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        animationProgress.animateTo(
+        cardAnimation.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 1200)
+            animationSpec = tween(durationMillis = 800, easing = LiquidEasing)
+        )
+        shimmerAnimation.animateTo(
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            )
         )
     }
 
@@ -73,7 +85,7 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
                 Brush.linearGradient(
                     colors = listOf(
                         Color(0xFF0288D1), // Deep Blue
-                        Color(0xFF4FC3F7) // Light Blue
+                        Color(0xFF80DEEA) // Cyan
                     )
                 )
             )
@@ -85,27 +97,31 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            ContentCard(
+            GlassCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .alpha(animationProgress.value)
+                    .fillMaxWidth(0.85f)
+                    .alpha(cardAnimation.value)
+                    .scale(0.9f + cardAnimation.value * 0.1f) // Subtle liquid scale effect
             ) {
                 CustomTitleText(
                     text = "$title Coming Soon",
-                    modifier = Modifier.padding(top = 24.dp)
+                    modifier = Modifier.padding(top = 24.dp),
+                    shimmerProgress = shimmerAnimation.value
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 CustomDescriptionText(
-                    text = "We're working hard to bring this feature to life. Stay tuned for exciting updates, and check back soon!",
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    text = "This feature is in active development. Get ready for a seamless experience—stay tuned!",
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    shimmerProgress = shimmerAnimation.value
                 )
                 Spacer(modifier = Modifier.height(32.dp))
-                CustomButton(
-                    text = "Return to Home",
+                GradientOutlineButton(
+                    text = "Back to Home",
                     onClick = onBackClick,
                     modifier = Modifier
                         .padding(bottom = 24.dp)
-                        .size(width = 220.dp, height = 50.dp)
+                        .size(width = 200.dp, height = 48.dp)
+                        .scale(0.95f + cardAnimation.value * 0.05f) // Subtle button scale
                 )
             }
         }
@@ -113,17 +129,32 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
 }
 
 @Composable
-fun ContentCard(
+fun GlassCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.95f))
-            .shadow(8.dp, RoundedCornerShape(16.dp))
-            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(16.dp))
-            .padding(16.dp),
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.2f),
+                        Color.White.copy(alpha = 0.1f)
+                    )
+                )
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF).copy(alpha = 0.5f),
+                        Color(0xFF80DEEA).copy(alpha = 0.3f)
+                    )
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -138,36 +169,78 @@ fun ContentCard(
 @Composable
 fun CustomTitleText(
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shimmerProgress: Float
 ) {
-    Text(
-        text = text,
-        fontSize = 28.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFF0277BD),
-        textAlign = TextAlign.Center,
-        modifier = modifier.fillMaxWidth()
-    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF0288D1),
+                        Color(0xFF0288D1),
+                        Color(0xFF80DEEA),
+                        Color(0xFF0288D1),
+                        Color(0xFF0288D1)
+                    ),
+                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f + 200f, 0f)
+                ),
+                alpha = 0.2f
+            )
+            .padding(4.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 30.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @Composable
 fun CustomDescriptionText(
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shimmerProgress: Float
 ) {
-    Text(
-        text = text,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.Medium,
-        color = Color(0xFF424242),
-        textAlign = TextAlign.Center,
-        lineHeight = 24.sp,
-        modifier = modifier.fillMaxWidth()
-    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF).copy(alpha = 0.3f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.3f),
+                        Color(0xFF80DEEA).copy(alpha = 0.5f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.3f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.3f)
+                    ),
+                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 800f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 800f + 150f, 0f)
+                ),
+                alpha = 0.2f
+            )
+            .padding(4.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.9f),
+            textAlign = TextAlign.Center,
+            lineHeight = 24.sp,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @Composable
-fun CustomButton(
+fun GradientOutlineButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -175,20 +248,23 @@ fun CustomButton(
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(25.dp))
-            .background(
-                Brush.linearGradient(
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.Transparent)
+            .border(
+                width = 2.dp,
+                brush = Brush.linearGradient(
                     colors = listOf(
                         Color(0xFF0288D1),
-                        Color(0xFF4FC3F7)
+                        Color(0xFF80DEEA)
                     )
-                )
+                ),
+                shape = RoundedCornerShape(24.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(color = Color.White)
+                indication = ripple(color = Color(0xFF80DEEA))
             ) { onClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -198,5 +274,11 @@ fun CustomButton(
             color = Color.White,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+object LiquidEasing : Easing {
+    override fun transform(fraction: Float): Float {
+        return (Math.sin(fraction * Math.PI * 2).toFloat() * 0.5f + 0.5f) * fraction
     }
 }
