@@ -1,4 +1,4 @@
-package com.ktimazstudio
+package com.ktimazstudio.activities
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -8,9 +8,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,10 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -38,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -67,75 +60,84 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
     val cardAnimation = remember { Animatable(0f) }
     val shimmerAnimation = remember { Animatable(0f) }
     val buttonPulse = remember { Animatable(1f) }
+    val clickAnimation = remember { Animatable(1f) }
 
     LaunchedEffect(Unit) {
         cardAnimation.animateTo(
             targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            )
+            animationSpec = tween(durationMillis = 1000, easing = LuxeEasing)
         )
         shimmerAnimation.animateTo(
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1800, easing = LinearEasing),
+                animation = tween(durationMillis = 1500, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart
             )
         )
         buttonPulse.animateTo(
-            targetValue = 1.05f,
+            targetValue = 1.06f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1200, easing = PremiumEasing),
+                animation = tween(durationMillis = 1000, easing = LuxeEasing),
                 repeatMode = RepeatMode.Reverse
             )
         )
     }
 
-    Scaffold(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF1A237E), // Deep Indigo
-                        Color(0xFF26A69A) // Vibrant Teal
+                        Color(0xFF0288D1), // Deep Blue
+                        Color(0xFF80DEEA) // Cyan
                     )
                 )
             )
-    ) { innerPadding ->
+    ) {
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            PremiumGlassCard(
+            GlassCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
+                    .fillMaxWidth(0.88f)
                     .alpha(cardAnimation.value)
-                    .scale(0.92f + cardAnimation.value * 0.08f) // Subtle bounce effect
+                    .scale(0.9f + cardAnimation.value * 0.1f) // Smooth scale-in
             ) {
-                CustomTitleText(
+                TitleText(
                     text = "$title Coming Soon",
-                    modifier = Modifier.padding(top = 32.dp),
+                    modifier = Modifier.padding(top = 28.dp),
                     shimmerProgress = shimmerAnimation.value
                 )
                 Spacer(modifier = Modifier.height(20.dp))
-                CustomDescriptionText(
-                    text = "Crafted with precision, this feature is on its way. Stay tuned for a premium experience!",
-                    modifier = Modifier.padding(horizontal = 28.dp),
+                DescriptionText(
+                    text = "We're crafting something extraordinary. Stay tuned for a world-class experience!",
+                    modifier = Modifier.padding(horizontal = 24.dp),
                     shimmerProgress = shimmerAnimation.value
                 )
-                Spacer(modifier = Modifier.height(40.dp))
-                GradientOutlineButton(
-                    text = "Return to Home",
-                    onClick = onBackClick,
+                Spacer(modifier = Modifier.height(36.dp))
+                OutlineButton(
+                    text = "Back to Home",
+                    onClick = {
+                        LaunchedEffect(Unit) {
+                            clickAnimation.animateTo(
+                                targetValue = 0.95f,
+                                animationSpec = tween(durationMillis = 150)
+                            )
+                            clickAnimation.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(durationMillis = 150)
+                            )
+                            onBackClick()
+                        }
+                    },
                     modifier = Modifier
-                        .padding(bottom = 32.dp)
-                        .size(width = 220.dp, height = 52.dp)
-                        .scale(buttonPulse.value) // Pulsating effect
+                        .padding(bottom = 28.dp)
+                        .size(width = 240.dp, height = 54.dp)
+                        .scale(buttonPulse.value)
                 )
             }
         }
@@ -143,33 +145,34 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
 }
 
 @Composable
-fun PremiumGlassCard(
+fun GlassCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.15f),
-                        Color.White.copy(alpha = 0.05f)
+                        Color.White.copy(alpha = 0.18f),
+                        Color.White.copy(alpha = 0.08f),
+                        Color(0xFF80DEEA).copy(alpha = 0.1f)
                     )
                 )
             )
-            .shadow(12.dp, RoundedCornerShape(24.dp), ambientColor = Color(0xFF26A69A))
             .border(
-                width = 1.5.dp,
+                width = 1.8.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFFFFFFFF).copy(alpha = 0.6f),
-                        Color(0xFF26A69A).copy(alpha = 0.4f)
+                        Color(0xFFFFFFFF).copy(alpha = 0.7f),
+                        Color(0xFF80DEEA).copy(alpha = 0.5f),
+                        Color(0xFF0288D1).copy(alpha = 0.5f)
                     )
                 ),
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(22.dp)
             )
-            .padding(24.dp),
+            .padding(22.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -182,7 +185,7 @@ fun PremiumGlassCard(
 }
 
 @Composable
-fun CustomTitleText(
+fun TitleText(
     text: String,
     modifier: Modifier = Modifier,
     shimmerProgress: Float
@@ -193,73 +196,69 @@ fun CustomTitleText(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF1A237E),
-                        Color(0xFF1A237E),
-                        Color(0xFF26A69A),
-                        Color(0xFF1A237E),
-                        Color(0xFF1A237E)
-                    ),
-                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f + 250f, 0f)
-                ),
-                alpha = 0.25f
-            )
-            .padding(8.dp)
-    ) {
-        Text(
-            text = text,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Black,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(4.dp, ambientColor = Color(0xFF26A69A))
-        )
-    }
-}
-
-@Composable
-fun CustomDescriptionText(
-    text: String,
-    modifier: Modifier = Modifier,
-    shimmerProgress: Float
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFFFFFFFF).copy(alpha = 0.4f),
-                        Color(0xFFFFFFFF).copy(alpha = 0.4f),
-                        Color(0xFF26A69A).copy(alpha = 0.6f),
-                        Color(0xFFFFFFFF).copy(alpha = 0.4f),
-                        Color(0xFFFFFFFF).copy(alpha = 0.4f)
+                        Color(0xFF0288D1).copy(alpha = 0.3f),
+                        Color(0xFF0288D1).copy(alpha = 0.3f),
+                        Color(0xFF80DEEA).copy(alpha = 0.6f),
+                        Color(0xFF0288D1).copy(alpha = 0.3f),
+                        Color(0xFF0288D1).copy(alpha = 0.3f)
                     ),
                     start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f + 200f, 0f)
+                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f + 300f, 0f)
                 ),
-                alpha = 0.25f
+                alpha = 0.3f
             )
-            .padding(8.dp)
+            .padding(6.dp)
     ) {
         Text(
             text = text,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.95f),
+            fontSize = 34.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
             textAlign = TextAlign.Center,
-            lineHeight = 26.sp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(2.dp, ambientColor = Color(0xFF26A69A))
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
 
 @Composable
-fun GradientOutlineButton(
+fun DescriptionText(
+    text: String,
+    modifier: Modifier = Modifier,
+    shimmerProgress: Float
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF).copy(alpha = 0.35f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.35f),
+                        Color(0xFF80DEEA).copy(alpha = 0.65f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.35f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.35f)
+                    ),
+                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 800f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 800f + 250f, 0f)
+                ),
+                alpha = 0.3f
+            )
+            .padding(6.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.92f),
+            textAlign = TextAlign.Center,
+            lineHeight = 28.sp,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun OutlineButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -267,29 +266,29 @@ fun GradientOutlineButton(
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(26.dp))
             .background(Color.Transparent)
             .border(
-                width = 2.5.dp,
+                width = 2.2.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF1A237E),
-                        Color(0xFF26A69A),
-                        Color(0xFFFFFFFF).copy(alpha = 0.7f)
+                        Color(0xFF0288D1),
+                        Color(0xFF80DEEA),
+                        Color(0xFFFFFFFF).copy(alpha = 0.8f)
                     )
                 ),
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(26.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(color = Color(0xFF26A69A), bounded = true)
+                indication = null
             ) { onClick() }
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 18.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            fontSize = 17.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,
             textAlign = TextAlign.Center
@@ -297,8 +296,8 @@ fun GradientOutlineButton(
     }
 }
 
-object PremiumEasing : Easing {
+object LuxeEasing : Easing {
     override fun transform(fraction: Float): Float {
-        return (Math.sin(fraction * Math.PI * 1.5).toFloat() * 0.4f + 0.6f) * fraction
+        return (Math.sin(fraction * Math.PI * 1.8).toFloat() * 0.45f + 0.55f) * fraction
     }
 }
