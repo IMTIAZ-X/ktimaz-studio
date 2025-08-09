@@ -1,5 +1,6 @@
 package com.ktimazstudio
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,26 +36,29 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer // Used instead of offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ktimazstudio.ui.theme.ktimaz
 import kotlinx.coroutines.delay
 
-// Main activity for the "Coming Soon" screen
 class ComingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Enable edge-to-edge display
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "New Feature"
+
+        // Load theme preference from SharedPreferences
+        val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val theme = sharedPreferences.getString("theme_setting_key", "system") ?: "system"
+
         setContent {
-            ktimaz {
+            ktimaz(theme = theme) {
                 PremiumNebulaComingSoonScreen(cardTitle) {
                     finish()
                 }
@@ -63,11 +67,25 @@ class ComingActivity : ComponentActivity() {
     }
 }
 
-// Main composable for the "Coming Soon" screen with premium styling
+@Composable
+fun ktimaz(theme: String, content: @Composable () -> Unit) {
+    // Determine theme based on SharedPreferences
+    val isDarkTheme = when (theme) {
+        "dark" -> true
+        "light" -> false
+        else -> androidx.compose.foundation.isSystemInDarkTheme() // Fallback to system theme
+    }
+
+    androidx.compose.material3.MaterialTheme(
+        colorScheme = if (isDarkTheme) androidx.compose.material3.darkColorScheme() else androidx.compose.material3.lightColorScheme(),
+        content = content
+    )
+}
+
 @Composable
 fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
-    // Theme-based colors for dark/light mode
-    val isDarkTheme = LocalConfiguration.current.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+    // Theme-based colors
+    val isDarkTheme = androidx.compose.material3.MaterialTheme.colorScheme == androidx.compose.material3.darkColorScheme()
     val backgroundColorStart = if (isDarkTheme) Color(0xFF0A0A1A) else Color(0xFFDDEEFF)
     val backgroundColorEnd = if (isDarkTheme) Color(0xFF1A1A3A) else Color(0xFFAABBFF)
     val cardColor = if (isDarkTheme) Color(0xFF1C1C3C) else Color(0xFFF0F4FF)
@@ -75,13 +93,13 @@ fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
     val accentColorSecondary = if (isDarkTheme) Color(0xFFAB8FFF) else Color(0xFF7B61FF)
 
     // Animation states
-    val cardAnimation = remember { Animatable(0f) } // Card entrance animation
-    val buttonGlow = remember { Animatable(0f) } // Button glow effect
-    val glowPulse = remember { Animatable(0.2f) } // Pulsating glow for premium look
-    var isClicked by remember { mutableStateOf(false) } // Button click state
-    val buttonScale = remember { Animatable(1f) } // Button scale animation
+    val cardAnimation = remember { Animatable(0f) }
+    val buttonGlow = remember { Animatable(0f) }
+    val glowPulse = remember { Animatable(0.2f) }
+    var isClicked by remember { mutableStateOf(false) }
+    val buttonScale = remember { Animatable(1f) }
 
-    // Card and glow animations
+    // Animations for card entrance and glow
     LaunchedEffect(Unit) {
         delay(200)
         cardAnimation.animateTo(
@@ -93,7 +111,6 @@ fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
             targetValue = 0.3f,
             animationSpec = tween(durationMillis = 1200, easing = NebulaEasing)
         )
-        // Infinite glow pulse for premium effect
         while (true) {
             glowPulse.animateTo(
                 targetValue = 0.6f,
@@ -150,7 +167,7 @@ fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
                     .alpha(cardAnimation.value)
-                    .graphicsLayer(translationY = (-30f + cardAnimation.value * 30f)), // Replaced offset
+                    .graphicsLayer(translationY = (-30f + cardAnimation.value * 30f)),
                 cardColor = cardColor,
                 accentColor = accentColor,
                 accentColorSecondary = accentColorSecondary,
@@ -184,7 +201,6 @@ fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
     }
 }
 
-// Premium holographic card widget with 3D and glow effects
 @Composable
 fun PremiumHolographicCard(
     modifier: Modifier = Modifier,
@@ -240,7 +256,6 @@ fun PremiumHolographicCard(
     }
 }
 
-// Title text with premium typography
 @Composable
 fun TitleText(
     text: String,
@@ -260,7 +275,6 @@ fun TitleText(
     )
 }
 
-// Description text with polished styling
 @Composable
 fun DescriptionText(
     text: String,
@@ -280,7 +294,6 @@ fun DescriptionText(
     )
 }
 
-// Premium button with glow, shadow, and haptic feedback
 @Composable
 fun PremiumNebulaButton(
     text: String,
@@ -334,7 +347,6 @@ fun PremiumNebulaButton(
     }
 }
 
-// Custom easing for smooth animations
 object NebulaEasing : Easing {
     override fun transform(fraction: Float): Float {
         return 1f - (1f - fraction) * (1f - fraction) // Ease-out for smooth transitions
