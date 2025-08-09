@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -127,7 +128,7 @@ fun NebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
                     .alpha(cardAnimation.value)
-                    .offset(y = ((-30f + cardAnimation.value * 30f).dp)),
+                    .offset(y = (-30f + cardAnimation.value * 30f).dp),
                 cardColor = cardColor,
                 accentColor = accentColor,
                 accentColorSecondary = accentColorSecondary
