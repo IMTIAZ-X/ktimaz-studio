@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
@@ -215,7 +216,7 @@ fun PremiumHolographicCard(
                 .clip(RoundedCornerShape(12.dp))
                 .background(
                     brush = Brush.linearGradient(
-                        colors salinity = listOf(
+                        colors = listOf( // Fixed syntax error
                             Color.White.copy(alpha = 0.1f),
                             Color.Transparent
                         )
