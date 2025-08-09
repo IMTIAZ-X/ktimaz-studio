@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,9 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,7 +54,7 @@ class ComingActivity : ComponentActivity() {
         val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "New Feature"
         setContent {
             ktimaz {
-                NebulaComingSoonScreen(cardTitle) {
+                PremiumNebulaComingSoonScreen(cardTitle) {
                     finish()
                 }
             }
@@ -59,7 +63,7 @@ class ComingActivity : ComponentActivity() {
 }
 
 @Composable
-fun NebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
+fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
     val isDarkTheme = LocalConfiguration.current.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
     val backgroundColorStart = if (isDarkTheme) Color(0xFF0A0A1A) else Color(0xFFDDEEFF)
     val backgroundColorEnd = if (isDarkTheme) Color(0xFF1A1A3A) else Color(0xFFAABBFF)
@@ -71,6 +75,24 @@ fun NebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
     val buttonGlow = remember { Animatable(0f) }
     var isClicked by remember { mutableStateOf(false) }
     val buttonScale = remember { Animatable(1f) }
+    val glowPulse = remember { Animatable(0.2f) }
+
+    LaunchedEffect(Unit) {
+        cardAnimation.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 800, easing = NebulaEasing)
+        )
+        while (true) {
+            glowPulse.animateTo(
+                targetValue = 0.6f,
+                animationSpec = tween(durationMillis = 1500, easing = NebulaEasing)
+            )
+            glowPulse.animateTo(
+                targetValue = 0.2f,
+                animationSpec = tween(durationMillis = 1500, easing = NebulaEasing)
+            )
+        }
+    }
 
     LaunchedEffect(isClicked) {
         if (isClicked) {
@@ -95,26 +117,13 @@ fun NebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
         }
     }
 
-    LaunchedEffect(Unit) {
-        delay(200)
-        cardAnimation.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 800, easing = NebulaEasing)
-        )
-        delay(400)
-        buttonGlow.animateTo(
-            targetValue = 0.3f,
-            animationSpec = tween(durationMillis = 1200, easing = NebulaEasing)
-        )
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.radialGradient(
                     colors = listOf(backgroundColorStart, backgroundColorEnd),
-                    radius = 1000f
+                    radius = 1200f
                 )
             )
     ) {
@@ -124,36 +133,38 @@ fun NebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            HolographicCard(
+            PremiumHolographicCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.85f)
+                    .fillMaxWidth(0.9f)
                     .alpha(cardAnimation.value)
                     .offset(y = (-30f + cardAnimation.value * 30f).dp),
                 cardColor = cardColor,
                 accentColor = accentColor,
-                accentColorSecondary = accentColorSecondary
+                accentColorSecondary = accentColorSecondary,
+                glowAlpha = glowPulse.value
             ) {
                 TitleText(
                     text = "$title Coming Soon",
-                    modifier = Modifier.padding(top = 20.dp),
+                    modifier = Modifier.padding(top = 24.dp),
                     accentColor = accentColor
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 DescriptionText(
-                    text = "Prepare for an innovative experience. Launching soon with cutting-edge features.",
-                    modifier = Modifier.padding(horizontal = 20.dp)
+                    text = "Experience innovation like never before. Unveiling soon with revolutionary features.",
+                    modifier = Modifier.padding(horizontal = 24.dp)
                 )
-                Spacer(modifier = Modifier.height(20.dp))
-                NebulaButton(
+                Spacer(modifier = Modifier.height(24.dp))
+                PremiumNebulaButton(
                     text = "Return",
                     onClick = { isClicked = true },
                     modifier = Modifier
-                        .padding(bottom = 20.dp)
-                        .size(width = 200.dp, height = 44.dp)
+                        .padding(bottom = 24.dp)
+                        .size(width = 220.dp, height = 48.dp)
                         .scale(buttonScale.value)
                         .alpha(1f + buttonGlow.value * 0.5f),
                     accentColor = accentColor,
-                    accentColorSecondary = accentColorSecondary
+                    accentColorSecondary = accentColorSecondary,
+                    glowAlpha = glowPulse.value
                 )
             }
         }
@@ -161,43 +172,46 @@ fun NebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
 }
 
 @Composable
-fun HolographicCard(
+fun PremiumHolographicCard(
     modifier: Modifier = Modifier,
     cardColor: Color,
     accentColor: Color,
     accentColorSecondary: Color,
+    glowAlpha: Float,
     content: @Composable () -> Unit
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp))
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        cardColor.copy(alpha = 0.6f),
-                        cardColor.copy(alpha = 0.3f)
+                        cardColor.copy(alpha = 0.7f),
+                        cardColor.copy(alpha = 0.4f)
                     )
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(16.dp)
             )
             .border(
-                width = 1.dp,
+                width = 1.5.dp,
                 brush = Brush.linearGradient(
-                    colors = listOf(accentColor, accentColorSecondary)
+                    colors = listOf(accentColor, accentColorSecondary, accentColor.copy(alpha = 0.7f))
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(16.dp)
             )
-            .padding(20.dp),
+            .padding(24.dp)
+            .alpha(1f + glowAlpha * 0.3f),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.05f),
+                            Color.White.copy(alpha = 0.1f),
                             Color.Transparent
                         )
                     )
@@ -221,11 +235,11 @@ fun TitleText(
     androidx.compose.material3.Text(
         text = text,
         style = TextStyle(
-            fontSize = 28.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
             color = accentColor,
             textAlign = TextAlign.Center,
-            letterSpacing = 1.2.sp
+            letterSpacing = 1.5.sp
         ),
         modifier = modifier.fillMaxWidth()
     )
@@ -239,57 +253,65 @@ fun DescriptionText(
     androidx.compose.material3.Text(
         text = text,
         style = TextStyle(
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.85f),
+            color = Color.White.copy(alpha = 0.9f),
             textAlign = TextAlign.Center,
-            lineHeight = 24.sp,
-            letterSpacing = 0.8.sp
+            lineHeight = 26.sp,
+            letterSpacing = 1.sp
         ),
         modifier = modifier.fillMaxWidth()
     )
 }
 
 @Composable
-fun NebulaButton(
+fun PremiumNebulaButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color,
-    accentColorSecondary: Color
+    accentColorSecondary: Color,
+    glowAlpha: Float
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val hapticFeedback = LocalHapticFeedback.current
+
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .shadow(elevation = 8.dp, shape = RoundedCornerShape(10.dp))
             .background(
                 brush = Brush.linearGradient(
-                    colors = listOf(accentColor.copy(alpha = 0.5f), accentColorSecondary.copy(alpha = 0.5f))
+                    colors = listOf(accentColor, accentColorSecondary)
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(10.dp)
             )
             .border(
-                width = 1.5.dp,
+                width = 2.dp,
                 brush = Brush.linearGradient(
-                    colors = listOf(accentColor, accentColorSecondary, Color.White.copy(alpha = 0.7f))
+                    colors = listOf(accentColor.copy(alpha = 0.8f), Color.White.copy(alpha = 0.5f))
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(10.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
-            ) { onClick() }
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            ) {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            }
+            .padding(horizontal = 24.dp, vertical = 14.dp)
+            .alpha(1f + glowAlpha * 0.4f),
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.material3.Text(
             text = text,
             style = TextStyle(
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
                 textAlign = TextAlign.Center,
-                letterSpacing = 0.8.sp
+                letterSpacing = 1.sp
             )
         )
     }
