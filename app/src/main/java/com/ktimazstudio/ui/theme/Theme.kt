@@ -16,11 +16,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-import com.ktimazstudio.managers.new.EnhancedSharedPreferencesManager
-import com.ktimazstudio.utils.new.getAppColorScheme
-import com.ktimazstudio.utils.new.getAdjustedTypography
-import androidx.compose.ui.platform.LocalContext
-
 // Import all color variables from Color.kt
 import com.ktimazstudio.ui.theme.*
 
@@ -59,32 +54,29 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun ktimaz(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    sharedPrefsManager: EnhancedSharedPreferencesManager? = null,
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (sharedPrefsManager != null) {
-        getAppColorScheme(
-            isDarkTheme = darkTheme,
-            context = LocalContext.current,
-            sharedPrefsManager = sharedPrefsManager
-        )
-    } else {
-        // Fallback to default colors if manager not available
-        if (darkTheme) darkColorScheme() else lightColorScheme()
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
     }
-    
-    val typography = if (sharedPrefsManager != null) {
-        getAdjustedTypography(
-            fontSizePercentage = sharedPrefsManager.getFontSize(),
-            isLargeTextEnabled = sharedPrefsManager.isLargeTextEnabled()
-        )
-    } else {
-        Typography() // Default typography
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.primary.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+        }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = typography,
+        typography = Typography, // Assuming Typography is defined elsewhere in your theme package
         content = content
     )
 }
