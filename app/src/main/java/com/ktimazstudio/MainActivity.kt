@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                ktimaz(darkTheme = useDarkTheme) {
+                ktimaz(darkTheme = useDarkTheme,sharedPrefsManager = sharedPrefsManager) {
                     var isLoggedIn by remember { mutableStateOf(sharedPrefsManager.isLoggedIn()) }
                     var currentUsername by remember(isLoggedIn) { mutableStateOf(sharedPrefsManager.getUsername()) }
                     var liveVpnDetected by remember { mutableStateOf(securityManager.isVpnActive()) }
