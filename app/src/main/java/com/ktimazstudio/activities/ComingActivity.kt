@@ -1,15 +1,10 @@
 package com.ktimazstudio
 
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Easing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,9 +30,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,10 +46,10 @@ class ComingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "Unknown Module"
+        val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "New Feature"
         setContent {
             ktimaz {
-                ComingSoonScreen(cardTitle) {
+                NebulaComingSoonScreen(cardTitle) {
                     finish()
                 }
             }
@@ -63,27 +58,36 @@ class ComingActivity : ComponentActivity() {
 }
 
 @Composable
-fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
-    val context = LocalContext.current
-    val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    val theme = sharedPrefs.getString("theme_setting_key", "default") ?: "default"
-    val primaryColor = if (theme == "dark") Color(0xFF0277BD) else Color(0xFF01579B)
-    val secondaryColor = if (theme == "dark") Color(0xFF4FC3F7) else Color(0xFF4DD0E1)
+fun NebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
+    val isDarkTheme = LocalConfiguration.current.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
+    val backgroundColorStart = if (isDarkTheme) Color(0xFF0A0A1A) else Color(0xFFDDEEFF)
+    val backgroundColorEnd = if (isDarkTheme) Color(0xFF1A1A3A) else Color(0xFFAABBFF)
+    val cardColor = if (isDarkTheme) Color(0xFF1C1C3C) else Color(0xFFF0F4FF)
+    val accentColor = if (isDarkTheme) Color(0xFF7B61FF) else Color(0xFF4A3DFF)
+    val accentColorSecondary = if (isDarkTheme) Color(0xFFAB8FFF) else Color(0xFF7B61FF)
 
     val cardAnimation = remember { Animatable(0f) }
-    val shimmerAnimation = remember { Animatable(0f) }
     val buttonGlow = remember { Animatable(0f) }
     var isClicked by remember { mutableStateOf(false) }
+    val buttonScale = remember { Animatable(1f) }
 
     LaunchedEffect(isClicked) {
         if (isClicked) {
+            buttonScale.animateTo(
+                targetValue = 0.92f,
+                animationSpec = tween(durationMillis = 100)
+            )
+            buttonScale.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 100)
+            )
             buttonGlow.animateTo(
-                targetValue = 0.5f,
-                animationSpec = tween(durationMillis = 200)
+                targetValue = 0.8f,
+                animationSpec = tween(durationMillis = 100)
             )
             buttonGlow.animateTo(
                 targetValue = 0f,
-                animationSpec = tween(durationMillis = 200)
+                animationSpec = tween(durationMillis = 100)
             )
             isClicked = false
             onBackClick()
@@ -91,25 +95,15 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
-        delay(300) // Subtle staggered entrance
+        delay(200)
         cardAnimation.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 800, easing = ProfessionalEasing)
+            animationSpec = tween(durationMillis = 800, easing = NebulaEasing)
         )
-        shimmerAnimation.animateTo(
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 2000, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            )
-        )
-        delay(600) // Stagger button glow
+        delay(400)
         buttonGlow.animateTo(
-            targetValue = 0.2f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1200, easing = ProfessionalEasing),
-                repeatMode = RepeatMode.Reverse
-            )
+            targetValue = 0.3f,
+            animationSpec = tween(durationMillis = 1200, easing = NebulaEasing)
         )
     }
 
@@ -117,8 +111,9 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(primaryColor, secondaryColor)
+                brush = Brush.radialGradient(
+                    colors = listOf(backgroundColorStart, backgroundColorEnd),
+                    radius = 1000f
                 )
             )
     ) {
@@ -128,40 +123,36 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            GlassCard(
+            HolographicCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
+                    .fillMaxWidth(0.85f)
                     .alpha(cardAnimation.value)
-                    .offset(y = (-10f + cardAnimation.value * 10f).dp),
-                primaryColor = primaryColor,
-                secondaryColor = secondaryColor
+                    .offset(y = ((-30f + cardAnimation.value * 30f).dp)),
+                cardColor = cardColor,
+                accentColor = accentColor,
+                accentColorSecondary = accentColorSecondary
             ) {
                 TitleText(
                     text = "$title Coming Soon",
-                    modifier = Modifier.padding(top = 32.dp),
-                    shimmerProgress = shimmerAnimation.value,
-                    primaryColor = primaryColor,
-                    secondaryColor = secondaryColor
+                    modifier = Modifier.padding(top = 20.dp),
+                    accentColor = accentColor
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 DescriptionText(
-                    text = "This feature is being crafted with precision. Expect a world-class experience soon.",
-                    modifier = Modifier.padding(horizontal = 32.dp),
-                    shimmerProgress = shimmerAnimation.value,
-                    primaryColor = primaryColor,
-                    secondaryColor = secondaryColor
+                    text = "Prepare for an innovative experience. Launching soon with cutting-edge features.",
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
-                Spacer(modifier = Modifier.height(40.dp))
-                OutlineButton(
-                    text = "Back to Home",
+                Spacer(modifier = Modifier.height(20.dp))
+                NebulaButton(
+                    text = "Return",
                     onClick = { isClicked = true },
                     modifier = Modifier
-                        .padding(bottom = 32.dp)
-                        .size(width = 260.dp, height = 56.dp)
-                        .alpha(1f - buttonGlow.value * 0.5f),
-                    isClicked = isClicked,
-                    primaryColor = primaryColor,
-                    secondaryColor = secondaryColor
+                        .padding(bottom = 20.dp)
+                        .size(width = 200.dp, height = 44.dp)
+                        .scale(buttonScale.value)
+                        .alpha(1f + buttonGlow.value * 0.5f),
+                    accentColor = accentColor,
+                    accentColorSecondary = accentColorSecondary
                 )
             }
         }
@@ -169,47 +160,43 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
 }
 
 @Composable
-fun GlassCard(
+fun HolographicCard(
     modifier: Modifier = Modifier,
-    primaryColor: Color,
-    secondaryColor: Color,
+    cardColor: Color,
+    accentColor: Color,
+    accentColorSecondary: Color,
     content: @Composable () -> Unit
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.2f),
-                        Color.White.copy(alpha = 0.1f),
-                        secondaryColor.copy(alpha = 0.15f)
+                        cardColor.copy(alpha = 0.6f),
+                        cardColor.copy(alpha = 0.3f)
                     )
                 ),
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(12.dp)
             )
             .border(
-                width = 2.dp,
+                width = 1.dp,
                 brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.8f),
-                        secondaryColor.copy(alpha = 0.6f),
-                        primaryColor.copy(alpha = 0.6f)
-                    )
+                    colors = listOf(accentColor, accentColorSecondary)
                 ),
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(12.dp)
             )
-            .padding(28.dp),
+            .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            secondaryColor.copy(alpha = 0.08f),
+                            Color.White.copy(alpha = 0.05f),
                             Color.Transparent
                         )
                     )
@@ -228,127 +215,76 @@ fun GlassCard(
 fun TitleText(
     text: String,
     modifier: Modifier = Modifier,
-    shimmerProgress: Float,
-    primaryColor: Color,
-    secondaryColor: Color
+    accentColor: Color
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        primaryColor.copy(alpha = 0.4f),
-                        primaryColor.copy(alpha = 0.4f),
-                        secondaryColor.copy(alpha = 0.7f),
-                        primaryColor.copy(alpha = 0.4f),
-                        primaryColor.copy(alpha = 0.4f)
-                    ),
-                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f + 400f, 0f)
-                )
-            )
-            .padding(10.dp)
-    ) {
-        androidx.compose.material3.Text(
-            text = text,
-            style = TextStyle(
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                letterSpacing = 1.sp
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
+    androidx.compose.material3.Text(
+        text = text,
+        style = TextStyle(
+            fontSize = 28.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = accentColor,
+            textAlign = TextAlign.Center,
+            letterSpacing = 1.2.sp
+        ),
+        modifier = modifier.fillMaxWidth()
+    )
 }
 
 @Composable
 fun DescriptionText(
     text: String,
-    modifier: Modifier = Modifier,
-    shimmerProgress: Float,
-    primaryColor: Color,
-    secondaryColor: Color
+    modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.4f),
-                        Color.White.copy(alpha = 0.4f),
-                        secondaryColor.copy(alpha = 0.7f),
-                        Color.White.copy(alpha = 0.4f),
-                        Color.White.copy(alpha = 0.4f)
-                    ),
-                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1000f + 350f, 0f)
-                )
-            )
-            .padding(10.dp)
-    ) {
-        androidx.compose.material3.Text(
-            text = text,
-            style = TextStyle(
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.95f),
-                textAlign = TextAlign.Center,
-                lineHeight = 32.sp,
-                letterSpacing = 0.8.sp
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
+    androidx.compose.material3.Text(
+        text = text,
+        style = TextStyle(
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.85f),
+            textAlign = TextAlign.Center,
+            lineHeight = 24.sp,
+            letterSpacing = 0.8.sp
+        ),
+        modifier = modifier.fillMaxWidth()
+    )
 }
 
 @Composable
-fun OutlineButton(
+fun NebulaButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isClicked: Boolean,
-    primaryColor: Color,
-    secondaryColor: Color
+    accentColor: Color,
+    accentColorSecondary: Color
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(32.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(
                 brush = Brush.linearGradient(
-                    colors = if (isClicked) listOf(
-                        secondaryColor.copy(alpha = 0.3f),
-                        primaryColor.copy(alpha = 0.3f)
-                    ) else listOf(Color.Transparent, Color.Transparent)
+                    colors = listOf(accentColor.copy(alpha = 0.5f), accentColorSecondary.copy(alpha = 0.5f))
                 ),
-                shape = RoundedCornerShape(32.dp)
+                shape = RoundedCornerShape(8.dp)
             )
             .border(
-                width = 2.5.dp,
+                width = 1.5.dp,
                 brush = Brush.linearGradient(
-                    colors = listOf(
-                        primaryColor,
-                        secondaryColor,
-                        Color.White.copy(alpha = 0.9f)
-                    )
+                    colors = listOf(accentColor, accentColorSecondary, Color.White.copy(alpha = 0.7f))
                 ),
-                shape = RoundedCornerShape(32.dp)
+                shape = RoundedCornerShape(8.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
             ) { onClick() }
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.material3.Text(
             text = text,
             style = TextStyle(
-                fontSize = 20.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 textAlign = TextAlign.Center,
@@ -358,8 +294,8 @@ fun OutlineButton(
     }
 }
 
-object ProfessionalEasing : Easing {
+object NebulaEasing : Easing {
     override fun transform(fraction: Float): Float {
-        return fraction * fraction * (3f - 2f * fraction) // Smooth, subtle ease-in-out
+        return 1f - (1f - fraction) * (1f - fraction) // Ease-out for smooth transitions
     }
 }
