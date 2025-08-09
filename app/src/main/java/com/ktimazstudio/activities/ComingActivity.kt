@@ -1,4 +1,4 @@
-package com.ktimazstudio
+package com.ktimazstudio.activities
 
 import android.content.Context
 import android.os.Bundle
@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,12 +36,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ktimazstudio.ui.theme.ktimaz
@@ -80,12 +81,12 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
     LaunchedEffect(isClicked) {
         if (isClicked) {
             clickAnimation.animateTo(
-                targetValue = 0.88f,
-                animationSpec = tween(durationMillis = 250)
+                targetValue = 0.85f,
+                animationSpec = tween(durationMillis = 200)
             )
             clickAnimation.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = 250)
+                animationSpec = tween(durationMillis = 200)
             )
             isClicked = false
             onBackClick()
@@ -93,23 +94,23 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
-        delay(300) // Stagger card animation
+        delay(400) // Staggered entrance
         cardAnimation.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 1400, easing = LuxeEasing)
+            animationSpec = tween(durationMillis = 1600, easing = LuxeEasing)
         )
         shimmerAnimation.animateTo(
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 2200, easing = LinearEasing),
+                animation = tween(durationMillis = 2400, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart
             )
         )
-        delay(600) // Stagger button animation
+        delay(800) // Stagger button animation
         buttonPulse.animateTo(
-            targetValue = 1.1f,
+            targetValue = 1.12f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1400, easing = LuxeEasing),
+                animation = tween(durationMillis = 1600, easing = LuxeEasing),
                 repeatMode = RepeatMode.Reverse
             )
         )
@@ -132,35 +133,36 @@ fun ComingSoonScreen(title: String, onBackClick: () -> Unit) {
         ) {
             GlassCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.92f)
+                    .fillMaxWidth(0.94f)
                     .alpha(cardAnimation.value)
-                    .scale(0.8f + cardAnimation.value * 0.2f)
-                    .offset(y = (-10f + cardAnimation.value * 10f).dp), // Floating effect
+                    .scale(0.75f + cardAnimation.value * 0.25f)
+                    .offset(y = (-15f + cardAnimation.value * 15f).dp)
+                    .rotate(cardAnimation.value * 3f - 1.5f), // Subtle 3D rotation
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor
             ) {
                 TitleText(
                     text = "$title Coming Soon",
-                    modifier = Modifier.padding(top = 36.dp),
+                    modifier = Modifier.padding(top = 40.dp),
                     shimmerProgress = shimmerAnimation.value,
                     primaryColor = primaryColor,
                     secondaryColor = secondaryColor
                 )
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(32.dp))
                 DescriptionText(
-                    text = "Crafted with precision, this feature is on its way. Expect a world-class experience soon!",
-                    modifier = Modifier.padding(horizontal = 32.dp),
+                    text = "Crafted with unmatched precision, this feature is coming soon. Prepare for a world-class experience!",
+                    modifier = Modifier.padding(horizontal = 36.dp),
                     shimmerProgress = shimmerAnimation.value,
                     primaryColor = primaryColor,
                     secondaryColor = secondaryColor
                 )
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(56.dp))
                 OutlineButton(
                     text = "Back to Home",
                     onClick = { isClicked = true },
                     modifier = Modifier
-                        .padding(bottom = 36.dp)
-                        .size(width = 280.dp, height = 60.dp)
+                        .padding(bottom = 40.dp)
+                        .size(width = 300.dp, height = 64.dp)
                         .scale(buttonPulse.value * clickAnimation.value),
                     isClicked = isClicked,
                     primaryColor = primaryColor,
@@ -180,30 +182,45 @@ fun GlassCard(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(32.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.22f),
-                        Color.White.copy(alpha = 0.12f),
-                        secondaryColor.copy(alpha = 0.15f)
-                    )
+                        Color.White.copy(alpha = 0.25f),
+                        Color.White.copy(alpha = 0.15f),
+                        secondaryColor.copy(alpha = 0.18f)
+                    ),
+                    shape = RoundedCornerShape(32.dp)
                 )
             )
             .border(
-                width = 2.2.dp,
+                width = 2.5.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.85f),
-                        secondaryColor.copy(alpha = 0.65f),
-                        primaryColor.copy(alpha = 0.65f)
+                        Color.White.copy(alpha = 0.9f),
+                        secondaryColor.copy(alpha = 0.7f),
+                        primaryColor.copy(alpha = 0.7f)
                     )
                 ),
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(32.dp)
             )
-            .padding(28.dp),
+            .padding(32.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Subtle inner glow layer
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            secondaryColor.copy(alpha = 0.1f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -227,25 +244,27 @@ fun TitleText(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        primaryColor.copy(alpha = 0.45f),
-                        primaryColor.copy(alpha = 0.45f),
-                        secondaryColor.copy(alpha = 0.75f),
-                        primaryColor.copy(alpha = 0.45f),
-                        primaryColor.copy(alpha = 0.45f)
+                        primaryColor.copy(alpha = 0.5f),
+                        primaryColor.copy(alpha = 0.5f),
+                        secondaryColor.copy(alpha = 0.8f),
+                        primaryColor.copy(alpha = 0.5f),
+                        primaryColor.copy(alpha = 0.5f)
                     ),
-                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1400f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1400f + 400f, 0f)
-                ),
+                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1600f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1600f + 450f, 0f)
+                )
             )
-            .alpha(0.45f)
-            .padding(10.dp)
+            .padding(12.dp)
     ) {
-        Text(
+        androidx.compose.material3.Text(
             text = text,
-            fontSize = 38.sp,
-            fontWeight = FontWeight.Black,
-            color = Color.White,
-            textAlign = TextAlign.Center,
+            style = TextStyle(
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                letterSpacing = 1.2.sp
+            ),
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -265,26 +284,28 @@ fun DescriptionText(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.45f),
-                        Color.White.copy(alpha = 0.45f),
-                        secondaryColor.copy(alpha = 0.75f),
-                        Color.White.copy(alpha = 0.45f),
-                        Color.White.copy(alpha = 0.45f)
+                        Color.White.copy(alpha = 0.5f),
+                        Color.White.copy(alpha = 0.5f),
+                        secondaryColor.copy(alpha = 0.8f),
+                        Color.White.copy(alpha = 0.5f),
+                        Color.White.copy(alpha = 0.5f)
                     ),
-                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1200f + 350f, 0f)
-                ),
+                    start = androidx.compose.ui.geometry.Offset(shimmerProgress * 1400f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(shimmerProgress * 1400f + 400f, 0f)
+                )
             )
-            .alpha(0.45f)
-            .padding(10.dp)
+            .padding(12.dp)
     ) {
-        Text(
+        androidx.compose.material3.Text(
             text = text,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.95f),
-            textAlign = TextAlign.Center,
-            lineHeight = 32.sp,
+            style = TextStyle(
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.95f),
+                textAlign = TextAlign.Center,
+                lineHeight = 34.sp,
+                letterSpacing = 0.8.sp
+            ),
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -302,45 +323,49 @@ fun OutlineButton(
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(32.dp))
+            .clip(RoundedCornerShape(36.dp))
             .background(
-                if (isClicked) Brush.linearGradient(
-                    colors = listOf(
-                        secondaryColor.copy(alpha = 0.35f),
-                        primaryColor.copy(alpha = 0.35f)
-                    )
-                ) else Color.Transparent
+                brush = Brush.linearGradient(
+                    colors = if (isClicked) listOf(
+                        secondaryColor.copy(alpha = 0.4f),
+                        primaryColor.copy(alpha = 0.4f)
+                    ) else listOf(Color.Transparent, Color.Transparent),
+                    shape = RoundedCornerShape(36.dp)
+                )
             )
             .border(
-                width = 2.8.dp,
+                width = 3.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
                         primaryColor,
                         secondaryColor,
-                        Color.White.copy(alpha = 0.9f)
+                        Color.White.copy(alpha = 0.95f)
                     )
                 ),
-                shape = RoundedCornerShape(32.dp)
+                shape = RoundedCornerShape(36.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
             ) { onClick() }
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 28.dp, vertical = 18.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
+        androidx.compose.material3.Text(
             text = text,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            textAlign = TextAlign.Center
+            style = TextStyle(
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                letterSpacing = 0.8.sp
+            )
         )
     }
 }
 
 object LuxeEasing : Easing {
     override fun transform(fraction: Float): Float {
-        return (Math.sin(fraction * Math.PI * 2.2).toFloat() * 0.35f + 0.65f) * fraction
+        return (Math.sin(fraction * Math.PI * 2.4).toFloat() * 0.3f + 0.7f) * fraction
     }
 }
