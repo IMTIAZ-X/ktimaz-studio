@@ -36,13 +36,18 @@ import com.ktimazstudio.ui.screens.ProfileScreen
 import com.ktimazstudio.utils.isConnected
 import com.ktimazstudio.utils.openWifiSettings
 
+import com.ktimazstudio.managers.new.EnhancedSharedPreferencesManager
+import com.ktimazstudio.ui.components.new.AdaptiveNavigation
+import com.ktimazstudio.ui.screens.new.EnhancedSettingsScreen
+import com.ktimazstudio.ui.screens.new.EnhancedDashboardScreen
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun MainApplicationUI(
     username: String,
     onLogout: () -> Unit,
     soundEffectManager: SoundEffectManager,
-    sharedPrefsManager: SharedPreferencesManager // FIXED: Add sharedPrefsManager parameter
+    sharedPrefsManager: EnhancedSharedPreferencesManager // FIXED: Add sharedPrefsManager parameter
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -82,21 +87,17 @@ fun MainApplicationUI(
             .fillMaxSize()
             .background(primaryGradient)
     ) {
-        AppNavigationRail(
-            selectedDestination = selectedDestination,
-            onDestinationSelected = {
-                soundEffectManager.playClickSound() // Play sound on navigation item click
-                selectedDestination = it
-                isSearching = false // Hide search when navigating away from dashboard
-                searchQuery = "" // Clear search query
-            },
-            isExpanded = isRailExpanded,
-            onMenuClick = {
-                soundEffectManager.playClickSound() // Play sound on menu click
-                isRailExpanded = !isRailExpanded
-            },
-            soundEffectManager = soundEffectManager // Pass sound manager
-        )
+        AdaptiveNavigation(
+    selectedDestination = selectedDestination,
+    onDestinationSelected = {
+        soundEffectManager.playClickSound()
+        selectedDestination = it
+        isSearching = false
+        searchQuery = ""
+    },
+    soundEffectManager = soundEffectManager,
+    sharedPrefsManager = sharedPrefsManager
+)
 
         Scaffold(
             modifier = Modifier
@@ -184,22 +185,23 @@ fun MainApplicationUI(
             ) { targetDestination ->
                 Box(modifier = Modifier.padding(paddingValues)) {
                     when (targetDestination) {
-                        Screen.Dashboard -> DashboardScreen(
-                            searchQuery = searchQuery, // Pass search query
-                            onCardClick = { title ->
-                                soundEffectManager.playClickSound() // Play sound on card click
-                                if (title == "System Config") {
-                                    context.startActivity(Intent(context, SettingsActivity::class.java))
-                                } else {
-                                    context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
-                                }
-                            },
-                            soundEffectManager = soundEffectManager // Pass sound manager
-                        )
-                        Screen.AppSettings -> SettingsScreen(
-                            soundEffectManager = soundEffectManager,
-                            sharedPrefsManager = sharedPrefsManager
-                        )
+                        Screen.Dashboard -> EnhancedDashboardScreen(
+    searchQuery = searchQuery,
+    onCardClick = { title ->
+        soundEffectManager.playClickSound()
+        if (title == "System Config") {
+            context.startActivity(Intent(context, SettingsActivity::class.java))
+        } else {
+            context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
+        }
+    },
+    soundEffectManager = soundEffectManager,
+    sharedPrefsManager = sharedPrefsManager
+)
+                        Screen.AppSettings -> EnhancedSettingsScreen(
+    soundEffectManager = soundEffectManager,
+    sharedPrefsManager = sharedPrefsManager
+)
                         Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
                     }
                 }
