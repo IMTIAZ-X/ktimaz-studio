@@ -202,6 +202,7 @@ fun MainApplicationUI(
     soundEffectManager = soundEffectManager,
     sharedPrefsManager = sharedPrefsManager
 )
+
                         Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
                     }
                 }
