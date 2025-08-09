@@ -26,9 +26,11 @@ import com.ktimazstudio.ui.screens.LoginScreen
 import com.ktimazstudio.ui.MainApplicationUI
 import com.ktimazstudio.utils.isAppInDarkTheme
 
+import com.ktimazstudio.managers.new.EnhancedSharedPreferencesManager
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
-    private lateinit var sharedPrefsManager: SharedPreferencesManager
+    private lateinit var sharedPrefsManager: EnhancedSharedPreferencesManager
     private lateinit var securityManager: SecurityManager
     private lateinit var soundEffectManager: SoundEffectManager // Initialize SoundEffectManager
     private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
@@ -47,7 +49,7 @@ class MainActivity : ComponentActivity() {
             val isInspectionMode = LocalInspectionMode.current
             // Determine if the app should be in dark theme based on setting
             val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
-            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
+            val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context, sharedPrefsManager)
 
             // Perform initial security checks, passing isInspectionMode
             val initialSecurityIssue: SecurityIssue = remember {
