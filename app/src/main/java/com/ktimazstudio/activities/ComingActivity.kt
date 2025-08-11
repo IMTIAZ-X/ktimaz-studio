@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
@@ -12,6 +13,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,13 +29,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ripple.LocalRippleTheme
-import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
-import androidx.compose.material3.BackHandler
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -101,28 +98,9 @@ fun ktimaz(
         androidx.compose.material3.lightColorScheme()
     }
 
-    // Custom ripple theme to match accent color
-    val rippleTheme = object : RippleTheme {
-        @Composable
-        override fun defaultColor() = 
-            if (isDarkTheme) Color(0xFF7B61FF) else Color(0xFF4A3DFF)
-        
-        @Composable
-        override fun rippleAlpha() = RippleAlpha(
-            draggedAlpha = 0.16f,
-            focusedAlpha = 0.12f,
-            hoveredAlpha = 0.08f,
-            pressedAlpha = 0.24f
-        )
-    }
-
     androidx.compose.material3.MaterialTheme(
         colorScheme = colorScheme,
-        content = {
-            CompositionLocalProvider(LocalRippleTheme provides rippleTheme) {
-                content()
-            }
-        }
+        content = content
     )
 }
 
@@ -372,7 +350,7 @@ fun PremiumNebulaButton(
             )
             .clickable(
                 interactionSource = interactionSource,
-                indication = androidx.compose.material.ripple.rememberRipple()
+                indication = null // Using custom visual feedback instead of ripple
             ) {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
