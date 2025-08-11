@@ -7,11 +7,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +27,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.LocalRippleTheme
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material.ripple.RippleTheme
+import androidx.compose.material3.BackHandler
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,45 +57,80 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
+// Animation constants
+private const val CARD_ANIM_DURATION = 800
+private const val GLOW_PULSE_DURATION = 1500
+private const val BUTTON_ANIM_DURATION = 100
+
 class ComingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Enable edge-to-edge display
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "New Feature"
 
-        // Load theme preference from SharedPreferences
         val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val theme = sharedPreferences.getString("theme_setting_key", "system") ?: "system"
 
         setContent {
             ktimaz(theme = theme) {
-                PremiumNebulaComingSoonScreen(cardTitle) {
-                    finish()
-                }
+                PremiumNebulaComingSoonScreen(
+                    title = cardTitle,
+                    onBackClick = { finish() }
+                )
             }
         }
     }
 }
 
 @Composable
-fun ktimaz(theme: String, content: @Composable () -> Unit) {
-    // Determine theme based on SharedPreferences
-    val isDarkTheme = when (theme) {
-        "dark" -> true
-        "light" -> false
-        else -> androidx.compose.foundation.isSystemInDarkTheme() // Fallback to system theme
+fun ktimaz(
+    theme: String,
+    content: @Composable () -> Unit
+) {
+    val isDarkTheme = remember(theme) {
+        when (theme) {
+            "dark" -> true
+            "light" -> false
+            else -> androidx.compose.foundation.isSystemInDarkTheme()
+        }
+    }
+
+    val colorScheme = if (isDarkTheme) {
+        androidx.compose.material3.darkColorScheme()
+    } else {
+        androidx.compose.material3.lightColorScheme()
+    }
+
+    // Custom ripple theme to match accent color
+    val rippleTheme = object : RippleTheme {
+        @Composable
+        override fun defaultColor() = 
+            if (isDarkTheme) Color(0xFF7B61FF) else Color(0xFF4A3DFF)
+        
+        @Composable
+        override fun rippleAlpha() = RippleAlpha(
+            draggedAlpha = 0.16f,
+            focusedAlpha = 0.12f,
+            hoveredAlpha = 0.08f,
+            pressedAlpha = 0.24f
+        )
     }
 
     androidx.compose.material3.MaterialTheme(
-        colorScheme = if (isDarkTheme) androidx.compose.material3.darkColorScheme() else androidx.compose.material3.lightColorScheme(),
-        content = content
+        colorScheme = colorScheme,
+        content = {
+            CompositionLocalProvider(LocalRippleTheme provides rippleTheme) {
+                content()
+            }
+        }
     )
 }
 
 @Composable
-fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
-    // Theme-based colors
+fun PremiumNebulaComingSoonScreen(
+    title: String,
+    onBackClick: () -> Unit
+) {
     val isDarkTheme = androidx.compose.material3.MaterialTheme.colorScheme == androidx.compose.material3.darkColorScheme()
     val backgroundColorStart = if (isDarkTheme) Color(0xFF0A0A1A) else Color(0xFFDDEEFF)
     val backgroundColorEnd = if (isDarkTheme) Color(0xFF1A1A3A) else Color(0xFFAABBFF)
@@ -95,53 +141,44 @@ fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
     // Animation states
     val cardAnimation = remember { Animatable(0f) }
     val buttonGlow = remember { Animatable(0f) }
-    val glowPulse = remember { Animatable(0.2f) }
     var isClicked by remember { mutableStateOf(false) }
     val buttonScale = remember { Animatable(1f) }
+    
+    // Infinite glow animation
+    val infiniteTransition = rememberInfiniteTransition()
+    val glowPulse = infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.6f,
+        animationSpec = InfiniteRepeatableSpec(
+            animation = tween(GLOW_PULSE_DURATION, easing = NebulaEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
 
-    // Animations for card entrance and glow
+    // Handle back press
+    BackHandler { onBackClick() }
+
+    // Animations for card entrance
     LaunchedEffect(Unit) {
         delay(200)
         cardAnimation.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 800, easing = NebulaEasing)
+            animationSpec = tween(CARD_ANIM_DURATION, easing = NebulaEasing)
         )
         delay(400)
         buttonGlow.animateTo(
             targetValue = 0.3f,
-            animationSpec = tween(durationMillis = 1200, easing = NebulaEasing)
+            animationSpec = tween(1200, easing = NebulaEasing)
         )
-        while (true) {
-            glowPulse.animateTo(
-                targetValue = 0.6f,
-                animationSpec = tween(durationMillis = 1500, easing = NebulaEasing)
-            )
-            glowPulse.animateTo(
-                targetValue = 0.2f,
-                animationSpec = tween(durationMillis = 1500, easing = NebulaEasing)
-            )
-        }
     }
 
     // Button click animation
     LaunchedEffect(isClicked) {
         if (isClicked) {
-            buttonScale.animateTo(
-                targetValue = 0.92f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            buttonScale.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            buttonGlow.animateTo(
-                targetValue = 0.8f,
-                animationSpec = tween(durationMillis = 100)
-            )
-            buttonGlow.animateTo(
-                targetValue = 0f,
-                animationSpec = tween(durationMillis = 100)
-            )
+            buttonScale.animateTo(0.92f, tween(BUTTON_ANIM_DURATION))
+            buttonScale.animateTo(1f, tween(BUTTON_ANIM_DURATION))
+            buttonGlow.animateTo(0.8f, tween(BUTTON_ANIM_DURATION))
+            buttonGlow.animateTo(0f, tween(BUTTON_ANIM_DURATION))
             isClicked = false
             onBackClick()
         }
@@ -175,7 +212,7 @@ fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
             ) {
                 TitleText(
                     text = "$title Coming Soon",
-                    modifier = Modifier.padding(top = 24.dp),
+                    modifier = Modifier.padding(top = 24.dp, horizontal = 16.dp),
                     accentColor = accentColor
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -187,14 +224,11 @@ fun PremiumNebulaComingSoonScreen(title: String, onBackClick: () -> Unit) {
                 PremiumNebulaButton(
                     text = "Return",
                     onClick = { isClicked = true },
-                    modifier = Modifier
-                        .padding(bottom = 24.dp)
-                        .size(width = 220.dp, height = 48.dp)
-                        .scale(buttonScale.value)
-                        .alpha(1f + buttonGlow.value * 0.5f),
                     accentColor = accentColor,
                     accentColorSecondary = accentColorSecondary,
-                    glowAlpha = glowPulse.value
+                    glowAlpha = glowPulse.value,
+                    buttonScale = buttonScale.value,
+                    buttonGlow = buttonGlow.value
                 )
             }
         }
@@ -262,7 +296,7 @@ fun TitleText(
     modifier: Modifier = Modifier,
     accentColor: Color
 ) {
-    androidx.compose.material3.Text(
+    Text(
         text = text,
         style = TextStyle(
             fontSize = 32.sp,
@@ -271,7 +305,8 @@ fun TitleText(
             textAlign = TextAlign.Center,
             letterSpacing = 1.5.sp
         ),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        maxLines = 2
     )
 }
 
@@ -280,12 +315,15 @@ fun DescriptionText(
     text: String,
     modifier: Modifier = Modifier
 ) {
-    androidx.compose.material3.Text(
+    Text(
         text = text,
         style = TextStyle(
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.9f),
+            color = if (androidx.compose.material3.MaterialTheme.colorScheme == androidx.compose.material3.darkColorScheme()) 
+                Color.White.copy(alpha = 0.9f) 
+            else 
+                Color.Black.copy(alpha = 0.8f),
             textAlign = TextAlign.Center,
             lineHeight = 26.sp,
             letterSpacing = 1.sp
@@ -298,18 +336,27 @@ fun DescriptionText(
 fun PremiumNebulaButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
     accentColor: Color,
     accentColorSecondary: Color,
-    glowAlpha: Float
+    glowAlpha: Float,
+    buttonScale: Float,
+    buttonGlow: Float
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val hapticFeedback = LocalHapticFeedback.current
+    
+    // Animated elevation for pressed state
+    val elevation by animateDpAsState(if (isPressed) 4.dp else 8.dp)
 
     Box(
-        modifier = modifier
+        modifier = Modifier
+            .padding(bottom = 24.dp)
+            .size(width = 220.dp, height = 48.dp)
+            .scale(buttonScale)
+            .alpha(1f + buttonGlow * 0.5f)
+            .shadow(elevation, shape = RoundedCornerShape(10.dp))
             .clip(RoundedCornerShape(10.dp))
-            .shadow(elevation = 8.dp, shape = RoundedCornerShape(10.dp))
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(accentColor, accentColorSecondary)
@@ -325,7 +372,7 @@ fun PremiumNebulaButton(
             )
             .clickable(
                 interactionSource = interactionSource,
-                indication = null
+                indication = androidx.compose.material.ripple.rememberRipple()
             ) {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
@@ -334,7 +381,7 @@ fun PremiumNebulaButton(
             .alpha(1f + glowAlpha * 0.4f),
         contentAlignment = Alignment.Center
     ) {
-        androidx.compose.material3.Text(
+        Text(
             text = text,
             style = TextStyle(
                 fontSize = 18.sp,
@@ -349,6 +396,6 @@ fun PremiumNebulaButton(
 
 object NebulaEasing : Easing {
     override fun transform(fraction: Float): Float {
-        return 1f - (1f - fraction) * (1f - fraction) // Ease-out for smooth transitions
+        return 1f - (1f - fraction) * (1f - fraction) // Ease-out
     }
 }
