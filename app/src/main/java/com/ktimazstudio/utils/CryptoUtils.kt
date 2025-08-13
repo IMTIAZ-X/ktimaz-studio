@@ -9,7 +9,6 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.SecretKeySpec
 import kotlin.random.Random
 
 /**
@@ -103,7 +102,7 @@ class CryptoUtils {
     private fun obfuscateString(input: String): String {
         val key = generateObfuscationKey(input.length)
         val obfuscated = input.toByteArray().mapIndexed { index, byte ->
-            (byte.toInt() xor key[index % key.size]).toByte()
+            (byte.toInt() xor key[index % key.size].toInt()).toByte()
         }.toByteArray()
         
         return Base64.encodeToString(key + obfuscated, Base64.DEFAULT)
@@ -117,7 +116,7 @@ class CryptoUtils {
             val data = combined.sliceArray(keyLength until combined.size)
             
             val deobfuscated = data.mapIndexed { index, byte ->
-                (byte.toInt() xor key[index % key.size]).toByte()
+                (byte.toInt() xor key[index % key.size].toInt()).toByte()
             }.toByteArray()
             
             String(deobfuscated)
@@ -215,11 +214,11 @@ object AntiTampering {
     
     private fun verifyMethodSignatures(): Boolean {
         // Verify that critical methods haven't been replaced
-        try {
+        return try {
             val method = AntiTampering::class.java.getDeclaredMethod("verifyCodeIntegrity")
-            return method.name == "verifyCodeIntegrity"
+            method.name == "verifyCodeIntegrity"
         } catch (e: Exception) {
-            return false
+            false
         }
     }
     
