@@ -1,16 +1,23 @@
 package com.ktimazstudio.ui.components
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,14 +34,14 @@ fun SettingSection(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -105,8 +112,7 @@ fun <T : Enum<T>> SettingDropdown(
                 )
             }
         },
-        soundEffectManager = soundEffectManager,
-        modifier = modifier
+        soundEffectManager = soundEffectManager
     )
     
     // Dropdown Menu
@@ -185,8 +191,7 @@ fun SettingToggle(
                 )
             )
         },
-        soundEffectManager = if (enabled) soundEffectManager else null,
-        modifier = modifier
+        soundEffectManager = if (enabled) soundEffectManager else null
     )
 }
 
@@ -250,15 +255,14 @@ fun SettingAction(
         control = if (showArrow) {
             {
                 Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Filled.ChevronRight,
+                    imageVector = Icons.Filled.ChevronRight,
                     contentDescription = "Go to $title",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
         } else null,
-        soundEffectManager = soundEffectManager,
-        modifier = modifier
+        soundEffectManager = soundEffectManager
     )
 }
 
@@ -285,8 +289,7 @@ fun SettingInfo(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        },
-        modifier = modifier
+        }
     )
 }
 
@@ -322,8 +325,8 @@ fun SettingDivider(
     )
     
     HorizontalDivider(
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha)
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha),
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     )
 }
 
@@ -348,13 +351,13 @@ fun SettingGroup(
     )
     
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f)
-        )
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     ) {
         Column {
             // Header
@@ -387,7 +390,7 @@ fun SettingGroup(
             )
             
             // Content
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 visible = expanded,
                 enter = expandVertically(animationSpec = tween(300)) + fadeIn(),
                 exit = shrinkVertically(animationSpec = tween(300)) + fadeOut()
