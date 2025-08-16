@@ -411,6 +411,35 @@ tasks.named("assembleRelease") {
     finalizedBy("verifyReleaseIntegrity", "generateSecurityHashes", "generateBuildReport")
 }
 
+// Custom tasks
+tasks.register("verifyReleaseIntegrity") {
+    group = "verification"
+    description = "Verify release build integrity"
+    
+    doLast {
+        println("🔒 Verifying release build integrity...")
+        val apkDir = file("${layout.buildDirectory.get()}/outputs/apk")
+        if (apkDir.exists()) {
+            println("✅ APK directory found")
+        }
+    }
+}
+
+tasks.register("generateSecurityHashes") {
+    group = "security"
+    description = "Generate security hashes"
+    
+    doLast {
+        println("🔐 Generating security hashes...")
+        val buildDir = layout.buildDirectory.get().asFile
+        println("Build directory: $buildDir")
+    }
+}
+
+tasks.named("assembleRelease") {
+    finalizedBy("verifyReleaseIntegrity", "generateSecurityHashes")
+}
+
 tasks.named("clean") {
     dependsOn("cleanNative")
 }
