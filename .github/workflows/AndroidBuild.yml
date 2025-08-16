@@ -1,94 +1,157 @@
-name: ANDROID CI
+name: 🚀 Advanced Android CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop, release/* ]
+    tags: [ 'v*' ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type to execute'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - debug
+        - release
+        - staging
+        - benchmark
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true -Dorg.gradle.parallel=true"
+  JAVA_VERSION: '17'
+  NDK_VERSION: '26.1.10909125'
 
 jobs:
-  build:
-    name: Build APKs
+  # Security and Code Quality Analysis
+  code-analysis:
+    name: 🔍 Code Analysis & Security Scan
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
+    
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Set up JDK 23
+        with:
+          fetch-depth: 0  # Full history for better analysis
+          
+      - name: ☕ Setup JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: 23
-          distribution: temurin
-
-      - name: Setup Gradle
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          
+      - name: 🐘 Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-
-      - name: Cache Gradle
-        uses: actions/cache@v3
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-
-      - name: Inject gradle.properties with AndroidX support
-        run: |
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
-      - name: Run Lint (Debug and Release)
+          gradle-home-cache-cleanup: true
+          
+      - name: 📱 Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          
+      - name: 🔍 Run Detekt Static Analysis
+        run: ./gradlew detekt
+        
+      - name: 📊 Run Lint Analysis
         run: ./gradlew lintReportDebug lintReportRelease
-
-      - name: Upload Lint Reports
+        
+      - name: 🔒 Security Vulnerability Scan
+        run: ./gradlew dependencyCheckAnalyze
+        continue-on-error: true
+        
+      - name: 📈 Upload Analysis Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LintReports
-          path: app/build/reports/lint-results-*.html
-
-      - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest
-
-      - name: Enable Gradle Build Scan
-        run: |
-          echo "gradle.enterprise.buildScan.termsOfServiceUrl=https://gradle.com/terms-of-service" >> gradle.properties
-          echo "gradle.enterprise.buildScan.termsOfServiceAgree=YES" >> gradle.properties
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: App-Debug.apk
-          path: app/build/outputs/apk/debug/**/*.apk
-
-      - name: Build Release APK
-        env:
-          RELEASE_STORE_FILE: ${{ secrets.RELEASE_STORE_FILE }}
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
-
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: App-Release.apk
-         # path: app/build/outputs/apk/release/**/*.apk
+          name: 📊-analysis-reports
           path: |
-            app/build/outputs/apk/release/**/*.apk
-            app/build/outputs/apk/release/output-metadata.json
+            app/build/reports/detekt/
+            app/build/reports/lint-results-*.html
+            app/build/reports/dependency-check-report.html
+          retention-days: 30
 
-      - name: Upload ProGuard Mapping (if exists)
-        if: success()
+  # Unit and Integration Tests
+  testing:
+    name: 🧪 Testing Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: code-analysis
+    
+    strategy:
+      matrix:
+        api-level: [26, 30, 34]
+        target: [default, google_apis]
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: ☕ Setup JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          
+      - name: 🐘 Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        
+      - name: 🧪 Run Unit Tests
+        run: ./gradlew testDebugUnitTest testReleaseUnitTest
+        
+      - name: 📱 Enable KVM (for Android Emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          
+      - name: 🤖 Run Android Instrumented Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          profile: Nexus 6
+          ram-size: 4096M
+          heap-size: 1024M
+          disk-size: 8G
+          script: |
+            adb devices
+            ./gradlew connectedDebugAndroidTest
+            
+      - name: 📊 Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            app/build/test-results/**/*.xml
+            app/build/outputs/androidTest-results/**/*.xml
+            
+      - name: 📈 Upload Test Reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ProGuardMapping
-          path: app/build/outputs/mapping/release/mapping.txt
+          name: 🧪-test-reports-api${{ matrix.api-level }}
+          path: |
+            app/build/reports/tests/
+            app/build/reports/androidTests/
+          retention-days: 30
+
+  # Multi-Platform Build Matrix
+  build-matrix:
+    name: 🏗️ Build (${{ matrix.build-type }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [code-analysis, testing]
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        build-type: [debug, release, staging]
+        include:
+          - build-type: debug
+            artifact-name: 🐛-debug-
