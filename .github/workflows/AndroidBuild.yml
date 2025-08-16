@@ -1,24 +1,21 @@
-name: 🚀 Advanced Android CI/CD Pipeline
+name: 🚀 Android CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, release/* ]
-    tags: [ 'v*' ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Build type to execute'
+        description: 'Build type'
         required: true
-        default: 'release'
+        default: 'debug'
         type: choice
         options:
         - debug
         - release
         - staging
-        - benchmark
 
 env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true -Dorg.gradle.parallel=true"
@@ -26,17 +23,82 @@ env:
   NDK_VERSION: '26.1.10909125'
 
 jobs:
-  # Security and Code Quality Analysis
-  code-analysis:
-    name: 🔍 Code Analysis & Security Scan
+  # Lint and Code Analysis
+  lint:
+    name: 🔍 Lint & Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 15
     
     steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: ☕ Setup JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          
+      - name: 🐘 Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        
+      - name: 🔍 Run Lint
+        run: ./gradlew lintDebug
+        
+      - name: 📊 Upload Lint Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: app/build/reports/lint-results-*.html
+          retention-days: 7
+
+  # Unit Tests
+  test:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: ☕ Setup JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          
+      - name: 🐘 Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        
+      - name: 🧪 Run Unit Tests
+        run: ./gradlew testDebugUnitTest
+        
+      - name: 📊 Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
+          retention-days: 7
+
+  # Build Matrix
+  build:
+    name: 🏗️ Build APK (${{ matrix.build-type }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [lint, test]
+    
+    strategy:
+      matrix:
+        build-type: [debug, release]
+        
+    steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for better analysis
+          fetch-depth: 0
           
       - name: ☕ Setup JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -53,42 +115,67 @@ jobs:
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: false
           
-      - name: 🔍 Run Detekt Static Analysis
-        run: ./gradlew detekt
-        
-      - name: 📊 Run Lint Analysis
-        run: ./gradlew lintReportDebug lintReportRelease
-        
-      - name: 🔒 Security Vulnerability Scan
-        run: ./gradlew dependencyCheckAnalyze
-        continue-on-error: true
-        
-      - name: 📈 Upload Analysis Reports
-        if: always()
+      - name: 🔧 Configure Build Environment
+        run: |
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g" >> ~/.gradle/gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          
+      - name: 🔑 Setup Release Keystore
+        if: matrix.build-type == 'release'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/Ktimazstudio.keystore
+        env:
+          RELEASE_STORE_FILE: Ktimazstudio.keystore
+          RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          
+      - name: 🏗️ Build ${{ matrix.build-type }} APK
+        run: |
+          if [ "${{ matrix.build-type }}" == "release" ]; then
+            ./gradlew assembleRelease
+          else
+            ./gradlew assembleDebug
+          fi
+        env:
+          RELEASE_STORE_FILE: ${{ matrix.build-type == 'release' && 'Ktimazstudio.keystore' || '' }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          
+      - name: 📱 Verify APK
+        run: |
+          find app/build/outputs/apk -name "*.apk" -exec ls -la {} \;
+          
+      - name: 📈 Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: 📊-analysis-reports
+          name: apk-${{ matrix.build-type }}
           path: |
-            app/build/reports/detekt/
-            app/build/reports/lint-results-*.html
-            app/build/reports/dependency-check-report.html
+            app/build/outputs/apk/**/*.apk
+            app/build/outputs/mapping/**/*.txt
           retention-days: 30
 
-  # Unit and Integration Tests
-  testing:
-    name: 🧪 Testing Suite
+  # Instrumented Tests
+  instrumented-test:
+    name: 🤖 Instrumented Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    needs: code-analysis
+    timeout-minutes: 30
+    needs: [build]
+    if: github.event_name == 'push'
     
     strategy:
       matrix:
         api-level: [26, 30, 34]
-        target: [default, google_apis]
-    
+        
     steps:
-      - name: 📥 Checkout Repository
+      - name: 📥 Checkout
         uses: actions/checkout@v4
         
       - name: ☕ Setup JDK ${{ env.JAVA_VERSION }}
@@ -100,58 +187,106 @@ jobs:
       - name: 🐘 Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         
-      - name: 🧪 Run Unit Tests
-        run: ./gradlew testDebugUnitTest testReleaseUnitTest
-        
-      - name: 📱 Enable KVM (for Android Emulator)
+      - name: 📱 Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           
-      - name: 🤖 Run Android Instrumented Tests
+      - name: 🤖 Run Tests on API ${{ matrix.api-level }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
-          target: ${{ matrix.target }}
           arch: x86_64
-          profile: Nexus 6
-          ram-size: 4096M
-          heap-size: 1024M
-          disk-size: 8G
-          script: |
-            adb devices
-            ./gradlew connectedDebugAndroidTest
-            
-      - name: 📊 Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: |
-            app/build/test-results/**/*.xml
-            app/build/outputs/androidTest-results/**/*.xml
-            
-      - name: 📈 Upload Test Reports
+          disable-animations: true
+          disk-size: 6000M
+          heap-size: 512M
+          script: ./gradlew connectedDebugAndroidTest
+          
+      - name: 📊 Upload Instrumented Test Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 🧪-test-reports-api${{ matrix.api-level }}
-          path: |
-            app/build/reports/tests/
-            app/build/reports/androidTests/
-          retention-days: 30
+          name: instrumented-test-reports-api${{ matrix.api-level }}
+          path: app/build/reports/androidTests/
+          retention-days: 7
 
-  # Multi-Platform Build Matrix
-  build-matrix:
-    name: 🏗️ Build (${{ matrix.build-type }})
+  # Release Management
+  release:
+    name: 🎯 Release
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    needs: [code-analysis, testing]
+    needs: [build, instrumented-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
-    strategy:
-      fail-fast: false
-      matrix:
-        build-type: [debug, release, staging]
-        include:
-          - build-type: debug
-            artifact-name: 🐛-debug-
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 📱 Download Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk-release
+          path: ./apk/
+          
+      - name: 📝 Generate Release Notes
+        id: release_notes
+        run: |
+          echo "## 🚀 Release Build" > release_notes.md
+          echo "**Build Date**: $(date)" >> release_notes.md
+          echo "**Commit**: ${{ github.sha }}" >> release_notes.md
+          echo "**Branch**: ${{ github.ref_name }}" >> release_notes.md
+          
+      - name: 🎯 Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body_path: release_notes.md
+          files: ./apk/**/*.apk
+          draft: false
+
+  # Notifications
+  notify:
+    name: 📢 Notifications
+    runs-on: ubuntu-latest
+    needs: [build, instrumented-test]
+    if: always()
+    
+    steps:
+      - name: 📊 Check Results
+        id: results
+        run: |
+          if [[ "${{ needs.build.result }}" == "success" && "${{ needs.instrumented-test.result }}" == "success" ]]; then
+            echo "status=✅ Success" >> $GITHUB_OUTPUT
+            echo "color=good" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ Failed" >> $GITHUB_OUTPUT
+            echo "color=danger" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: 📧 Slack Notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "🏗️ Ktimaz Studio Build Pipeline",
+              "attachments": [{
+                "color": "${{ steps.results.outputs.color }}",
+                "fields": [{
+                  "title": "Status",
+                  "value": "${{ steps.results.outputs.status }}",
+                  "short": true
+                }, {
+                  "title": "Branch", 
+                  "value": "${{ github.ref_name }}",
+                  "short": true
+                }, {
+                  "title": "Commit",
+                  "value": "`${{ github.sha }}`",
+                  "short": false
+                }]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
