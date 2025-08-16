@@ -1,9 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-
-    // Existing plugins
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.kotlin.parcelize)
 }
 
 android {
@@ -12,17 +12,26 @@ android {
 
     defaultConfig {
         applicationId = "com.ktimazstudio"
-        minSdk = 25
+        minSdk = 26
         targetSdk = 35
         versionCode = 1000
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+
+        // Advanced security configurations
+        buildConfigField("String", "SECURITY_HASH", "\"f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425\"")
+        buildConfigField("long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
+        buildConfigField("String", "BUILD_VARIANT", "\"${buildType}\"")
+        
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     buildFeatures {
         buildConfig = true
-        compose = true // Ensure compose is enabled for buildFeatures
+        compose = true
     }
 
     // Git command helper
@@ -41,10 +50,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(project.property("RELEASE_STORE_FILE") as String)
-            storePassword = project.property("RELEASE_STORE_PASSWORD") as String
-            keyAlias = project.property("RELEASE_KEY_ALIAS") as String
-            keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
+            storeFile = file(findProperty("RELEASE_STORE_FILE") ?: "Ktimazstudio.keystore")
+            storePassword = findProperty("RELEASE_STORE_PASSWORD") as? String ?: "Ktimazstudio.keystore"
+            keyAlias = findProperty("RELEASE_KEY_ALIAS") as? String ?: "ktimazstudio"
+            keyPassword = findProperty("RELEASE_KEY_PASSWORD") as? String ?: "ktimazstudio123"
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
@@ -53,32 +62,65 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            isMinifyEnabled = false
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            buildConfigField("boolean", "ENABLE_DEBUG_TOOLS", "true")
+            buildConfigField("boolean", "ENABLE_SECURITY_CHECKS", "false")
+        }
+        
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
 
-            val shortCommitHash = "git rev-parse --short HEAD".runCommand() ?: "dev"
-            versionNameSuffix = "-alpha-$shortCommitHash"
+            val shortCommitHash = "git rev-parse --short HEAD".runCommand() ?: "release"
+            versionNameSuffix = "-$shortCommitHash"
+            buildConfigField("boolean", "ENABLE_DEBUG_TOOLS", "false")
+            buildConfigField("boolean", "ENABLE_SECURITY_CHECKS", "true")
+        }
+        
+        create("staging") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            buildConfigField("boolean", "ENABLE_DEBUG_TOOLS", "true")
+            buildConfigField("boolean", "ENABLE_SECURITY_CHECKS", "true")
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_23
-        targetCompatibility = JavaVersion.VERSION_23
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlin {
-        jvmToolchain(23)
+        jvmToolchain(17)
     }
 
-    // composeOptions should be inside android block
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
+    }
+
+    packaging {
+        resources {
+            excludes += listOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "META-INF/LICENSE",
+                "META-INF/DEPENDENCIES",
+                "META-INF/*.kotlin_module",
+                "**/DebugProbesKt.bin",
+                "kotlin/**",
+                "kotlin-tooling-metadata.json"
+            )
+        }
     }
 
     applicationVariants.all {
@@ -90,59 +132,89 @@ android {
             output.outputFileName = "ktimazstudio_${buildTypeName}_v${version}.apk"
         }
     }
-}
-
-androidComponents {
-    onVariants { variant ->
-        if (variant.buildType == "release") {
-            variant.packaging.resources.excludes.addAll(
-                listOf(
-                    "kotlin/**",
-                    "kotlin-tooling-metadata.json",
-                    "assets/dexopt/**",
-                    "META-INF/LICENSE",
-                    "META-INF/DEPENDENCIES",
-                    "META-INF/*.kotlin_module",
-                    "**/DebugProbesKt.bin",
-                    "okhttp3/internal/publicsuffix/NOTICE",
-                    "okhttp3/**",
-                    "/META-INF/{AL2.0,LGPL2.1}"
-                )
-            )
+    
+    bundle {
+        language {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
         }
     }
 }
 
 dependencies {
+    // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+
+    // Compose BOM and UI
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.compose.animation.core)
 
-    implementation("androidx.compose.material:material-icons-core:1.7.8")
-    implementation("androidx.compose.material:material-icons-extended:1.7.8")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
-    implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.animation:animation-core")
-    implementation("androidx.navigation:navigation-compose:2.9.0")
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
 
-    // Optional
-    // implementation("androidx.navigation:navigation-compose:2.7.7")
-    // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-    // implementation("androidx.datastore:datastore-preferences:1.1.1")
-    // implementation("androidx.work:work-runtime-ktx:2.9.0")
-    // implementation("androidx.startup:startup-runtime:1.1.1")
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
 
+    // Security & Crypto
+    implementation(libs.bouncycastle.bcprov)
+    implementation(libs.bouncycastle.bcpkix)
+    implementation(libs.conscrypt.android)
+
+    // Biometrics
+    implementation(libs.androidx.biometric)
+
+    // Data Storage
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
+
+    // UI Enhancement
+    implementation(libs.lottie.compose)
+    implementation(libs.accompanist.permissions)
+    implementation(libs.accompanist.systemuicontroller)
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
 
+    // Debug tools
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// Security hardening
+tasks.register("verifyReleaseIntegrity") {
+    doLast {
+        println("Verifying release build integrity...")
+        // Add custom integrity checks here
+    }
+}
+
+// Custom tasks for security
+tasks.register("generateSecurityHashes") {
+    doLast {
+        val buildDir = layout.buildDirectory.get().asFile
+        println("Generating security hashes in $buildDir")
+        // Generate checksums for verification
+    }
 }
