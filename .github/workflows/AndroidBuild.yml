@@ -1,100 +1,57 @@
-name: Android CI/CD
+name: Android CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
-env:
-  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g -XX:+UseParallelGC -XX:+HeapDumpOnOutOfMemoryError"
-
 jobs:
-  test:
-    name: Run Tests
+  build:
+    name: Build APKs
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Cache Gradle dependencies
+      - name: Cache Gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-            ~/.android/build-cache
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            gradle-${{ runner.os }}-
 
       - name: Create gradle.properties
         run: |
-          mkdir -p ~/.gradle
-          cat > ~/.gradle/gradle.properties << EOF
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx4g -XX:+UseParallelGC
-          org.gradle.parallel=true
-          org.gradle.caching=true
-          org.gradle.configureondemand=true
-          EOF
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m" >> gradle.properties
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v2
+      - name: Create debug keystore for release signing
+        run: |
+          mkdir -p app/
+          keytool -genkey -v -keystore app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --continue
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: app/build/test-results/
-          retention-days: 7
-
-  lint:
-    name: Run Lint Analysis
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
-      - name: Run lint
+      - name: Run Lint
         run: ./gradlew lintDebug
 
-      - name: Upload lint reports
+      - name: Upload Lint Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -102,205 +59,56 @@ jobs:
           path: app/build/reports/lint-results-*.html
           retention-days: 7
 
-  build:
-    name: Build APKs
-    needs: [test, lint]
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        build-type: [debug, release]
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            ~/.android/build-cache
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Create gradle.properties
-        run: |
-          mkdir -p ~/.gradle
-          cat > ~/.gradle/gradle.properties << EOF
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx4g -XX:+UseParallelGC
-          org.gradle.parallel=true
-          org.gradle.caching=true
-          org.gradle.configureondemand=true
-          EOF
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
-      - name: Create dummy keystore for release builds
-        if: matrix.build-type == 'release'
-        run: |
-          keytool -genkey -v -keystore app/Ktimazstudio.keystore -keyalg RSA -keysize 2048 -validity 10000 \
-          -alias ktimazstudio -storepass ktimazstudio123 -keypass ktimazstudio123 \
-          -dname "CN=KtimazStudio, OU=Development, O=KtimazStudio, L=City, S=State, C=US" \
-          -noprompt
-
-      - name: Build APK
-        env:
-          RELEASE_STORE_FILE: ${{ matrix.build-type == 'release' && 'app/Ktimazstudio.keystore' || '' }}
-          RELEASE_STORE_PASSWORD: ${{ matrix.build-type == 'release' && 'ktimazstudio123' || '' }}
-          RELEASE_KEY_ALIAS: ${{ matrix.build-type == 'release' && 'ktimazstudio' || '' }}
-          RELEASE_KEY_PASSWORD: ${{ matrix.build-type == 'release' && 'ktimazstudio123' || '' }}
-        run: |
-          if [ "${{ matrix.build-type }}" == "debug" ]; then
-            ./gradlew assembleDebug --stacktrace
-          else
-            ./gradlew assembleRelease --stacktrace
-          fi
-
-      - name: Upload APK
+      - name: Upload Test Results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-${{ matrix.build-type }}
-          path: |
-            app/build/outputs/apk/${{ matrix.build-type }}/*.apk
-            app/build/outputs/apk/${{ matrix.build-type }}/output-metadata.json
+          name: test-results
+          path: app/build/test-results/
+          retention-days: 7
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: Upload ProGuard mapping file
-        if: matrix.build-type == 'release'
+      - name: Build Release APK
+        env:
+          RELEASE_STORE_FILE: app/debug.keystore
+          RELEASE_STORE_PASSWORD: android
+          RELEASE_KEY_ALIAS: androiddebugkey
+          RELEASE_KEY_PASSWORD: android
+        run: ./gradlew assembleRelease
+
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: proguard-mapping
-          path: app/build/outputs/mapping/release/mapping.txt
-          retention-days: 90
-
-  security-scan:
-    name: Security Scan
-    needs: [build]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download Release APK
-        uses: actions/download-artifact@v4
-        with:
-          name: app-release
-          path: ./apk
-
-      - name: Run APK Security Analysis
-        run: |
-          # Basic APK analysis
-          find ./apk -name "*.apk" -exec ls -la {} \;
-          
-          # Check APK signature (requires build-tools)
-          echo "APK Security Analysis completed"
-          echo "Note: In production, integrate with tools like:"
-          echo "- MobSF (Mobile Security Framework)"
-          echo "- QARK (Quick Android Review Kit)"
-          echo "- AndroGuard for static analysis"
-
-      - name: Upload security report
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-report
-          path: ./apk
+          name: release-apk
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/mapping/release/mapping.txt
           retention-days: 30
 
-  release:
-    name: Create Release
-    needs: [build, security-scan]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: app-*
-          path: ./artifacts
-          merge-multiple: true
-
-      - name: Get version
-        id: version
+      - name: Build Summary
         run: |
-          VERSION=$(grep "versionName" app/build.gradle.kts | head -1 | cut -d'"' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION-$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
-
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          release_name: KtimazStudio ${{ steps.version.outputs.version }}
-          body: |
-            ## KtimazStudio Android App Release
-            
-            ### What's New
-            - Enhanced security features
-            - Modern UI improvements
-            - Performance optimizations
-            - Bug fixes and stability improvements
-            
-            ### Security Features
-            - Advanced anti-tampering protection
-            - Biometric authentication support
-            - Encrypted data storage
-            - Runtime security monitoring
-            
-            ### Download
-            - **Release APK**: Production-ready build with all optimizations
-            - **Debug APK**: Development build with debugging enabled
-            
-            ### Installation
-            1. Download the appropriate APK
-            2. Enable "Install from Unknown Sources" if needed
-            3. Install and enjoy!
-            
-            **Minimum Android Version**: API 26 (Android 8.0)
-            **Target Android Version**: API 35 (Android 15)
-          draft: false
-          prerelease: false
-
-  notify:
-    name: Send Notification
-    needs: [release]
-    runs-on: ubuntu-latest
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Build Status Notification
-        run: |
-          if [ "${{ needs.release.result }}" == "success" ]; then
-            echo "✅ Build successful! Release created."
-          else
-            echo "❌ Build failed or was cancelled."
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Debug APK built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Release APK built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### APK Details" >> $GITHUB_STEP_SUMMARY
+          if [ -f app/build/outputs/apk/debug/*.apk ]; then
+            DEBUG_SIZE=$(ls -lah app/build/outputs/apk/debug/*.apk | awk '{print $5}')
+            echo "- Debug APK size: $DEBUG_SIZE" >> $GITHUB_STEP_SUMMARY
           fi
-          
-          echo "Build completed at $(date)"
-          echo "Commit: ${{ github.sha }}"
-          echo "Branch: ${{ github.ref_name }}"
+          if [ -f app/build/outputs/apk/release/*.apk ]; then
+            RELEASE_SIZE=$(ls -lah app/build/outputs/apk/release/*.apk | awk '{print $5}')
+            echo "- Release APK size: $RELEASE_SIZE" >> $GITHUB_STEP_SUMMARY
+          fi
