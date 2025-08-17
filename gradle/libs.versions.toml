@@ -9,26 +9,11 @@ lifecycleRuntimeKtx = "2.7.0"
 activityCompose = "1.10.1"
 composeBom = "2025.06.01"
 material3 = "1.5.0-alpha01"
-
-# Security & Crypto
-bouncycastle = "1.78.1"
-conscrypt = "2.5.2"
-
-# Architecture & Navigation  
 navigation = "2.9.0"
 lifecycle = "2.8.0"
 coroutines = "1.8.1"
-
-# UI & Animation
-lottie = "6.5.2"
-accompanist = "0.34.0"
-
-# Biometrics & Hardware
 biometric = "1.4.0"
-
-# Network & Storage
 datastore = "1.1.1"
-room = "2.6.1"
 
 [libraries]
 # Core Android
@@ -46,39 +31,6 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
-# Material Icons
-androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version = "1.7.8" }
-androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version = "1.7.8" }
-
-# Architecture & Navigation
-androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
-androidx-compose-animation = { group = "androidx.compose.animation", name = "animation" }
-androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core" }
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
-
-# Coroutines
-kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
-kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
-
-# Security & Crypto
-bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
-bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
-conscrypt-android = { group = "org.conscrypt", name = "conscrypt-android", version.ref = "conscrypt" }
-
-# Biometrics
-androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
-
-# Data Storage
-androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
-androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
-
-# UI Enhancement
-lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
-accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
-accompanist-systemuicontroller = { group = "com.google.accompanist", name = "accompanist-systemuicontroller", version.ref = "accompanist" }
-
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -88,5 +40,3 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
-kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
