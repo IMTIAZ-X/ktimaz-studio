@@ -34,10 +34,10 @@ android {
     signingConfigs {
         create("release") {
             // Use environment variables for CI/CD
-            val storeFilePath = System.getenv("RELEASE_STORE_FILE") ?: "debug.keystore"
-            val storePass = System.getenv("RELEASE_STORE_PASSWORD") ?: "android"
-            val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "androiddebugkey" 
-            val keyPass = System.getenv("RELEASE_KEY_PASSWORD") ?: "android"
+            val storeFilePath = System.getenv("RELEASE_STORE_FILE") ?: "Ktimazstudio.keystore"
+            val storePass = System.getenv("RELEASE_STORE_PASSWORD") ?: "ktimazstudio123"
+            val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "ktimazstudio" 
+            val keyPass = System.getenv("RELEASE_KEY_PASSWORD") ?: "ktimazstudio123"
             
             storeFile = file(storeFilePath)
             storePassword = storePass
