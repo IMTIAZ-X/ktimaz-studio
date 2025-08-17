@@ -50,8 +50,8 @@ class MainActivity : ComponentActivity() {
         // Request necessary permissions
         requestRuntimePermissions()
         
-        // Handle deep links
-        handleDeepLink(intent)
+        // Handle deep links - fixed null check
+        intent?.let { handleDeepLink(it) }
         
         setContent {
             // System UI controller for immersive experience
@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        handleDeepLink(intent)
+        intent?.let { handleDeepLink(it) }
     }
 
     override fun onResume() {
@@ -166,8 +166,8 @@ class MainActivity : ComponentActivity() {
     /**
      * Handle deep links and intent data
      */
-    private fun handleDeepLink(intent: Intent?) {
-        intent?.data?.let { uri ->
+    private fun handleDeepLink(intent: Intent) {
+        intent.data?.let { uri ->
             when (uri.host) {
                 "ktimazstudio.com" -> {
                     handleWebDeepLink(uri.path)
@@ -179,7 +179,7 @@ class MainActivity : ComponentActivity() {
         }
         
         // Handle other intent extras
-        intent?.extras?.let { extras ->
+        intent.extras?.let { extras ->
             handleIntentExtras(extras)
         }
     }
@@ -244,19 +244,6 @@ class MainActivity : ComponentActivity() {
                 val moduleId = intent.getStringExtra("module_id")
                 // Launch specific module
             }
-        }
-    }
-    
-    /**
-     * Handle back press with confirmation
-     */
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (supportFragmentManager.backStackEntryCount > 0) {
-            supportFragmentManager.popBackStack()
-        } else {
-            // In a real app, show exit confirmation dialog
-            super.onBackPressed()
         }
     }
     
