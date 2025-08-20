@@ -1,159 +1,167 @@
-// File: ComingActivity.kt (Updated to use existing structure)
-package com.ktimazstudio
+// File: navigation/ComingNavigation.kt
+package com.ktimazstudio.navigation
 
-import android.content.Context
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.ktimazstudio.ui.screens.ModernProfessionalComingSoon
 
-class ComingActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
-        super.onCreate(savedInstanceState)
-        val cardTitle = intent.getStringExtra("CARD_TITLE") ?: "New Feature"
-
-        setContent {
-            ktimaz {
-                // Show only the coming soon screen without complex navigation
-                SimpleComingSoon(cardTitle) {
-                    finish()
-                }
-            }
+/**
+ * Navigation integration for ComingActivity features
+ * This replaces the separate ComingActivity with navigation-based approach
+ */
+@Composable
+fun ComingNavigation(
+    cardTitle: String,
+    onBackPressed: () -> Unit
+) {
+    val navController = rememberNavController()
+    
+    NavHost(
+        navController = navController,
+        startDestination = "coming_soon",
+        enterTransition = {
+            slideInHorizontally(
+                initialOffsetX = { it },
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+            ) + fadeIn(animationSpec = tween(400))
+        },
+        exitTransition = {
+            slideOutHorizontally(
+                targetOffsetX = { -it },
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+            ) + fadeOut(animationSpec = tween(400))
+        }
+    ) {
+        composable("coming_soon") {
+            ModernProfessionalComingSoon(
+                title = cardTitle,
+                onBackClick = onBackPressed,
+                navController = navController
+            )
+        }
+        
+        composable("dashboard_preview") {
+            DashboardPreviewScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable("features_detail") {
+            FeaturesDetailScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable("documentation") {
+            DocumentationScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable("settings_preview") {
+            SettingsPreviewScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable("contact_form") {
+            ContactFormScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
     }
 }
 
+// Updated ModernProfessionalComingSoon to work with navigation
 @Composable
-fun ktimaz(content: @Composable () -> Unit) {
-    val isDarkTheme = isSystemInDarkTheme()
-    
-    MaterialTheme(
-        colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme(),
-        content = content
-    )
-}
-
-@Composable
-fun SimpleComingSoon(title: String, onBackClick: () -> Unit) {
-    val haptic = LocalHapticFeedback.current
+fun ModernProfessionalComingSoon(
+    title: String,
+    onBackClick: () -> Unit,
+    navController: NavController
+) {
+    var currentScreen by remember { mutableStateOf("main") }
     
     // Enhanced gradient colors based on theme
-    val isDarkTheme = MaterialTheme.colorScheme.surface == darkColorScheme().surface
+    val isDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
     val primaryGradient = if (isDarkTheme) {
         listOf(
-            Color(0xFF0F0F23),  // Deep space blue
-            Color(0xFF1A1A3A),  // Rich dark purple
-            Color(0xFF2D1B4E)   // Mysterious purple
+            androidx.compose.ui.graphics.Color(0xFF0F0F23),
+            androidx.compose.ui.graphics.Color(0xFF1A1A3A),
+            androidx.compose.ui.graphics.Color(0xFF2D1B4E)
         )
     } else {
         listOf(
-            Color(0xFFE3F2FD),  // Light blue
-            Color(0xFFF3E5F5),  // Light purple
-            Color(0xFFE8F5E8)   // Light green
+            androidx.compose.ui.graphics.Color(0xFFE3F2FD),
+            androidx.compose.ui.graphics.Color(0xFFF3E5F5),
+            androidx.compose.ui.graphics.Color(0xFFE8F5E8)
         )
     }
     
     val accentGradient = if (isDarkTheme) {
         listOf(
-            Color(0xFF667EEA),  // Electric blue
-            Color(0xFF764BA2),  // Royal purple
-            Color(0xFF96A8FB)   // Soft lavender
+            androidx.compose.ui.graphics.Color(0xFF667EEA),
+            androidx.compose.ui.graphics.Color(0xFF764BA2),
+            androidx.compose.ui.graphics.Color(0xFF96A8FB)
         )
     } else {
         listOf(
-            Color(0xFF4A90E2),  // Professional blue
-            Color(0xFF7B68EE),  // Medium slate blue
-            Color(0xFF6A5ACD)   // Slate blue
+            androidx.compose.ui.graphics.Color(0xFF4A90E2),
+            androidx.compose.ui.graphics.Color(0xFF7B68EE),
+            androidx.compose.ui.graphics.Color(0xFF6A5ACD)
         )
     }
     
-    // Simple coming soon items
-    val comingSoonItems = remember {
+    // Navigation items with navigation actions
+    val navigationItems = remember {
         listOf(
-            ComingSoonItem(
+            NavigationItem(
                 title = "Dashboard",
                 subtitle = "Overview and analytics",
-                icon = Icons.Filled.Dashboard,
+                icon = androidx.compose.material.icons.Icons.Filled.Dashboard,
                 color = accentGradient[0]
-            ),
+            ) { navController.navigate("dashboard_preview") },
             
-            ComingSoonItem(
+            NavigationItem(
                 title = "Features",
-                subtitle = "Explore capabilities", 
-                icon = Icons.Filled.Star,
+                subtitle = "Explore capabilities",
+                icon = androidx.compose.material.icons.Icons.Filled.Star,
                 color = accentGradient[1]
-            ),
+            ) { navController.navigate("features_detail") },
             
-            ComingSoonItem(
+            NavigationItem(
                 title = "Documentation",
                 subtitle = "Learn and guides",
-                icon = Icons.Filled.MenuBook,
+                icon = androidx.compose.material.icons.Icons.Filled.MenuBook,
                 color = accentGradient[2]
-            ),
+            ) { navController.navigate("documentation") },
             
-            ComingSoonItem(
+            NavigationItem(
                 title = "Settings",
                 subtitle = "Configure preferences",
-                icon = Icons.Filled.Settings,
-                color = Color(0xFF4CAF50)
-            ),
+                icon = androidx.compose.material.icons.Icons.Filled.Settings,
+                color = androidx.compose.ui.graphics.Color(0xFF4CAF50)
+            ) { navController.navigate("settings_preview") },
             
-            ComingSoonItem(
+            NavigationItem(
                 title = "Contact",
                 subtitle = "Get support",
-                icon = Icons.Filled.ContactSupport,
-                color = Color(0xFFFF9800)
-            )
+                icon = androidx.compose.material.icons.Icons.Filled.ContactSupport,
+                color = androidx.compose.ui.graphics.Color(0xFFFF9800)
+            ) { navController.navigate("contact_form") }
         )
     }
 
-    // Background with animated gradient
-    Box(
-        modifier = Modifier
+    // Use the existing ComingSoon UI but with navigation integration
+    androidx.compose.foundation.layout.Box(
+        modifier = androidx.compose.ui.Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.radialGradient(
+                brush = androidx.compose.ui.graphics.Brush.radialGradient(
                     colors = primaryGradient,
                     radius = 1500f,
                     center = androidx.compose.ui.geometry.Offset(0.3f, 0.2f)
@@ -162,321 +170,419 @@ fun SimpleComingSoon(title: String, onBackClick: () -> Unit) {
     ) {
         MainComingSoonScreen(
             title = title,
-            comingSoonItems = comingSoonItems,
+            navigationItems = navigationItems,
             accentGradient = accentGradient,
             onBackClick = onBackClick
         )
     }
 }
 
-// Data class for coming soon items
-data class ComingSoonItem(
-    val title: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val color: Color
-)
-
+// Preview Screens for Navigation
 @Composable
-fun MainComingSoonScreen(
-    title: String,
-    comingSoonItems: List<ComingSoonItem>,
-    accentGradient: List<Color>,
-    onBackClick: () -> Unit
-) {
-    // Animation states
-    val headerAnimation = remember { Animatable(0f) }
-    val cardsAnimation = remember { Animatable(0f) }
-    val pulseAnimation = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by pulseAnimation.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.8f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = EaseInOutSine),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse_alpha"
-    )
-
-    LaunchedEffect(Unit) {
-        headerAnimation.animateTo(1f, animationSpec = spring(dampingRatio = 0.6f, stiffness = 100f))
-        delay(300)
-        cardsAnimation.animateTo(1f, animationSpec = spring(dampingRatio = 0.7f, stiffness = 80f))
-    }
-
-    Column(
-        modifier = Modifier
+private fun DashboardPreviewScreen(onBackClick: () -> Unit) {
+    androidx.compose.foundation.layout.Column(
+        modifier = androidx.compose.ui.Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(24.dp)
     ) {
-        // Header Section
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .alpha(headerAnimation.value)
-                .graphicsLayer {
-                    translationY = -50f * (1f - headerAnimation.value)
-                }
+        PreviewScreenHeader(
+            title = "Dashboard Preview",
+            subtitle = "Analytics & Data Visualization",
+            icon = androidx.compose.material.icons.Icons.Filled.Dashboard,
+            onBackClick = onBackClick
+        )
+        
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
+        
+        androidx.compose.foundation.lazy.LazyColumn(
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
         ) {
-            // Animated Logo/Icon
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(
-                        brush = Brush.linearGradient(accentGradient),
-                        shape = CircleShape
+            items(5) { index ->
+                androidx.compose.material3.Card(
+                    modifier = androidx.compose.ui.Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
                     )
-                    .border(
-                        width = 3.dp,
-                        brush = Brush.linearGradient(
-                            listOf(
-                                Color.White.copy(alpha = pulseAlpha),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.AutoAwesome,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = Color.White
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Text(
-                text = title,
-                style = TextStyle(
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Coming Soon - Experience the Future",
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Coming Soon Cards
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier
-                .weight(1f)
-                .alpha(cardsAnimation.value)
-        ) {
-            items(comingSoonItems.chunked(2)) { rowItems ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    rowItems.forEach { item ->
-                        ComingSoonCard(
-                            item = item,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    // Fill remaining space if odd number of items
-                    if (rowItems.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
+                    androidx.compose.foundation.layout.Box(
+                        modifier = androidx.compose.ui.Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = androidx.compose.ui.Alignment.CenterStart
+                    ) {
+                        androidx.compose.foundation.layout.Column {
+                            androidx.compose.material3.Text(
+                                text = "Analytics Widget ${index + 1}",
+                                style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                            )
+                            androidx.compose.material3.Text(
+                                text = "Real-time data visualization and insights",
+                                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Return Button
-        PremiumReturnButton(
-            onClick = onBackClick,
-            accentGradient = accentGradient
-        )
     }
 }
 
 @Composable
-fun ComingSoonCard(
-    item: ComingSoonItem,
-    modifier: Modifier = Modifier
-) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f),
-        label = "card_scale"
-    )
-
-    Card(
-        modifier = modifier
-            .height(120.dp)
-            .scale(scale)
-            .clip(RoundedCornerShape(20.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                isPressed = true
-                // Just show a visual feedback, no navigation
-            }
-            .shadow(
-                elevation = if (isPressed) 20.dp else 12.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = item.color.copy(alpha = 0.3f),
-                spotColor = item.color.copy(alpha = 0.5f)
-            ),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-        )
+private fun FeaturesDetailScreen(onBackClick: () -> Unit) {
+    androidx.compose.foundation.layout.Column(
+        modifier = androidx.compose.ui.Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(24.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
+        PreviewScreenHeader(
+            title = "Enhanced Features",
+            subtitle = "Cutting-edge Capabilities",
+            icon = androidx.compose.material.icons.Icons.Filled.Star,
+            onBackClick = onBackClick
+        )
+        
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
+        
+        val features = listOf(
+            "AI-Powered Analytics" to "Machine learning insights and predictions",
+            "Real-time Collaboration" to "Multi-user synchronization and sharing",
+            "Advanced Security" to "End-to-end encryption and biometric auth",
+            "Cloud Integration" to "Seamless backup and sync across devices",
+            "Custom Workflows" to "Automated task management and scheduling",
+            "Smart Notifications" to "Intelligent filtering and prioritization"
+        )
+        
+        androidx.compose.foundation.lazy.LazyColumn(
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+        ) {
+            items(features) { (title, description) ->
+                androidx.compose.material3.Card(
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
+                    )
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = androidx.compose.ui.Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = androidx.compose.ui.graphics.Color(0xFF4CAF50),
+                            modifier = androidx.compose.ui.Modifier.size(24.dp)
+                        )
+                        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.width(16.dp))
+                        androidx.compose.foundation.layout.Column {
+                            androidx.compose.material3.Text(
+                                text = title,
+                                style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                            )
+                            androidx.compose.material3.Text(
+                                text = description,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DocumentationScreen(onBackClick: () -> Unit) {
+    androidx.compose.foundation.layout.Column(
+        modifier = androidx.compose.ui.Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(24.dp)
+    ) {
+        PreviewScreenHeader(
+            title = "Documentation",
+            subtitle = "Guides & Resources",
+            icon = androidx.compose.material.icons.Icons.Filled.MenuBook,
+            onBackClick = onBackClick
+        )
+        
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
+        
+        val docs = listOf(
+            "Quick Start Guide" to androidx.compose.material.icons.Icons.Filled.PlayArrow,
+            "API Documentation" to androidx.compose.material.icons.Icons.Filled.Code,
+            "Video Tutorials" to androidx.compose.material.icons.Icons.Filled.OndemandVideo,
+            "Best Practices" to androidx.compose.material.icons.Icons.Filled.Star,
+            "Troubleshooting" to androidx.compose.material.icons.Icons.Filled.Help,
+            "Community Forum" to androidx.compose.material.icons.Icons.Filled.Forum
+        )
+        
+        androidx.compose.foundation.lazy.LazyColumn(
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+        ) {
+            items(docs) { (title, icon) ->
+                androidx.compose.material3.Card(
+                    modifier = androidx.compose.ui.Modifier
+                        .fillMaxWidth()
+                        .clickable { /* Handle click */ },
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
+                    )
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = androidx.compose.ui.Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                            modifier = androidx.compose.ui.Modifier.size(24.dp)
+                        )
+                        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.width(16.dp))
+                        androidx.compose.material3.Text(
+                            text = title,
+                            style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                            modifier = androidx.compose.ui.Modifier.weight(1f)
+                        )
+                        androidx.compose.material3.Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Filled.ChevronRight,
+                            contentDescription = null,
+                            modifier = androidx.compose.ui.Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsPreviewScreen(onBackClick: () -> Unit) {
+    androidx.compose.foundation.layout.Column(
+        modifier = androidx.compose.ui.Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(24.dp)
+    ) {
+        PreviewScreenHeader(
+            title = "Settings Preview",
+            subtitle = "Customization Options",
+            icon = androidx.compose.material.icons.Icons.Filled.Settings,
+            onBackClick = onBackClick
+        )
+        
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
+        
+        val settings = listOf(
+            "Theme & Appearance" to androidx.compose.material.icons.Icons.Filled.Palette,
+            "Privacy & Security" to androidx.compose.material.icons.Icons.Filled.Security,
+            "Notifications" to androidx.compose.material.icons.Icons.Filled.Notifications,
+            "Data & Storage" to androidx.compose.material.icons.Icons.Filled.Storage,
+            "Language & Region" to androidx.compose.material.icons.Icons.Filled.Language,
+            "Advanced Options" to androidx.compose.material.icons.Icons.Filled.Build
+        )
+        
+        androidx.compose.foundation.lazy.LazyColumn(
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+        ) {
+            items(settings) { (title, icon) ->
+                androidx.compose.material3.Card(
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
+                    )
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = androidx.compose.ui.Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                            modifier = androidx.compose.ui.Modifier.size(24.dp)
+                        )
+                        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.width(16.dp))
+                        androidx.compose.material3.Text(
+                            text = title,
+                            style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                            modifier = androidx.compose.ui.Modifier.weight(1f)
+                        )
+                        androidx.compose.material3.Switch(
+                            checked = false,
+                            onCheckedChange = { }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContactFormScreen(onBackClick: () -> Unit) {
+    androidx.compose.foundation.layout.Column(
+        modifier = androidx.compose.ui.Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(24.dp)
+    ) {
+        PreviewScreenHeader(
+            title = "Contact Support",
+            subtitle = "Get Help & Feedback",
+            icon = androidx.compose.material.icons.Icons.Filled.ContactSupport,
+            onBackClick = onBackClick
+        )
+        
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
+        
+        androidx.compose.material3.Card(
+            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.CardDefaults.cardColors(
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
+            )
+        ) {
+            androidx.compose.foundation.layout.Column(
+                modifier = androidx.compose.ui.Modifier.padding(24.dp),
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Filled.Support,
+                    contentDescription = null,
+                    modifier = androidx.compose.ui.Modifier.size(64.dp),
+                    tint = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                )
+                
+                androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
+                
+                androidx.compose.material3.Text(
+                    text = "We're Here to Help!",
+                    style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                
+                androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
+                
+                androidx.compose.material3.Text(
+                    text = "Our support team is ready to assist you with any questions or issues you may have.",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                
+                androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
+                
+                androidx.compose.foundation.layout.Row(
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+                ) {
+                    androidx.compose.material3.Button(
+                        onClick = { },
+                        modifier = androidx.compose.ui.Modifier.weight(1f)
+                    ) {
+                        androidx.compose.material3.Text("Email Support")
+                    }
+                    
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { },
+                        modifier = androidx.compose.ui.Modifier.weight(1f)
+                    ) {
+                        androidx.compose.material3.Text("Live Chat")
+                    }
+                }
+                
+                androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
+                
+                androidx.compose.material3.Text(
+                    text = "📧 support@ktimazstudio.com\n📞 +1 (555) 123-4567",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreviewScreenHeader(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onBackClick: () -> Unit
+) {
+    androidx.compose.foundation.layout.Row(
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+    ) {
+        androidx.compose.material3.IconButton(
+            onClick = onBackClick,
+            modifier = androidx.compose.ui.Modifier
+                .size(48.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
                 .background(
-                    brush = Brush.linearGradient(
+                    androidx.compose.material3.MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                )
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = androidx.compose.material.icons.Icons.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = androidx.compose.material3.MaterialTheme.colorScheme.primary
+            )
+        }
+        
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.width(16.dp))
+        
+        androidx.compose.foundation.layout.Column(modifier = androidx.compose.ui.Modifier.weight(1f)) {
+            androidx.compose.material3.Text(
+                text = title,
+                style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+            )
+            androidx.compose.material3.Text(
+                text = subtitle,
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+        
+        androidx.compose.foundation.layout.Box(
+            modifier = androidx.compose.ui.Modifier
+                .size(56.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
                         colors = listOf(
-                            item.color.copy(alpha = 0.1f),
-                            Color.Transparent
+                            androidx.compose.material3.MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                            androidx.compose.material3.MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         )
                     )
-                )
-                .padding(16.dp)
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = item.color
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = item.title,
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    textAlign = TextAlign.Center
-                )
-                
-                Text(
-                    text = item.subtitle,
-                    style = TextStyle(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    ),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-    }
-
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            delay(100)
-            isPressed = false
-        }
-    }
-}
-
-@Composable
-fun PremiumReturnButton(
-    onClick: () -> Unit,
-    accentGradient: List<Color>
-) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f),
-        label = "button_scale"
-    )
-    val haptic = LocalHapticFeedback.current
-
-    Button(
-        onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            isPressed = true
-            onClick()
-        },
-        modifier = Modifier
-            .fillMaxWidth(0.8f)
-            .height(56.dp)
-            .scale(scale)
-            .shadow(
-                elevation = 12.dp,
-                shape = RoundedCornerShape(28.dp),
-                ambientColor = accentGradient.first().copy(alpha = 0.4f)
-            ),
-        shape = RoundedCornerShape(28.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent
-        ),
-        contentPadding = PaddingValues(0.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.horizontalGradient(accentGradient),
-                    shape = RoundedCornerShape(28.dp)
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = androidx.compose.ui.Alignment.Center
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Return to Dashboard",
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
-                )
-            }
-        }
-    }
-
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            delay(100)
-            isPressed = false
+            androidx.compose.material3.Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = androidx.compose.ui.Modifier.size(28.dp),
+                tint = androidx.compose.material3.MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
