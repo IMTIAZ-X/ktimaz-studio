@@ -21,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -272,7 +273,7 @@ private fun ModernListLayout(
         LayoutDensity.SPACIOUS -> 16.dp
     }
 
-    androidx.compose.foundation.lazy.LazyColumn(
+    LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(spacing),
         modifier = Modifier.fillMaxSize()
@@ -390,7 +391,7 @@ private fun EnhancedModuleCard(
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            module.category.icon.defaultTint.copy(alpha = 0.1f),
                             MaterialTheme.colorScheme.surface.copy(alpha = 0.05f)
                         )
                     )
@@ -657,3 +658,7 @@ private fun handleModuleClick(
         }
     }
 }
+
+// Extension property for getting default tint color from category
+private val androidx.compose.ui.graphics.vector.ImageVector.defaultTint: androidx.compose.ui.graphics.Color
+    @Composable get() = MaterialTheme.colorScheme.primary
