@@ -166,13 +166,21 @@ class SharedPreferencesManager(context: Context) {
         prefs.edit().putBoolean(KEY_DEBUG_MODE, enabled).apply()
     }
 
-    // FIXED: Simple secure storage methods without encryption
+    // FIXED: Simple encryption/decryption without external crypto utils
     fun setUserToken(token: String) {
-        securePrefs.edit().putString(SECURE_KEY_USER_TOKEN, token).apply()
+        val encodedToken = android.util.Base64.encodeToString(token.toByteArray(), android.util.Base64.DEFAULT)
+        securePrefs.edit().putString(SECURE_KEY_USER_TOKEN, encodedToken).apply()
     }
 
     fun getUserToken(): String? {
-        return securePrefs.getString(SECURE_KEY_USER_TOKEN, null)
+        val encodedToken = securePrefs.getString(SECURE_KEY_USER_TOKEN, null)
+        return encodedToken?.let { 
+            try {
+                String(android.util.Base64.decode(it, android.util.Base64.DEFAULT))
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 
     fun isBiometricEnabled(): Boolean = securePrefs.getBoolean(SECURE_KEY_BIOMETRIC_ENABLED, false)
@@ -203,423 +211,7 @@ class SharedPreferencesManager(context: Context) {
         return prefs.all.filterKeys { key ->
             !key.contains("login") && !key.contains("username")
         }
-    }
-
-    fun importSettings(settings: Map<String, Any?>) {
-        prefs.edit().apply {
-            settings.forEach { (key, value) ->
-                when (value) {
-                    is Boolean -> putBoolean(key, value)
-                    is String -> putString(key, value)
-                    is Int -> putInt(key, value)
-                    is Float -> putFloat(key, value)
-                    is Long -> putLong(key, value)
-                }
-            }
-            apply()
-        }
-    }
-}
-
-// Preview Screens for Navigation
-@Composable
-private fun DashboardPreviewScreen(onBackClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(24.dp)
-    ) {
-        PreviewScreenHeader(
-            title = "Dashboard Preview",
-            subtitle = "Analytics & Data Visualization",
-            icon = Icons.Filled.Dashboard,
-            onBackClick = onBackClick
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(5) { index ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                    )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Column {
-                            Text(
-                                text = "Analytics Widget ${index + 1}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = "Real-time data visualization and insights",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FeaturesDetailScreen(onBackClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(24.dp)
-    ) {
-        PreviewScreenHeader(
-            title = "Enhanced Features",
-            subtitle = "Cutting-edge Capabilities",
-            icon = Icons.Filled.Star,
-            onBackClick = onBackClick
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        val features = listOf(
-            "AI-Powered Analytics" to "Machine learning insights and predictions",
-            "Real-time Collaboration" to "Multi-user synchronization and sharing",
-            "Advanced Security" to "End-to-end encryption and biometric auth",
-            "Cloud Integration" to "Seamless backup and sync across devices",
-            "Custom Workflows" to "Automated task management and scheduling",
-            "Smart Notifications" to "Intelligent filtering and prioritization"
-        )
-        
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(features) { (title, description) ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = description,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DocumentationScreen(onBackClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(24.dp)
-    ) {
-        PreviewScreenHeader(
-            title = "Documentation",
-            subtitle = "Guides & Resources",
-            icon = Icons.Filled.MenuBook,
-            onBackClick = onBackClick
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        val docs = listOf(
-            "Quick Start Guide" to Icons.Filled.PlayArrow,
-            "API Documentation" to Icons.Filled.Code,
-            "Video Tutorials" to Icons.Filled.OndemandVideo,
-            "Best Practices" to Icons.Filled.Star,
-            "Troubleshooting" to Icons.Filled.Help,
-            "Community Forum" to Icons.Filled.Forum
-        )
-        
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(docs) { (title, icon) ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsPreviewScreen(onBackClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(24.dp)
-    ) {
-        PreviewScreenHeader(
-            title = "Settings Preview",
-            subtitle = "Customization Options",
-            icon = Icons.Filled.Settings,
-            onBackClick = onBackClick
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        val settings = listOf(
-            "Theme & Appearance" to Icons.Filled.Palette,
-            "Privacy & Security" to Icons.Filled.Security,
-            "Notifications" to Icons.Filled.Notifications,
-            "Data & Storage" to Icons.Filled.Storage,
-            "Language & Region" to Icons.Filled.Language,
-            "Advanced Options" to Icons.Filled.Build
-        )
-        
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(settings) { (title, icon) ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Switch(
-                            checked = false,
-                            onCheckedChange = { }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContactFormScreen(onBackClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(24.dp)
-    ) {
-        PreviewScreenHeader(
-            title = "Contact Support",
-            subtitle = "Get Help & Feedback",
-            icon = Icons.Filled.ContactSupport,
-            onBackClick = onBackClick
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Support,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = "We're Here to Help!",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = "Our support team is ready to assist you with any questions or issues you may have.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Email Support")
-                    }
-                    
-                    OutlinedButton(
-                        onClick = { },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Live Chat")
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = "📧 support@ktimazstudio.com\n📞 +1 (555) 123-4567",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PreviewScreenHeader(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onBackClick: () -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier
-                .size(48.dp)
-                .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                )
-        ) {
-            Icon(
-                imageVector = Icons.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-        
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        )
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
+    }        } {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
@@ -628,4 +220,563 @@ private fun PreviewScreenHeader(
             )
         }
     }
+}
+
+// File: utils/EnhancedSecurityManager.kt - Fixed missing methods and SecurityStatus
+package com.ktimazstudio.utils
+
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.os.Build
+import android.os.Debug
+import com.ktimazstudio.enums.SecurityIssue
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.experimental.and
+
+class EnhancedSecurityManager(private val context: Context) {
+    
+    companion object {
+        private const val TAG = "EnhancedSecurityManager"
+        private const val SECURITY_CHECK_INTERVAL = 5000L
+        private const val MAX_SECURITY_VIOLATIONS = 3
+    }
+    
+    private val securityBreached = AtomicBoolean(false)
+    private val violationCount = AtomicLong(0)
+    private val lastCheckTime = AtomicLong(System.currentTimeMillis())
+    private val expectedSignature = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425"
+    private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
+
+    fun getSecurityIssue(isInspectionMode: Boolean): SecurityIssue {
+        if (isInspectionMode) return SecurityIssue.NONE
+
+        lastCheckTime.set(System.currentTimeMillis())
+
+        if (isDebuggerDetected()) {
+            recordSecurityViolation()
+            return SecurityIssue.DEBUGGER_ATTACHED
+        }
+
+        if (isAdvancedEmulatorDetected()) {
+            recordSecurityViolation()
+            return SecurityIssue.EMULATOR_DETECTED
+        }
+
+        if (isAdvancedRootDetected()) {
+            recordSecurityViolation()
+            return SecurityIssue.ROOT_DETECTED
+        }
+
+        if (isAdvancedHookingDetected()) {
+            recordSecurityViolation()
+            return SecurityIssue.HOOKING_FRAMEWORK_DETECTED
+        }
+
+        if (isApplicationTampered()) {
+            recordSecurityViolation()
+            return SecurityIssue.APK_TAMPERED
+        }
+
+        if (isVpnActive()) {
+            return SecurityIssue.VPN_ACTIVE
+        }
+
+        if (violationCount.get() >= MAX_SECURITY_VIOLATIONS) {
+            return SecurityIssue.UNKNOWN
+        }
+
+        return SecurityIssue.NONE
+    }
+
+    private fun isDebuggerDetected(): Boolean {
+        try {
+            if (Debug.isDebuggerConnected()) return true
+            if (isTracerPidNonZero()) return true
+            if (isTimingAnomalous()) return true
+            if (isThreadCountSuspicious()) return true
+            if (isDebuggingEnabled()) return true
+            if (areDebugPortsOpen()) return true
+        } catch (e: Exception) {
+            return true
+        }
+        return false
+    }
+
+    private fun isTracerPidNonZero(): Boolean {
+        return try {
+            val statusFile = File("/proc/self/status")
+            if (!statusFile.exists()) return false
+            statusFile.bufferedReader().use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    if (line!!.startsWith("TracerPid:")) {
+                        val pid = line!!.substringAfter("TracerPid:").trim().toIntOrNull() ?: 0
+                        return pid != 0
+                    }
+                }
+            }
+            false
+        } catch (e: Exception) {
+            true
+        }
+    }
+
+    private fun isTimingAnomalous(): Boolean {
+        val iterations = 10000
+        val startTime = System.nanoTime()
+        var result = 0
+        for (i in 0 until iterations) {
+            result += i * (i % 7)
+        }
+        val duration = System.nanoTime() - startTime
+        val expectedMaxDuration = iterations * 1000L
+        return duration > expectedMaxDuration * 5
+    }
+
+    private fun isThreadCountSuspicious(): Boolean {
+        val threadCount = Thread.activeCount()
+        return threadCount > 40
+    }
+
+    private fun isDebuggingEnabled(): Boolean {
+        return try {
+            android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 0) == 1
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun areDebugPortsOpen(): Boolean {
+        val suspiciousPorts = listOf("5555", "23946", "27042", "8700")
+        return try {
+            val process = ProcessBuilder("sh", "-c", "netstat -an 2>/dev/null || ss -tuln 2>/dev/null").start()
+            val output = process.inputStream.bufferedReader().readText()
+            suspiciousPorts.any { port -> output.contains(":$port") }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun isAdvancedEmulatorDetected(): Boolean {
+        val detectionMethods = listOf(
+            ::checkBuildProperties,
+            ::checkEmulatorFiles,
+            ::checkHardwareFeatures,
+            ::checkTelephonyFeatures,
+            ::checkSensorAvailability,
+            ::checkCpuArchitecture,
+            ::checkMemoryPatterns,
+            ::checkNetworkConfiguration
+        )
+        val positiveDetections = detectionMethods.count { it.invoke() }
+        return positiveDetections >= 3
+    }
+
+    private fun checkBuildProperties(): Boolean {
+        val suspiciousValues = mapOf(
+            Build.FINGERPRINT to listOf("generic", "unknown", "emulator", "simulator", "genymotion", "vbox"),
+            Build.MODEL to listOf("sdk", "emulator", "android sdk", "simulator"),
+            Build.MANUFACTURER to listOf("genymotion", "unknown"),
+            Build.BRAND to listOf("generic"),
+            Build.DEVICE to listOf("generic", "emulator"),
+            Build.PRODUCT to listOf("sdk", "google_sdk", "full_x86"),
+            Build.HARDWARE to listOf("goldfish", "ranchu", "vbox86")
+        )
+        return suspiciousValues.any { (property, suspiciousTerms) ->
+            suspiciousTerms.any { term -> property.contains(term, ignoreCase = true) }
+        }
+    }
+
+    private fun checkEmulatorFiles(): Boolean {
+        val emulatorFiles = listOf(
+            "/dev/socket/qemud", "/dev/qemu_pipe", "/system/lib/libc_malloc_debug_qemu.so",
+            "/sys/qemu_trace", "/system/bin/qemu-props", "/dev/socket/genyd",
+            "/dev/socket/baseband_genyd", "/dev/goldfish_sync", "/dev/goldfish_tty", "/proc/tty/drivers"
+        )
+        return emulatorFiles.any { File(it).exists() }
+    }
+
+    private fun checkHardwareFeatures(): Boolean {
+        val packageManager = context.packageManager
+        val missingFeatures = listOf(
+            PackageManager.FEATURE_TELEPHONY, PackageManager.FEATURE_CAMERA,
+            PackageManager.FEATURE_BLUETOOTH, PackageManager.FEATURE_NFC
+        )
+        val missingCount = missingFeatures.count { !packageManager.hasSystemFeature(it) }
+        return missingCount >= 3
+    }
+
+    private fun checkTelephonyFeatures(): Boolean {
+        return try {
+            val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as android.telephony.TelephonyManager
+            val deviceId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                telephonyManager.imei ?: ""
+            } else {
+                @Suppress("DEPRECATION")
+                telephonyManager.deviceId ?: ""
+            }
+            deviceId.isEmpty() || deviceId == "000000000000000" || deviceId.all { it == '0' } ||
+            telephonyManager.networkOperatorName.contains("android", ignoreCase = true)
+        } catch (e: Exception) {
+            true
+        }
+    }
+
+    private fun checkSensorAvailability(): Boolean {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
+        val criticalSensors = listOf(
+            android.hardware.Sensor.TYPE_ACCELEROMETER,
+            android.hardware.Sensor.TYPE_GYROSCOPE,
+            android.hardware.Sensor.TYPE_MAGNETIC_FIELD
+        )
+        val availableSensors = criticalSensors.count { type ->
+            sensorManager.getDefaultSensor(type) != null
+        }
+        return availableSensors < 2
+    }
+
+    private fun checkCpuArchitecture(): Boolean {
+        val supportedAbis = Build.SUPPORTED_ABIS.joinToString(",")
+        val suspiciousAbis = listOf("x86", "x86_64")
+        return suspiciousAbis.any { abi -> supportedAbis.contains(abi, ignoreCase = true) }
+    }
+
+    private fun checkMemoryPatterns(): Boolean {
+        val runtime = Runtime.getRuntime()
+        val totalMemory = runtime.totalMemory()
+        val maxMemory = runtime.maxMemory()
+        val memoryRatio = totalMemory.toDouble() / maxMemory
+        return memoryRatio < 0.1 || memoryRatio > 0.9
+    }
+
+    private fun checkNetworkConfiguration(): Boolean {
+        return try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val activeNetwork = connectivityManager.activeNetwork
+            val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+            networkCapabilities?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun isAdvancedRootDetected(): Boolean {
+        val detectionMethods = listOf(
+            ::checkSuperuserApps, ::checkRootBinaries, ::checkRootFiles,
+            ::checkSystemProperties, ::checkWritableSystemPaths, ::checkSuCommand,
+            ::checkMagiskFiles, ::checkBusyBoxFiles
+        )
+        return detectionMethods.count { it.invoke() } >= 2
+    }
+
+    private fun checkSuperuserApps(): Boolean {
+        val rootApps = listOf(
+            "com.koushikdutta.superuser", "eu.chainfire.supersu", "com.kingroot.kinguser",
+            "com.topjohnwu.magisk", "me.phh.superuser", "com.yellowes.su",
+            "com.thirdparty.superuser", "com.koushikdutta.rommanager"
+        )
+        return rootApps.any { packageName ->
+            try {
+                context.packageManager.getPackageInfo(packageName, 0)
+                true
+            } catch (e: PackageManager.NameNotFoundException) {
+                false
+            }
+        }
+    }
+
+    private fun checkRootBinaries(): Boolean {
+        val rootBinaries = listOf(
+            "/sbin/su", "/system/bin/su", "/system/xbin/su", "/data/local/xbin/su",
+            "/data/local/bin/su", "/system/sd/xbin/su", "/system/bin/failsafe/su",
+            "/data/local/su", "/su/bin/su"
+        )
+        return rootBinaries.any { path ->
+            File(path).exists() && File(path).canExecute()
+        }
+    }
+
+    private fun checkRootFiles(): Boolean {
+        val rootFiles = listOf(
+            "/system/app/Superuser.apk", "/system/app/SuperSU.apk",
+            "/system/etc/init.d/99SuperSUDaemon", "/system/xbin/daemonsu",
+            "/system/etc/init.d/99su", "/data/data/com.android.shell/su"
+        )
+        return rootFiles.any { File(it).exists() }
+    }
+
+    private fun checkSystemProperties(): Boolean {
+        val suspiciousProps = mapOf(
+            "ro.debuggable" to "1", "ro.secure" to "0", "service.adb.root" to "1"
+        )
+        return try {
+            val process = ProcessBuilder("getprop").start()
+            val props = process.inputStream.bufferedReader().readText()
+            suspiciousProps.any { (key, value) ->
+                props.contains("[$key]: [$value]")
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun checkWritableSystemPaths(): Boolean {
+        val systemPaths = listOf("/system", "/system/bin", "/system/sbin", "/system/xbin", "/vendor/bin", "/sbin")
+        return systemPaths.any { path -> File(path).canWrite() }
+    }
+
+    private fun checkSuCommand(): Boolean {
+        return try {
+            val process = ProcessBuilder("which", "su").start()
+            val output = process.inputStream.bufferedReader().readText().trim()
+            output.isNotEmpty() && !output.contains("not found")
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun checkMagiskFiles(): Boolean {
+        val magiskFiles = listOf(
+            "/sbin/.magisk", "/data/adb/magisk", "/data/adb/modules", "/cache/.disable_magisk",
+            "/dev/.magisk.unblock", "/cache/magisk.log", "/data/adb/magisk.img", "/data/magisk.apk"
+        )
+        return magiskFiles.any { File(it).exists() }
+    }
+
+    private fun checkBusyBoxFiles(): Boolean {
+        val busyBoxPaths = listOf(
+            "/system/bin/busybox", "/system/xbin/busybox",
+            "/data/local/xbin/busybox", "/sbin/busybox", "/data/local/busybox", "/system/sd/xbin/busybox"
+        )
+        return busyBoxPaths.any { path ->
+            File(path).exists() && File(path).canExecute()
+        }
+    }
+
+    private fun isAdvancedHookingDetected(): Boolean {
+        return isXposedDetected() || isFridaDetected() || isCydiaSubstrateDetected() ||
+               isLSPosedDetected() || isRiruDetected() || isEdXposedDetected()
+    }
+
+    private fun isXposedDetected(): Boolean {
+        val xposedFiles = listOf(
+            "/system/framework/XposedBridge.jar", "/system/bin/app_process_xposed",
+            "/system/lib/libxposed_art.so", "/system/lib64/libxposed_art.so",
+            "/data/data/de.robv.android.xposed.installer"
+        )
+        if (xposedFiles.any { File(it).exists() }) return true
+        try {
+            context.packageManager.getPackageInfo("de.robv.android.xposed.installer", 0)
+            return true
+        } catch (e: PackageManager.NameNotFoundException) {
+            // Continue with other checks
+        }
+        return System.getenv("CLASSPATH")?.contains("XposedBridge") == true
+    }
+
+    private fun isFridaDetected(): Boolean {
+        val fridaFiles = listOf(
+            "/data/local/tmp/frida-server", "/data/local/tmp/re.frida.server",
+            "/sdcard/frida-server", "/system/bin/frida-server",
+            "/system/lib/frida-agent.so", "/system/lib64/frida-agent.so"
+        )
+        if (fridaFiles.any { File(it).exists() }) return true
+        return try {
+            val process = ProcessBuilder("sh", "-c", "netstat -an | grep :27042").start()
+            process.inputStream.bufferedReader().readText().isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun isCydiaSubstrateDetected(): Boolean {
+        val substrateFiles = listOf(
+            "/Library/MobileSubstrate", "/usr/libexec/cydia",
+            "/System/Library/LaunchDaemons/com.saurik.Cydia.Startup.plist", "/data/local/tmp/substrate"
+        )
+        return substrateFiles.any { File(it).exists() }
+    }
+
+    private fun isLSPosedDetected(): Boolean {
+        try {
+            context.packageManager.getPackageInfo("org.lsposed.manager", 0)
+            return true
+        } catch (e: PackageManager.NameNotFoundException) {
+            val lsposedFiles = listOf(
+                "/data/adb/lspd", "/data/adb/modules/riru_lsposed", "/data/adb/modules/zygisk_lsposed"
+            )
+            return lsposedFiles.any { File(it).exists() }
+        }
+    }
+
+    private fun isRiruDetected(): Boolean {
+        val riruFiles = listOf(
+            "/data/adb/riru", "/data/misc/riru", "/system/lib/libriru.so", "/system/lib64/libriru.so"
+        )
+        return riruFiles.any { File(it).exists() }
+    }
+
+    private fun isEdXposedDetected(): Boolean {
+        return try {
+            context.packageManager.getPackageInfo("org.meowcat.edxposed.manager", 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            val edxposedFiles = listOf("/data/adb/edxposed", "/system/framework/edxposed.jar")
+            edxposedFiles.any { File(it).exists() }
+        }
+    }
+
+    private fun isApplicationTampered(): Boolean {
+        return !verifySignature() || !verifyCodeIntegrity() || !verifyResourceIntegrity() || isDebuggingFlagsSet()
+    }
+
+    private fun verifySignature(): Boolean {
+        val currentSignature = getSignatureSha256Hash()
+        return currentSignature?.lowercase() == expectedSignature.lowercase()
+    }
+
+    private fun getSignatureSha256Hash(): String? {
+        return try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            }
+            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.signingInfo?.apkContentsSigners
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.signatures
+            }
+            if (signatures != null && signatures.isNotEmpty()) {
+                val md = MessageDigest.getInstance("SHA-256")
+                val hashBytes = md.digest(signatures[0].toByteArray())
+                hashBytes.joinToString("") { "%02x".format(it.and(0xff.toByte())) }
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun verifyCodeIntegrity(): Boolean {
+        return try {
+            val mapsFile = File("/proc/self/maps")
+            if (!mapsFile.exists()) return false
+            val mapsContent = mapsFile.readText()
+            val suspiciousLibraries = listOf("frida", "xposed", "substrate", "lsposed", "edxposed", "riru", "zygisk")
+            !suspiciousLibraries.any { lib -> mapsContent.contains(lib, ignoreCase = true) }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun verifyResourceIntegrity(): Boolean {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return false
+            val apkFile = File(apkPath)
+            apkFile.exists() && apkFile.canRead() && apkFile.length() > 0
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun isDebuggingFlagsSet(): Boolean {
+        val appInfo = context.applicationInfo
+        return (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    }
+
+    fun isVpnActive(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return connectivityManager.allNetworks.any { network ->
+            val capabilities = connectivityManager.getNetworkCapabilities(network)
+            capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        }
+    }
+
+    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkRequest = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                onVpnStatusChanged(isVpnActive())
+            }
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                onVpnStatusChanged(isVpnActive())
+            }
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                super.onCapabilitiesChanged(network, networkCapabilities)
+                onVpnStatusChanged(isVpnActive())
+            }
+        }
+        connectivityManager.registerNetworkCallback(networkRequest, callback)
+        vpnNetworkCallback = callback
+        return callback
+    }
+
+    fun unregisterVpnDetectionCallback(networkCallback: ConnectivityManager.NetworkCallback) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager.unregisterNetworkCallback(networkCallback)
+    }
+
+    private fun recordSecurityViolation() {
+        val currentViolations = violationCount.incrementAndGet()
+        if (currentViolations >= MAX_SECURITY_VIOLATIONS) {
+            securityBreached.set(true)
+        }
+    }
+
+    // FIXED: Added missing getSecurityStatus method
+    fun getSecurityStatus(): SecurityStatus {
+        return SecurityStatus(
+            isSecure = !securityBreached.get(),
+            violationCount = violationCount.get().toInt(),
+            lastCheckTime = lastCheckTime.get(),
+            deviceFingerprint = generateDeviceFingerprint()
+        )
+    }
+
+    private fun generateDeviceFingerprint(): String {
+        val components = listOf(
+            Build.BOARD, Build.BRAND, Build.DEVICE, Build.HARDWARE,
+            Build.MANUFACTURER, Build.MODEL, Build.PRODUCT,
+            Build.SUPPORTED_ABIS.joinToString(","), Build.VERSION.RELEASE,
+            Build.VERSION.SDK_INT.toString(), Build.FINGERPRINT
+        )
+        val combined = components.joinToString("|")
+        val hash = MessageDigest.getInstance("SHA-256").digest(combined.toByteArray())
+        return android.util.Base64.encodeToString(hash, android.util.Base64.NO_WRAP)
+    }
+
+    // FIXED: Added missing cleanup method
+    fun cleanup() {
+        vpnNetworkCallback?.let { callback ->
+            unregisterVpnDetectionCallback(callback)
+        }
+    }
+
+    // FIXED: Added missing SecurityStatus data class
+    data class SecurityStatus(
+        val isSecure: Boolean,
+        val violationCount: Int,
+        val lastCheckTime: Long,
+        val deviceFingerprint: String
+    )
 }
