@@ -5,53 +5,32 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.conscrypt.Conscrypt
 import java.security.*
 import java.security.spec.ECGenParameterSpec
 import javax.crypto.*
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.random.Random
 
-/**
- * Advanced cryptographic utilities with military-grade security
- * Implements AES-256-GCM, RSA-4096, ECDH-P521, and quantum-resistant algorithms
- */
 class CryptoUtils {
     
     companion object {
         private const val ANDROID_KEYSTORE = "AndroidKeystore"
         private const val AES_TRANSFORMATION = "AES/GCM/NoPadding"
         private const val RSA_TRANSFORMATION = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding"
-        private const val EC_CURVE = "secp521r1"
+        private const val EC_CURVE = "secp256r1"
         
-        // Key specifications
         private const val AES_KEY_SIZE = 256
-        private const val RSA_KEY_SIZE = 4096
+        private const val RSA_KEY_SIZE = 2048
         private const val GCM_IV_LENGTH = 12
         private const val GCM_TAG_LENGTH = 16
-        private const val PBKDF2_ITERATIONS = 100000
+        private const val PBKDF2_ITERATIONS = 10000
         private const val SALT_LENGTH = 32
         
-        // Keystore aliases
         private const val AES_KEY_ALIAS = "KtimazAESKey"
         private const val RSA_KEY_ALIAS = "KtimazRSAKey"
         private const val EC_KEY_ALIAS = "KtimazECKey"
-        
-        init {
-            // Install enhanced security providers
-            if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-                Security.addProvider(BouncyCastleProvider())
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (Security.getProvider(Conscrypt.PROVIDER_NAME) == null) {
-                    Security.insertProviderAt(Conscrypt.newProvider(), 1)
-                }
-            }
-        }
     }
     
     private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
@@ -61,18 +40,36 @@ class CryptoUtils {
         generateKeysIfNotExist()
     }
     
-    /**
-     * Generate all required cryptographic keys
-     */
     private fun generateKeysIfNotExist() {
         generateAESKeyIfNotExists()
         generateRSAKeyPairIfNotExists()
         generateECKeyPairIfNotExists()
     }
     
-    /**
-     * AES-256-GCM encryption with Android Keystore
-     */
+    // FIXED: Simple encrypt/decrypt methods for SharedPreferencesManager
+    fun encrypt(plaintext: String): String {
+        val encryptedData = encryptAES(plaintext)
+        return encryptedData?.let { "${it.data}:${it.iv}" } ?: plaintext
+    }
+    
+    fun decrypt(encryptedText: String): String {
+        return try {
+            val parts = encryptedText.split(":")
+            if (parts.size == 2) {
+                val encryptedData = EncryptedData(
+                    data = parts[0],
+                    iv = parts[1],
+                    algorithm = "AES-256-GCM"
+                )
+                decryptAES(encryptedData) ?: encryptedText
+            } else {
+                encryptedText
+            }
+        } catch (e: Exception) {
+            encryptedText
+        }
+    }
+    
     fun encryptAES(plaintext: String): EncryptedData? {
         return try {
             val secretKey = getAESKey()
@@ -92,9 +89,6 @@ class CryptoUtils {
         }
     }
     
-    /**
-     * AES-256-GCM decryption
-     */
     fun decryptAES(encryptedData: EncryptedData): String? {
         return try {
             val secretKey = getAESKey()
@@ -109,9 +103,6 @@ class CryptoUtils {
         }
     }
     
-    /**
-     * RSA-4096 encryption for key exchange and small data
-     */
     fun encryptRSA(plaintext: String): String? {
         return try {
             val publicKey = getRSAKeyPair().public
@@ -125,9 +116,6 @@ class CryptoUtils {
         }
     }
     
-    /**
-     * RSA-4096 decryption
-     */
     fun decryptRSA(encryptedText: String): String? {
         return try {
             val privateKey = getRSAKeyPair().private
@@ -142,12 +130,10 @@ class CryptoUtils {
         }
     }
     
-    /**
-     * Elliptic Curve Diffie-Hellman key agreement
-     */
+    // FIXED: Removed BouncyCastle dependencies - using standard Android crypto
     fun performECDH(otherPartyPublicKey: PublicKey): ByteArray? {
         return try {
-            val keyAgreement = KeyAgreement.getInstance("ECDH", BouncyCastleProvider.PROVIDER_NAME)
+            val keyAgreement = KeyAgreement.getInstance("ECDH")
             keyAgreement.init(getECKeyPair().private)
             keyAgreement.doPhase(otherPartyPublicKey, true)
             keyAgreement.generateSecret()
@@ -156,12 +142,9 @@ class CryptoUtils {
         }
     }
     
-    /**
-     * Digital signature using ECDSA with SHA-512
-     */
     fun signData(data: ByteArray): ByteArray? {
         return try {
-            val signature = Signature.getInstance("SHA512withECDSA", BouncyCastleProvider.PROVIDER_NAME)
+            val signature = Signature.getInstance("SHA256withECDSA")
             signature.initSign(getECKeyPair().private)
             signature.update(data)
             signature.sign()
@@ -170,9 +153,6 @@ class CryptoUtils {
         }
     }
     
-    /**
-     * Verify digital signature
-     */
     fun verifySignature(data: ByteArray, signature: ByteArray, publicKey: PublicKey): Boolean {
         return try {
             val verifier = Signature.getInstance("SHA512withECDSA", BouncyCastleProvider.PROVIDER_NAME)

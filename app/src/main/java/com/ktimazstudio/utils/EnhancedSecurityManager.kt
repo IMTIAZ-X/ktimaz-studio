@@ -16,438 +16,408 @@ import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.experimental.and
 
-/**
- * Enhanced Security Manager with advanced anti-tampering measures
- * This class implements multiple layers of security checks and obfuscation
- */
 class EnhancedSecurityManager(private val context: Context) {
     
-    // Obfuscated strings using XOR encoding
-    private val obfuscatedStrings = ObfuscatedStrings()
+    companion object {
+        private const val TAG = "EnhancedSecurityManager"
+        private const val SECURITY_CHECK_INTERVAL = 5000L
+        private const val MAX_SECURITY_VIOLATIONS = 3
+    }
     
-    // Security state tracking
     private val securityBreached = AtomicBoolean(false)
-    private val lastSecurityCheck = System.currentTimeMillis()
-    
-    // Expected signature hash (should be calculated at build time)
+    private val violationCount = AtomicLong(0)
+    private val lastCheckTime = AtomicLong(System.currentTimeMillis())
     private val expectedSignature = "f21317d4d6276ff3174a363c7fdff4171c73b1b80a82bb9082943ea9200a8425"
-    
-    // Anti-hooking measures
-    private val antiHookChecks = AntiHookingDetection()
-    
-    /**
-     * Comprehensive security check with multiple validation layers
-     */
+    private var vpnNetworkCallback: ConnectivityManager.NetworkCallback? = null
+
     fun getSecurityIssue(isInspectionMode: Boolean): SecurityIssue {
         if (isInspectionMode) return SecurityIssue.NONE
-        
-        // Perform integrity self-check first
-        if (!performIntegrityCheck()) {
-            return SecurityIssue.APK_TAMPERED
-        }
-        
-        // Check for debugging
+
+        lastCheckTime.set(System.currentTimeMillis())
+
         if (isDebuggerDetected()) {
-            securityBreached.set(true)
+            recordSecurityViolation()
             return SecurityIssue.DEBUGGER_ATTACHED
         }
-        
-        // Check for emulator
-        if (isEmulatorDetected()) {
+
+        if (isAdvancedEmulatorDetected()) {
+            recordSecurityViolation()
             return SecurityIssue.EMULATOR_DETECTED
         }
-        
-        // Check for root
-        if (isRootDetected()) {
+
+        if (isAdvancedRootDetected()) {
+            recordSecurityViolation()
             return SecurityIssue.ROOT_DETECTED
         }
-        
-        // Check for hooking frameworks
-        if (isHookingDetected()) {
+
+        if (isAdvancedHookingDetected()) {
+            recordSecurityViolation()
             return SecurityIssue.HOOKING_FRAMEWORK_DETECTED
         }
-        
-        // Check VPN
+
+        if (isApplicationTampered()) {
+            recordSecurityViolation()
+            return SecurityIssue.APK_TAMPERED
+        }
+
         if (isVpnActive()) {
             return SecurityIssue.VPN_ACTIVE
         }
-        
-        // Advanced tampering detection
-        if (isAdvancedTamperingDetected()) {
-            return SecurityIssue.APK_TAMPERED
+
+        if (violationCount.get() >= MAX_SECURITY_VIOLATIONS) {
+            return SecurityIssue.UNKNOWN
         }
-        
+
         return SecurityIssue.NONE
     }
-    
-    /**
-     * Enhanced debugger detection with multiple methods
-     */
+
     private fun isDebuggerDetected(): Boolean {
-        // Method 1: Standard debugger check
-        if (Debug.isDebuggerConnected()) return true
-        
-        // Method 2: TracerPid check
-        if (isTracerPidNonZero()) return true
-        
-        // Method 3: Timing-based detection
-        if (isTimingAttackDetected()) return true
-        
-        // Method 4: Thread count anomaly
-        if (isThreadCountAnomalous()) return true
-        
+        try {
+            if (Debug.isDebuggerConnected()) return true
+            if (isTracerPidNonZero()) return true
+            if (isTimingAnomalous()) return true
+            if (isThreadCountSuspicious()) return true
+            if (isDebuggingEnabled()) return true
+            if (areDebugPortsOpen()) return true
+        } catch (e: Exception) {
+            return true
+        }
         return false
     }
-    
+
     private fun isTracerPidNonZero(): Boolean {
         return try {
-            val statusFile = File(obfuscatedStrings.getProcStatusPath())
-            if (statusFile.exists()) {
-                statusFile.bufferedReader().useLines { lines ->
-                    val tracerLine = lines.firstOrNull { it.startsWith(obfuscatedStrings.getTracerPidPrefix()) }
-                    tracerLine?.let {
-                        val pid = it.substringAfter(obfuscatedStrings.getTracerPidPrefix()).trim().toIntOrNull() ?: 0
+            val statusFile = File("/proc/self/status")
+            if (!statusFile.exists()) return false
+            statusFile.bufferedReader().use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    if (line!!.startsWith("TracerPid:")) {
+                        val pid = line!!.substringAfter("TracerPid:").trim().toIntOrNull() ?: 0
                         return pid != 0
                     }
                 }
             }
             false
         } catch (e: Exception) {
-            true // Suspicious if we can't check
+            true
         }
     }
-    
-    private fun isTimingAttackDetected(): Boolean {
+
+    private fun isTimingAnomalous(): Boolean {
+        val iterations = 10000
         val startTime = System.nanoTime()
-        
-        // Perform some calculations
         var result = 0
-        for (i in 0..1000) {
-            result += i * 2
+        for (i in 0 until iterations) {
+            result += i * (i % 7)
         }
-        
-        val endTime = System.nanoTime()
-        val duration = endTime - startTime
-        
-        // If execution is too slow, might indicate debugging
-        return duration > 10_000_000 // 10ms threshold
+        val duration = System.nanoTime() - startTime
+        val expectedMaxDuration = iterations * 1000L
+        return duration > expectedMaxDuration * 5
     }
-    
-    private fun isThreadCountAnomalous(): Boolean {
+
+    private fun isThreadCountSuspicious(): Boolean {
         val threadCount = Thread.activeCount()
-        // Normal apps typically have 10-20 threads, debuggers add more
-        return threadCount > 30
+        return threadCount > 40
     }
-    
-    /**
-     * Enhanced emulator detection
-     */
-    private fun isEmulatorDetected(): Boolean {
-        // Hardware characteristics
-        if (isEmulatorByHardware()) return true
-        
-        // Build properties
-        if (isEmulatorByBuild()) return true
-        
-        // File system checks
-        if (isEmulatorByFiles()) return true
-        
-        // Sensor checks
-        if (isEmulatorBySensors()) return true
-        
-        return false
-    }
-    
-    private fun isEmulatorByHardware(): Boolean {
-        val brand = Build.BRAND
-        val device = Build.DEVICE
-        val model = Build.MODEL
-        val hardware = Build.HARDWARE
-        val product = Build.PRODUCT
-        
-        val emulatorIndicators = listOf(
-            "generic", "unknown", "emulator", "genymotion", "vbox86p",
-            "google_sdk", "android_x86", "x86", "goldfish", "ranchu"
-        )
-        
-        return emulatorIndicators.any { indicator ->
-            brand.contains(indicator, true) ||
-            device.contains(indicator, true) ||
-            model.contains(indicator, true) ||
-            hardware.contains(indicator, true) ||
-            product.contains(indicator, true)
+
+    private fun isDebuggingEnabled(): Boolean {
+        return try {
+            android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 0) == 1
+        } catch (e: Exception) {
+            false
         }
     }
-    
-    private fun isEmulatorByBuild(): Boolean {
-        return (Build.FINGERPRINT.startsWith("generic") ||
-                Build.FINGERPRINT.contains("vbox") ||
-                Build.FINGERPRINT.contains("genymotion") ||
-                Build.TAGS.contains("test-keys"))
+
+    private fun areDebugPortsOpen(): Boolean {
+        val suspiciousPorts = listOf("5555", "23946", "27042", "8700")
+        return try {
+            val process = ProcessBuilder("sh", "-c", "netstat -an 2>/dev/null || ss -tuln 2>/dev/null").start()
+            val output = process.inputStream.bufferedReader().readText()
+            suspiciousPorts.any { port -> output.contains(":$port") }
+        } catch (e: Exception) {
+            false
+        }
     }
-    
-    private fun isEmulatorByFiles(): Boolean {
-        val emulatorFiles = listOf(
-            "/dev/socket/qemud",
-            "/dev/qemu_pipe",
-            "/system/lib/libc_malloc_debug_qemu.so",
-            "/sys/qemu_trace",
-            "/system/bin/qemu-props",
-            "/dev/socket/genyd",
-            "/dev/socket/baseband_genyd"
+
+    private fun isAdvancedEmulatorDetected(): Boolean {
+        val detectionMethods = listOf(
+            ::checkBuildProperties,
+            ::checkEmulatorFiles,
+            ::checkHardwareFeatures,
+            ::checkTelephonyFeatures,
+            ::checkSensorAvailability,
+            ::checkCpuArchitecture,
+            ::checkMemoryPatterns,
+            ::checkNetworkConfiguration
         )
-        
+        val positiveDetections = detectionMethods.count { it.invoke() }
+        return positiveDetections >= 3
+    }
+
+    private fun checkBuildProperties(): Boolean {
+        val suspiciousValues = mapOf(
+            Build.FINGERPRINT to listOf("generic", "unknown", "emulator", "simulator", "genymotion", "vbox"),
+            Build.MODEL to listOf("sdk", "emulator", "android sdk", "simulator"),
+            Build.MANUFACTURER to listOf("genymotion", "unknown"),
+            Build.BRAND to listOf("generic"),
+            Build.DEVICE to listOf("generic", "emulator"),
+            Build.PRODUCT to listOf("sdk", "google_sdk", "full_x86"),
+            Build.HARDWARE to listOf("goldfish", "ranchu", "vbox86")
+        )
+        return suspiciousValues.any { (property, suspiciousTerms) ->
+            suspiciousTerms.any { term -> property.contains(term, ignoreCase = true) }
+        }
+    }
+
+    private fun checkEmulatorFiles(): Boolean {
+        val emulatorFiles = listOf(
+            "/dev/socket/qemud", "/dev/qemu_pipe", "/system/lib/libc_malloc_debug_qemu.so",
+            "/sys/qemu_trace", "/system/bin/qemu-props", "/dev/socket/genyd",
+            "/dev/socket/baseband_genyd", "/dev/goldfish_sync", "/dev/goldfish_tty", "/proc/tty/drivers"
+        )
         return emulatorFiles.any { File(it).exists() }
     }
-    
-    private fun isEmulatorBySensors(): Boolean {
-        // This would require sensor manager access - placeholder for now
-        return false
-    }
-    
-    /**
-     * Enhanced root detection
-     */
-    private fun isRootDetected(): Boolean {
-        return isSuperuserDetected() || 
-               isRootAppsDetected() || 
-               isRootFilesDetected() || 
-               isBusyBoxDetected()
-    }
-    
-    private fun isSuperuserDetected(): Boolean {
-        val paths = arrayOf(
-            "/system/app/Superuser.apk",
-            "/system/app/SuperSU.apk",
-            "/system/app/Kinguser.apk",
-            "/data/data/eu.chainfire.supersu",
-            "/data/data/com.koushikdutta.superuser",
-            "/data/data/com.kingroot.kinguser"
+
+    private fun checkHardwareFeatures(): Boolean {
+        val packageManager = context.packageManager
+        val missingFeatures = listOf(
+            PackageManager.FEATURE_TELEPHONY, PackageManager.FEATURE_CAMERA,
+            PackageManager.FEATURE_BLUETOOTH, PackageManager.FEATURE_NFC
         )
-        return paths.any { File(it).exists() }
+        val missingCount = missingFeatures.count { !packageManager.hasSystemFeature(it) }
+        return missingCount >= 3
     }
-    
-    private fun isRootAppsDetected(): Boolean {
+
+    private fun checkTelephonyFeatures(): Boolean {
+        return try {
+            val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as android.telephony.TelephonyManager
+            val deviceId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                telephonyManager.imei ?: ""
+            } else {
+                @Suppress("DEPRECATION")
+                telephonyManager.deviceId ?: ""
+            }
+            deviceId.isEmpty() || deviceId == "000000000000000" || deviceId.all { it == '0' } ||
+            telephonyManager.networkOperatorName.contains("android", ignoreCase = true)
+        } catch (e: Exception) {
+            true
+        }
+    }
+
+    private fun checkSensorAvailability(): Boolean {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
+        val criticalSensors = listOf(
+            android.hardware.Sensor.TYPE_ACCELEROMETER,
+            android.hardware.Sensor.TYPE_GYROSCOPE,
+            android.hardware.Sensor.TYPE_MAGNETIC_FIELD
+        )
+        val availableSensors = criticalSensors.count { type ->
+            sensorManager.getDefaultSensor(type) != null
+        }
+        return availableSensors < 2
+    }
+
+    private fun checkCpuArchitecture(): Boolean {
+        val supportedAbis = Build.SUPPORTED_ABIS.joinToString(",")
+        val suspiciousAbis = listOf("x86", "x86_64")
+        return suspiciousAbis.any { abi -> supportedAbis.contains(abi, ignoreCase = true) }
+    }
+
+    private fun checkMemoryPatterns(): Boolean {
+        val runtime = Runtime.getRuntime()
+        val totalMemory = runtime.totalMemory()
+        val maxMemory = runtime.maxMemory()
+        val memoryRatio = totalMemory.toDouble() / maxMemory
+        return memoryRatio < 0.1 || memoryRatio > 0.9
+    }
+
+    private fun checkNetworkConfiguration(): Boolean {
+        return try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val activeNetwork = connectivityManager.activeNetwork
+            val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+            networkCapabilities?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun isAdvancedRootDetected(): Boolean {
+        val detectionMethods = listOf(
+            ::checkSuperuserApps, ::checkRootBinaries, ::checkRootFiles,
+            ::checkSystemProperties, ::checkWritableSystemPaths, ::checkSuCommand,
+            ::checkMagiskFiles, ::checkBusyBoxFiles
+        )
+        return detectionMethods.count { it.invoke() } >= 2
+    }
+
+    private fun checkSuperuserApps(): Boolean {
         val rootApps = listOf(
-            "com.koushikdutta.superuser",
-            "eu.chainfire.supersu",
-            "com.kingroot.kinguser",
-            "com.topjohnwu.magisk",
-            "me.phh.superuser"
+            "com.koushikdutta.superuser", "eu.chainfire.supersu", "com.kingroot.kinguser",
+            "com.topjohnwu.magisk", "me.phh.superuser", "com.yellowes.su",
+            "com.thirdparty.superuser", "com.koushikdutta.rommanager"
         )
-        
         return rootApps.any { packageName ->
             try {
-                context.packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+                context.packageManager.getPackageInfo(packageName, 0)
                 true
             } catch (e: PackageManager.NameNotFoundException) {
                 false
             }
         }
     }
-    
-    private fun isRootFilesDetected(): Boolean {
-        val rootFiles = arrayOf(
-            "/sbin/su", "/system/bin/su", "/system/xbin/su",
-            "/data/local/xbin/su", "/data/local/bin/su",
-            "/system/sd/xbin/su", "/system/bin/failsafe/su",
+
+    private fun checkRootBinaries(): Boolean {
+        val rootBinaries = listOf(
+            "/sbin/su", "/system/bin/su", "/system/xbin/su", "/data/local/xbin/su",
+            "/data/local/bin/su", "/system/sd/xbin/su", "/system/bin/failsafe/su",
             "/data/local/su", "/su/bin/su"
+        )
+        return rootBinaries.any { path ->
+            File(path).exists() && File(path).canExecute()
+        }
+    }
+
+    private fun checkRootFiles(): Boolean {
+        val rootFiles = listOf(
+            "/system/app/Superuser.apk", "/system/app/SuperSU.apk",
+            "/system/etc/init.d/99SuperSUDaemon", "/system/xbin/daemonsu",
+            "/system/etc/init.d/99su", "/data/data/com.android.shell/su"
         )
         return rootFiles.any { File(it).exists() }
     }
-    
-    private fun isBusyBoxDetected(): Boolean {
-        val busyBoxPaths = arrayOf(
+
+    private fun checkSystemProperties(): Boolean {
+        val suspiciousProps = mapOf(
+            "ro.debuggable" to "1", "ro.secure" to "0", "service.adb.root" to "1"
+        )
+        return try {
+            val process = ProcessBuilder("getprop").start()
+            val props = process.inputStream.bufferedReader().readText()
+            suspiciousProps.any { (key, value) ->
+                props.contains("[$key]: [$value]")
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun checkWritableSystemPaths(): Boolean {
+        val systemPaths = listOf("/system", "/system/bin", "/system/sbin", "/system/xbin", "/vendor/bin", "/sbin")
+        return systemPaths.any { path -> File(path).canWrite() }
+    }
+
+    private fun checkSuCommand(): Boolean {
+        return try {
+            val process = ProcessBuilder("which", "su").start()
+            val output = process.inputStream.bufferedReader().readText().trim()
+            output.isNotEmpty() && !output.contains("not found")
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun checkMagiskFiles(): Boolean {
+        val magiskFiles = listOf(
+            "/sbin/.magisk", "/data/adb/magisk", "/data/adb/modules", "/cache/.disable_magisk",
+            "/dev/.magisk.unblock", "/cache/magisk.log", "/data/adb/magisk.img", "/data/magisk.apk"
+        )
+        return magiskFiles.any { File(it).exists() }
+    }
+
+    private fun checkBusyBoxFiles(): Boolean {
+        val busyBoxPaths = listOf(
             "/system/bin/busybox", "/system/xbin/busybox",
-            "/data/local/xbin/busybox", "/sbin/busybox"
+            "/data/local/xbin/busybox", "/sbin/busybox", "/data/local/busybox", "/system/sd/xbin/busybox"
         )
-        return busyBoxPaths.any { File(it).exists() }
+        return busyBoxPaths.any { path ->
+            File(path).exists() && File(path).canExecute()
+        }
     }
-    
-    /**
-     * Enhanced hooking framework detection
-     */
-    private fun isHookingDetected(): Boolean {
-        return isXposedDetected() || 
-               isFridaDetected() || 
-               isCydiaSubstrateDetected() ||
-               isLSPosedDetected() ||
-               isMagiskModulesDetected()
+
+    private fun isAdvancedHookingDetected(): Boolean {
+        return isXposedDetected() || isFridaDetected() || isCydiaSubstrateDetected() ||
+               isLSPosedDetected() || isRiruDetected() || isEdXposedDetected()
     }
-    
+
     private fun isXposedDetected(): Boolean {
-        // Check for Xposed files
-        val xposedFiles = arrayOf(
-            "/system/framework/XposedBridge.jar",
-            "/system/bin/app_process_xposed",
-            "/system/lib/libxposed_art.so",
-            "/system/lib64/libxposed_art.so"
+        val xposedFiles = listOf(
+            "/system/framework/XposedBridge.jar", "/system/bin/app_process_xposed",
+            "/system/lib/libxposed_art.so", "/system/lib64/libxposed_art.so",
+            "/data/data/de.robv.android.xposed.installer"
         )
-        
         if (xposedFiles.any { File(it).exists() }) return true
-        
-        // Check for Xposed installer
         try {
             context.packageManager.getPackageInfo("de.robv.android.xposed.installer", 0)
             return true
         } catch (e: PackageManager.NameNotFoundException) {
-            // Not found, continue checking
+            // Continue with other checks
         }
-        
-        // Check system properties
-        return isXposedPropertyDetected()
+        return System.getenv("CLASSPATH")?.contains("XposedBridge") == true
     }
-    
-    private fun isXposedPropertyDetected(): Boolean {
-        return try {
-            val process = Runtime.getRuntime().exec("getprop")
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            var line: String?
-            while (true) {
-                line = reader.readLine()
-                if (line == null) break
-                if (line.contains("xposed") || line.contains("edxp")) {
-                    return true
-                }
-            }
-            false
-        } catch (e: Exception) {
-            false
-        }
-    }
-    
+
     private fun isFridaDetected(): Boolean {
-        val fridaFiles = arrayOf(
-            "/data/local/tmp/frida-server",
-            "/data/local/tmp/re.frida.server",
-            "/sdcard/frida-server",
-            "/system/bin/frida-server"
+        val fridaFiles = listOf(
+            "/data/local/tmp/frida-server", "/data/local/tmp/re.frida.server",
+            "/sdcard/frida-server", "/system/bin/frida-server",
+            "/system/lib/frida-agent.so", "/system/lib64/frida-agent.so"
         )
-        
         if (fridaFiles.any { File(it).exists() }) return true
-        
-        // Check for Frida ports
-        return isFridaPortOpen()
-    }
-    
-    private fun isFridaPortOpen(): Boolean {
-        // Frida typically uses port 27042
         return try {
-            val process = Runtime.getRuntime().exec("netstat -an")
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            var line: String?
-            while (true) {
-                line = reader.readLine()
-                if (line == null) break
-                if (line.contains("27042") || line.contains("frida")) {
-                    return true
-                }
-            }
-            false
+            val process = ProcessBuilder("sh", "-c", "netstat -an | grep :27042").start()
+            process.inputStream.bufferedReader().readText().isNotEmpty()
         } catch (e: Exception) {
             false
         }
     }
-    
+
     private fun isCydiaSubstrateDetected(): Boolean {
-        val substrateFiles = arrayOf(
-            "/Library/MobileSubstrate",
-            "/usr/libexec/cydia",
-            "/System/Library/LaunchDaemons/com.saurik.Cydia.Startup.plist"
+        val substrateFiles = listOf(
+            "/Library/MobileSubstrate", "/usr/libexec/cydia",
+            "/System/Library/LaunchDaemons/com.saurik.Cydia.Startup.plist", "/data/local/tmp/substrate"
         )
         return substrateFiles.any { File(it).exists() }
     }
-    
+
     private fun isLSPosedDetected(): Boolean {
         try {
             context.packageManager.getPackageInfo("org.lsposed.manager", 0)
             return true
         } catch (e: PackageManager.NameNotFoundException) {
-            // Check for LSPosed files
-            val lsposedFiles = arrayOf(
-                "/data/adb/lspd",
-                "/data/adb/modules/riru_lsposed",
-                "/data/adb/modules/zygisk_lsposed"
+            val lsposedFiles = listOf(
+                "/data/adb/lspd", "/data/adb/modules/riru_lsposed", "/data/adb/modules/zygisk_lsposed"
             )
             return lsposedFiles.any { File(it).exists() }
         }
     }
-    
-    private fun isMagiskModulesDetected(): Boolean {
-        val magiskPaths = arrayOf(
-            "/sbin/.magisk",
-            "/data/adb/magisk",
-            "/data/adb/modules"
+
+    private fun isRiruDetected(): Boolean {
+        val riruFiles = listOf(
+            "/data/adb/riru", "/data/misc/riru", "/system/lib/libriru.so", "/system/lib64/libriru.so"
         )
-        return magiskPaths.any { File(it).exists() }
+        return riruFiles.any { File(it).exists() }
     }
-    
-    /**
-     * VPN Detection
-     */
-    fun isVpnActive(): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        connectivityManager.allNetworks.forEach { network ->
-            val capabilities = connectivityManager.getNetworkCapabilities(network)
-            if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
-                    return true
-                }
-            }
+
+    private fun isEdXposedDetected(): Boolean {
+        return try {
+            context.packageManager.getPackageInfo("org.meowcat.edxposed.manager", 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            val edxposedFiles = listOf("/data/adb/edxposed", "/system/framework/edxposed.jar")
+            edxposedFiles.any { File(it).exists() }
         }
-        return false
     }
-    
-    /**
-     * VPN Monitoring
-     */
-    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkRequest = NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
 
-        val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                super.onAvailable(network)
-                onVpnStatusChanged(isVpnActive())
-            }
+    private fun isApplicationTampered(): Boolean {
+        return !verifySignature() || !verifyCodeIntegrity() || !verifyResourceIntegrity() || isDebuggingFlagsSet()
+    }
 
-            override fun onLost(network: Network) {
-                super.onLost(network)
-                onVpnStatusChanged(isVpnActive())
-            }
-
-            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-                super.onCapabilitiesChanged(network, networkCapabilities)
-                onVpnStatusChanged(isVpnActive())
-            }
-        }
-        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
-        return networkCallback
-    }
-    
-    fun unregisterVpnDetectionCallback(networkCallback: ConnectivityManager.NetworkCallback) {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        connectivityManager.unregisterNetworkCallback(networkCallback)
-    }
-    
-    /**
-     * Advanced tampering detection
-     */
-    private fun isAdvancedTamperingDetected(): Boolean {
-        return isSignatureTampered() || 
-               isCodeIntegrityCompromised() ||
-               isResourceTampered()
-    }
-    
-    private fun isSignatureTampered(): Boolean {
+    private fun verifySignature(): Boolean {
         val currentSignature = getSignatureSha256Hash()
-        return currentSignature == null || currentSignature.lowercase() != expectedSignature.lowercase()
+        return currentSignature?.lowercase() == expectedSignature.lowercase()
     }
-    
+
     private fun getSignatureSha256Hash(): String? {
         return try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -456,14 +426,12 @@ class EnhancedSecurityManager(private val context: Context) {
                 @Suppress("DEPRECATION")
                 context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
             }
-
             val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 packageInfo.signingInfo?.apkContentsSigners
             } else {
                 @Suppress("DEPRECATION")
                 packageInfo.signatures
             }
-
             if (signatures != null && signatures.isNotEmpty()) {
                 val md = MessageDigest.getInstance("SHA-256")
                 val hashBytes = md.digest(signatures[0].toByteArray())
@@ -473,83 +441,117 @@ class EnhancedSecurityManager(private val context: Context) {
             null
         }
     }
-    
-    private fun isCodeIntegrityCompromised(): Boolean {
-        // Check for common code injection techniques
+
+    private fun verifyCodeIntegrity(): Boolean {
         return try {
-            val maps = File("/proc/self/maps")
-            if (maps.exists()) {
-                maps.readText().contains("frida") || 
-                maps.readText().contains("xposed") ||
-                maps.readText().contains("substrate")
-            } else false
+            val mapsFile = File("/proc/self/maps")
+            if (!mapsFile.exists()) return false
+            val mapsContent = mapsFile.readText()
+            val suspiciousLibraries = listOf("frida", "xposed", "substrate", "lsposed", "edxposed", "riru", "zygisk")
+            !suspiciousLibraries.any { lib -> mapsContent.contains(lib, ignoreCase = true) }
         } catch (e: Exception) {
-            true // Suspicious if we can't read maps
+            false
         }
     }
-    
-    private fun isResourceTampered(): Boolean {
-        // Check if resources have been modified
+
+    private fun verifyResourceIntegrity(): Boolean {
         return try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val apkPath = packageInfo.applicationInfo?.sourceDir
-            apkPath?.let { path ->
-                val file = File(path)
-                // Basic size check - in real implementation you'd want more sophisticated checks
-                file.length() > 0 && file.canRead()
-            } ?: false
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return false
+            val apkFile = File(apkPath)
+            apkFile.exists() && apkFile.canRead() && apkFile.length() > 0
         } catch (e: Exception) {
-            true
+            false
         }
     }
-    
-    /**
-     * Integrity self-check
-     */
-    private fun performIntegrityCheck(): Boolean {
-        // Verify critical security functions haven't been hooked
-        return verifyMethodIntegrity() && verifySecurityState()
-    }
-    
-    private fun verifyMethodIntegrity(): Boolean {
-        // In a real implementation, you'd verify method bytecode or use checksums
-        return !securityBreached.get()
-    }
-    
-    private fun verifySecurityState(): Boolean {
-        val currentTime = System.currentTimeMillis()
-        return currentTime > lastSecurityCheck
-    }
-}
 
-/**
- * Obfuscated strings to make reverse engineering harder
- */
-private class ObfuscatedStrings {
-    // XOR key for string obfuscation
-    private val xorKey = 0x5A
-    
-    fun getProcStatusPath(): String = deobfuscate(byteArrayOf(0x2A, 0x70, 0x74, 0x68, 0x63, 0x2A, 0x75, 0x63, 0x6C, 0x64, 0x2A, 0x75, 0x74, 0x61, 0x74, 0x75, 0x75))
-    
-    fun getTracerPidPrefix(): String = deobfuscate(byteArrayOf(0x20, 0x74, 0x61, 0x63, 0x63, 0x74, 0x50, 0x69, 0x64, 0x00))
-    
-    private fun deobfuscate(data: ByteArray): String {
-        return String(data.map { (it.toInt() xor xorKey).toByte() }.toByteArray())
+    private fun isDebuggingFlagsSet(): Boolean {
+        val appInfo = context.applicationInfo
+        return (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
-}
 
-/**
- * Anti-hooking detection utilities
- */
-private class AntiHookingDetection {
-    fun isMethodHooked(methodName: String): Boolean {
-        // Placeholder for advanced anti-hooking checks
-        // In real implementation, you'd check method bytecode, call stack, etc.
-        return false
+    fun isVpnActive(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return connectivityManager.allNetworks.any { network ->
+            val capabilities = connectivityManager.getNetworkCapabilities(network)
+            capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        }
     }
-    
-    fun detectRuntimeManipulation(): Boolean {
-        // Check for runtime manipulation indicators
-        return false
+
+    fun registerVpnDetectionCallback(onVpnStatusChanged: (Boolean) -> Unit): ConnectivityManager.NetworkCallback {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkRequest = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                onVpnStatusChanged(isVpnActive())
+            }
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                onVpnStatusChanged(isVpnActive())
+            }
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                super.onCapabilitiesChanged(network, networkCapabilities)
+                onVpnStatusChanged(isVpnActive())
+            }
+        }
+        connectivityManager.registerNetworkCallback(networkRequest, callback)
+        vpnNetworkCallback = callback
+        return callback
     }
+
+    fun unregisterVpnDetectionCallback(networkCallback: ConnectivityManager.NetworkCallback) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager.unregisterNetworkCallback(networkCallback)
+    }
+
+    private fun recordSecurityViolation() {
+        val currentViolations = violationCount.incrementAndGet()
+        if (currentViolations >= MAX_SECURITY_VIOLATIONS) {
+            securityBreached.set(true)
+        }
+    }
+
+    // FIXED: Added missing getSecurityStatus method
+    fun getSecurityStatus(): SecurityStatus {
+        return SecurityStatus(
+            isSecure = !securityBreached.get(),
+            violationCount = violationCount.get().toInt(),
+            lastCheckTime = lastCheckTime.get(),
+            deviceFingerprint = generateDeviceFingerprint()
+        )
+    }
+
+    private fun generateDeviceFingerprint(): String {
+        val components = listOf(
+            Build.BOARD, Build.BRAND, Build.DEVICE, Build.HARDWARE,
+            Build.MANUFACTURER, Build.MODEL, Build.PRODUCT,
+            Build.SUPPORTED_ABIS.joinToString(","), Build.VERSION.RELEASE,
+            Build.VERSION.SDK_INT.toString(), Build.FINGERPRINT
+        )
+        val combined = components.joinToString("|")
+        val hash = MessageDigest.getInstance("SHA-256").digest(combined.toByteArray())
+        return android.util.Base64.encodeToString(hash, android.util.Base64.NO_WRAP)
+    }
+
+    // FIXED: Added missing cleanup method
+    fun cleanup() {
+        vpnNetworkCallback?.let { callback ->
+            unregisterVpnDetectionCallback(callback)
+        }
+    }
+
+    // FIXED: Added missing SecurityStatus data class
+    data class SecurityStatus(
+        val isSecure: Boolean,
+        val violationCount: Int,
+        val lastCheckTime: Long,
+        val deviceFingerprint: String
+    )
 }
