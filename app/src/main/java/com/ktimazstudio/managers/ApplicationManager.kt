@@ -5,18 +5,9 @@ import android.content.SharedPreferences
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -36,6 +27,10 @@ import com.ktimazstudio.old.ui.OldMainApplicationUI
 import com.ktimazstudio.utils.isAppInDarkTheme
 import com.ktimazstudio.utils.EnhancedSecurityManager
 
+/**
+ * Enhanced Application Manager with advanced features
+ * Handles authentication, security, biometrics, and application state
+ */
 class ApplicationManager(
     private val activity: ComponentActivity,
     private val scope: CoroutineScope
@@ -80,12 +75,24 @@ class ApplicationManager(
             _isLoading.value = true
             
             try {
+                // Load sounds
                 soundEffectManager.loadSounds()
+                
+                // Setup theme listener
                 setupThemeListener()
+                
+                // Setup UI preference listeners
                 setupUiPreferenceListeners()
+                
+                // Initialize biometric authentication
                 initializeBiometricAuth()
+                
+                // Start security monitoring
                 startSecurityMonitoring()
+                
+                // Check for auto-login or biometric authentication
                 checkAuthenticationState()
+                
             } finally {
                 _isLoading.value = false
             }
@@ -147,10 +154,12 @@ class ApplicationManager(
             val username = sharedPrefsManager.getUsername()
             
             if (isLoggedIn && username != null) {
+                // Check if biometric re-authentication is required
                 if (sharedPrefsManager.isBiometricEnabled() && canUseBiometric()) {
                     _authenticationRequired.value = true
                     promptBiometricAuthentication()
                 } else {
+                    // Auto-login successful
                     _isLoggedIn.value = true
                     _currentUsername.value = username
                 }
@@ -187,6 +196,7 @@ class ApplicationManager(
     }
     
     private fun handleBiometricFailure() {
+        // Allow password fallback
         scope.launch {
             _authenticationRequired.value = false
             _isLoggedIn.value = false
@@ -198,10 +208,12 @@ class ApplicationManager(
             when (errorCode) {
                 BiometricPrompt.ERROR_USER_CANCELED,
                 BiometricPrompt.ERROR_NEGATIVE_BUTTON -> {
+                    // User chose to use password instead
                     _authenticationRequired.value = false
                     _isLoggedIn.value = false
                 }
                 else -> {
+                    // Other errors - fallback to password
                     _authenticationRequired.value = false
                     _isLoggedIn.value = false
                 }
@@ -210,18 +222,21 @@ class ApplicationManager(
     }
     
     private fun startSecurityMonitoring() {
+        // Initial security check
         scope.launch {
-            delay(1000)
+            delay(1000) // Allow app to fully initialize
             val initialIssue = securityManager.getSecurityIssue(false)
             _currentSecurityIssue.value = initialIssue
         }
         
+        // Periodic security checks
         scope.launch {
             while (true) {
-                delay(5000)
+                delay(5000) // Check every 5 seconds
                 val issue = securityManager.getSecurityIssue(false)
                 if (issue != SecurityIssue.NONE) {
                     _currentSecurityIssue.value = issue
+                    // Log security event
                     logSecurityEvent(issue)
                 }
             }
@@ -229,6 +244,7 @@ class ApplicationManager(
     }
     
     private fun logSecurityEvent(issue: SecurityIssue) {
+        // In production, this would log to analytics/security monitoring
         println("Security Event Detected: ${issue.name} - ${issue.message}")
     }
     
@@ -255,9 +271,11 @@ class ApplicationManager(
     }
     
     private fun isValidCredentials(username: String, password: String): Boolean {
+        // Enhanced credential validation
         return when {
             username.isEmpty() || password.isEmpty() -> false
             username.length < 3 || password.length < 4 -> false
+            // Demo credentials
             username == "admin" && password == "admin" -> true
             username == "user" && password == "password" -> true
             username == "demo" && password == "demo" -> true
@@ -271,6 +289,7 @@ class ApplicationManager(
         val context = LocalContext.current
         val isInspectionMode = LocalInspectionMode.current
         
+        // Update theme in composition
         val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
         val useDarkTheme = isAppInDarkTheme(currentThemeSetting.value, context)
         
@@ -278,6 +297,7 @@ class ApplicationManager(
             _isDarkTheme.value = useDarkTheme
         }
         
+        // Collect states
         val isLoggedIn by _isLoggedIn.collectAsState()
         val currentUsername by _currentUsername.collectAsState()
         val currentSecurityIssue by _currentSecurityIssue.collectAsState()
@@ -285,11 +305,13 @@ class ApplicationManager(
         val isLoading by _isLoading.collectAsState()
         val authenticationRequired by _authenticationRequired.collectAsState()
         
+        // Show loading screen during initialization
         if (isLoading) {
             LoadingScreen()
             return
         }
         
+        // Handle security issues
         if (currentSecurityIssue != SecurityIssue.NONE && !isInspectionMode) {
             SecurityAlertScreen(issue = currentSecurityIssue) { 
                 activity.finishAffinity() 
@@ -297,6 +319,7 @@ class ApplicationManager(
             return
         }
         
+        // Handle biometric authentication requirement
         if (authenticationRequired) {
             BiometricAuthenticationScreen(
                 onBiometricSuccess = { handleBiometricSuccess() },
@@ -311,6 +334,7 @@ class ApplicationManager(
             return
         }
         
+        // Main application content with smooth transitions
         AnimatedContent(
             targetState = Triple(isLoggedIn, isOldUiEnabled, currentUsername),
             transitionSpec = {
@@ -319,6 +343,7 @@ class ApplicationManager(
                 
                 when {
                     !wasLoggedIn && willBeLoggedIn -> {
+                        // Login transition
                         slideInHorizontally(
                             initialOffsetX = { it },
                             animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
@@ -329,6 +354,7 @@ class ApplicationManager(
                         ) + fadeOut(animationSpec = tween(400))
                     }
                     wasLoggedIn && !willBeLoggedIn -> {
+                        // Logout transition
                         slideInHorizontally(
                             initialOffsetX = { -it },
                             animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
@@ -339,6 +365,7 @@ class ApplicationManager(
                         ) + fadeOut(animationSpec = tween(400))
                     }
                     wasOldUi != willBeOldUi -> {
+                        // UI switch transition
                         scaleIn(
                             initialScale = 0.8f,
                             animationSpec = spring(dampingRatio = 0.7f, stiffness = 250f)
@@ -349,6 +376,7 @@ class ApplicationManager(
                         ) + fadeOut(animationSpec = tween(300))
                     }
                     else -> {
+                        // Default transition
                         fadeIn(animationSpec = tween(400, delayMillis = 200)) +
                         scaleIn(initialScale = 0.92f, animationSpec = tween(400, delayMillis = 200)) togetherWith
                         fadeOut(animationSpec = tween(200)) +
@@ -362,7 +390,7 @@ class ApplicationManager(
                 !loggedIn -> {
                     LoginScreen(
                         onLoginSuccess = { user ->
-                            login(user, "admin")
+                            login(user, "admin") // Simplified for demo
                         },
                         soundEffectManager = soundEffectManager,
                         biometricManager = biometricManager,
@@ -372,6 +400,7 @@ class ApplicationManager(
                     )
                 }
                 oldUi -> {
+                    // Old UI from the old folder
                     OldMainApplicationUI(
                         username = username ?: "User",
                         onLogout = { logout() },
@@ -380,6 +409,7 @@ class ApplicationManager(
                     )
                 }
                 else -> {
+                    // New enhanced UI
                     MainApplicationUI(
                         username = username ?: "User",
                         onLogout = { logout() },
@@ -393,23 +423,23 @@ class ApplicationManager(
     
     @Composable
     private fun LoadingScreen() {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+        androidx.compose.foundation.layout.Box(
+            modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+            contentAlignment = androidx.compose.ui.Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp),
-                    color = MaterialTheme.colorScheme.primary
+                androidx.compose.material3.CircularProgressIndicator(
+                    modifier = androidx.compose.ui.Modifier.size(48.dp),
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
+                androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
+                androidx.compose.material3.Text(
                     text = "Initializing Security...",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -421,75 +451,78 @@ class ApplicationManager(
         onFallbackToPassword: () -> Unit,
         onCancel: () -> Unit
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+        androidx.compose.foundation.layout.Box(
+            modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+            contentAlignment = androidx.compose.ui.Alignment.Center
         ) {
-            Card(
-                modifier = Modifier
+            androidx.compose.material3.Card(
+                modifier = androidx.compose.ui.Modifier
                     .fillMaxWidth(0.9f)
                     .padding(24.dp),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                androidx.compose.foundation.layout.Column(
+                    modifier = androidx.compose.ui.Modifier.padding(32.dp),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Fingerprint,
+                    androidx.compose.material3.Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Filled.Fingerprint,
                         contentDescription = "Biometric Authentication",
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        modifier = androidx.compose.ui.Modifier.size(64.dp),
+                        tint = androidx.compose.material3.MaterialTheme.colorScheme.primary
                     )
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
                     
-                    Text(
+                    androidx.compose.material3.Text(
                         text = "Biometric Authentication",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(8.dp))
                     
-                    Text(
+                    androidx.compose.material3.Text(
                         text = "Use your fingerprint or face to continue",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     
-                    Spacer(modifier = Modifier.height(32.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(32.dp))
                     
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    androidx.compose.foundation.layout.Row(
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
                     ) {
-                        TextButton(
+                        androidx.compose.material3.TextButton(
                             onClick = onFallbackToPassword,
-                            modifier = Modifier.weight(1f)
+                            modifier = androidx.compose.ui.Modifier.weight(1f)
                         ) {
-                            Text("Use Password")
+                            androidx.compose.material3.Text("Use Password")
                         }
                         
-                        Button(
+                        androidx.compose.material3.Button(
                             onClick = { promptBiometricAuthentication() },
-                            modifier = Modifier.weight(1f)
+                            modifier = androidx.compose.ui.Modifier.weight(1f)
                         ) {
-                            Text("Authenticate")
+                            androidx.compose.material3.Text("Authenticate")
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
                     
-                    TextButton(onClick = onCancel) {
-                        Text("Cancel")
+                    androidx.compose.material3.TextButton(onClick = onCancel) {
+                        androidx.compose.material3.Text("Cancel")
                     }
                 }
             }
         }
     }
     
+    /**
+     * Get application statistics for monitoring
+     */
     fun getApplicationStats(): ApplicationStats {
         return ApplicationStats(
             isLoggedIn = _isLoggedIn.value,
@@ -497,22 +530,32 @@ class ApplicationManager(
             securityStatus = securityManager.getSecurityStatus(),
             isOldUiEnabled = _isOldUiEnabled.value,
             isBiometricEnabled = sharedPrefsManager.isBiometricEnabled(),
-            lastLoginTime = System.currentTimeMillis()
+            lastLoginTime = System.currentTimeMillis() // In real app, track actual login time
         )
     }
     
+    /**
+     * Export user settings for backup
+     */
     fun exportUserSettings(): Map<String, Any?> {
         return sharedPrefsManager.exportSettings()
     }
     
+    /**
+     * Import user settings from backup
+     */
     fun importUserSettings(settings: Map<String, Any?>) {
         sharedPrefsManager.importSettings(settings)
+        // Refresh UI states
         _isOldUiEnabled.value = sharedPrefsManager.isOldUiEnabled()
     }
     
+    /**
+     * Enable/disable biometric authentication
+     */
     fun setBiometricEnabled(enabled: Boolean) {
         if (enabled && !canUseBiometric()) {
-            return
+            return // Cannot enable if biometric is not available
         }
         
         sharedPrefsManager.setBiometricEnabled(enabled)
@@ -521,6 +564,9 @@ class ApplicationManager(
         }
     }
     
+    /**
+     * Force security check
+     */
     fun performSecurityCheck() {
         scope.launch {
             val issue = securityManager.getSecurityIssue(false)
@@ -528,9 +574,13 @@ class ApplicationManager(
         }
     }
     
+    /**
+     * Clear all application data (factory reset)
+     */
     fun clearAllData() {
         logout()
         sharedPrefsManager.clearAllData()
+        // In real app, also clear databases, files, etc.
     }
     
     fun cleanup() {
@@ -538,6 +588,9 @@ class ApplicationManager(
         securityManager.cleanup()
     }
     
+    /**
+     * Application statistics data class
+     */
     data class ApplicationStats(
         val isLoggedIn: Boolean,
         val currentUser: String?,
