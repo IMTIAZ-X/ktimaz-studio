@@ -519,21 +519,25 @@ class EnhancedSecurityManager(private val context: Context) {
     }
 
     // FIXED: Added missing getSecurityStatus method
+    /**
+     * Get security status for monitoring
+     */
     fun getSecurityStatus(): SecurityStatus {
         return SecurityStatus(
             isSecure = !securityBreached.get(),
             violationCount = violationCount.get().toInt(),
             lastCheckTime = lastCheckTime.get(),
-            deviceFingerprint = generateDeviceFingerprint()
+            deviceFingerprint = generateDeviceFingerprint(context)
         )
     }
 
-    private fun generateDeviceFingerprint(): String {
+    private fun generateDeviceFingerprint(context: Context): String {
         val components = listOf(
             Build.BOARD, Build.BRAND, Build.DEVICE, Build.HARDWARE,
             Build.MANUFACTURER, Build.MODEL, Build.PRODUCT,
             Build.SUPPORTED_ABIS.joinToString(","), Build.VERSION.RELEASE,
-            Build.VERSION.SDK_INT.toString(), Build.FINGERPRINT
+            Build.VERSION.SDK_INT.toString(), Build.FINGERPRINT,
+            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
         )
         val combined = components.joinToString("|")
         val hash = MessageDigest.getInstance("SHA-256").digest(combined.toByteArray())
