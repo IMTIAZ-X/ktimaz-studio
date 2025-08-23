@@ -702,7 +702,7 @@ object DeviceFingerprinting {
             val sensors = sensorManager.getSensorList(android.hardware.Sensor.TYPE_ALL)
             
             sensors.map { sensor ->
-                "${sensor.name}|${sensor.vendor}|${sensor.version}|${sensor.type}|${sensor.maxRange}"
+                "${sensor.name}|${sensor.vendor}|${sensor.version}|${sensor.type}|${sensor.maximumRange}"
             }
         } catch (e: Exception) {
             emptyList()
