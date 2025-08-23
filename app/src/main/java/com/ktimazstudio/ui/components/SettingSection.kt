@@ -32,7 +32,8 @@ fun SettingSection(
     icon: ImageVector,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
-) {
+, modifier: Modifier = Modifier) {
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
