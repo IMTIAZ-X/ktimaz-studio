@@ -18,28 +18,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
- * Unique, modern "Under Development" screen.
- * Can be dropped anywhere: ComingNovaScreen()
- */
 @Composable
 fun ComingNovaScreen(
     modifier: Modifier = Modifier,
     title: String = "Under Development",
     message: String = "Hard work in progress. Please check back soon."
 ) {
-    // Animated gradient background
     val infinite = rememberInfiniteTransition(label = "bg")
     val shift by infinite.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
+        initialValue = 0f, targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 9000, easing = LinearEasing),
+            animation = tween(9000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
-        ),
-        label = "shift"
+        ), label = "shift"
     )
-
     val gradient = Brush.linearGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
@@ -49,39 +41,24 @@ fun ComingNovaScreen(
         start = androidx.compose.ui.geometry.Offset(0f, shift),
         end = androidx.compose.ui.geometry.Offset(shift, 0f)
     )
-
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(gradient)
-            .padding(20.dp),
+        modifier = modifier.fillMaxSize().background(gradient).padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Soft glow blobs (subtle depth)
-        GlowBlob(offsetX = -120.dp, offsetY = -140.dp, size = 220.dp)
+        GlowBlob(offsetX = (-120).dp, offsetY = (-140).dp, size = 220.dp)
         GlowBlob(offsetX = 140.dp, offsetY = 160.dp, size = 260.dp, alpha = 0.35f)
-
-        // Card with animated header
         Card(
-            modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .wrapContentHeight(),
+            modifier = Modifier.fillMaxWidth(0.94f).wrapContentHeight(),
             shape = RoundedCornerShape(28.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Animated progress bar shimmer
                 NovaHeader(title = title)
-
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyLarge.copy(
@@ -90,8 +67,6 @@ fun ComingNovaScreen(
                     ),
                     textAlign = TextAlign.Center
                 )
-
-                // Subtle pulsing chip
                 NovaChip()
             }
         }
@@ -101,72 +76,36 @@ fun ComingNovaScreen(
 @Composable
 private fun NovaHeader(title: String) {
     val infinite = rememberInfiniteTransition(label = "header")
-    val scale by infinite.animateFloat(
-        initialValue = 0.98f,
-        targetValue = 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
-
     val progress by infinite.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(2400, easing = LinearEasing), repeatMode = RepeatMode.Restart),
         label = "progress"
     )
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.2.sp
-            ),
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.2.sp),
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(8.dp))
-
-        // Animated progress bar
         Box(
-            modifier = Modifier
-                .fillMaxWidth(0.72f)
-                .height(8.dp)
-                .clip(RoundedCornerShape(999.dp))
+            modifier = Modifier.fillMaxWidth(0.72f).height(8.dp).clip(RoundedCornerShape(999.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(progress.coerceIn(0.15f, 1f))
+                modifier = Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0.15f, 1f))
                     .clip(RoundedCornerShape(999.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary,
-                                MaterialTheme.colorScheme.primary
-                            )
-                        )
-                    )
-                    .blur(0.5.dp)
+                    .background(Brush.horizontalGradient(listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.secondary,
+                        MaterialTheme.colorScheme.primary
+                    ))).blur(0.5.dp)
             )
         }
-
         Spacer(Modifier.height(6.dp))
         Text(
             text = "Building a better experience…",
-            style = MaterialTheme.typography.labelMedium.copy(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-            )
+            style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
         )
     }
 }
@@ -175,51 +114,29 @@ private fun NovaHeader(title: String) {
 private fun NovaChip() {
     val infinite = rememberInfiniteTransition(label = "chip")
     val alpha by infinite.animateFloat(
-        initialValue = 0.55f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutLinearInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 0.55f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(1400, easing = FastOutLinearInEasing), repeatMode = RepeatMode.Reverse),
         label = "alpha"
     )
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        tonalElevation = 2.dp,
-        shadowElevation = 0.dp,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f * alpha)
-    ) {
+    Surface(shape = RoundedCornerShape(999.dp), tonalElevation = 2.dp, shadowElevation = 0.dp,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f * alpha)) {
         Text(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             text = "Hard work in progress",
             style = MaterialTheme.typography.labelLarge.copy(
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
+                color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold
             )
         )
     }
 }
 
 @Composable
-private fun GlowBlob(
-    offsetX: androidx.compose.ui.unit.Dp,
-    offsetY: androidx.compose.ui.unit.Dp,
-    size: androidx.compose.ui.unit.Dp,
-    alpha: Float = 0.25f
-) {
+private fun GlowBlob(offsetX: androidx.compose.ui.unit.Dp, offsetY: androidx.compose.ui.unit.Dp, size: androidx.compose.ui.unit.Dp, alpha: Float = 0.25f) {
     Box(
-        modifier = Modifier
-            .offset(x = offsetX, y = offsetY)
-            .size(size)
-            .blur(60.dp)
+        modifier = Modifier.offset(x = offsetX, y = offsetY).size(size).blur(60.dp)
             .clip(RoundedCornerShape(200.dp))
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = alpha),
-                        Color.Transparent
-                    )
-                )
-            )
+            .background(Brush.radialGradient(colors = listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = alpha), Color.Transparent
+            )))
     )
 }
