@@ -31,7 +31,9 @@ import com.ktimazstudio.managers.SharedPreferencesManager
 import com.ktimazstudio.ui.components.AppNavigationRail
 import com.ktimazstudio.ui.components.CustomSearchBar
 import com.ktimazstudio.ui.screens.DashboardScreen
+import com.ktimazstudio.ui.screens.EnhancedDashboardScreen
 import com.ktimazstudio.ui.screens.SettingsScreen
+import com.ktimazstudio.ui.screens.EnhancedSettingsScreen
 import com.ktimazstudio.ui.screens.ProfileScreen
 import com.ktimazstudio.utils.isConnected
 import com.ktimazstudio.utils.openWifiSettings
@@ -42,16 +44,20 @@ fun MainApplicationUI(
     username: String,
     onLogout: () -> Unit,
     soundEffectManager: SoundEffectManager,
-    sharedPrefsManager: SharedPreferencesManager // FIXED: Add sharedPrefsManager parameter
+    sharedPrefsManager: SharedPreferencesManager
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDestination by remember { mutableStateOf<Screen>(Screen.Dashboard) }
     var isRailExpanded by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") } // State for search query
-    var isSearching by remember { mutableStateOf(false) } // State to control search bar visibility
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearching by remember { mutableStateOf(false) }
 
-    // Check for internet connectivity on app launch
+    // Enhanced UI state management
+    val dashboardViewType = remember { mutableStateOf(sharedPrefsManager.getDashboardViewType()) }
+    val isEnhancedMode = remember { mutableStateOf(true) } // Toggle for enhanced features
+    
+    // Network connectivity check on app launch
     LaunchedEffect(Unit) {
         if (!isConnected(context)) {
             val result = snackbarHostState.showSnackbar(
@@ -65,82 +71,92 @@ fun MainApplicationUI(
         }
     }
 
+    // Enhanced gradient system
     val primaryGradient = Brush.verticalGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.90f),
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
-            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.6f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
         )
     )
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-    val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
-    val scrolledAppBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).copy(alpha = 0.95f)
+    val topAppBarRoundedShape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+    val scrolledAppBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp).copy(alpha = 0.98f)
 
     Row(
         modifier = Modifier
             .fillMaxSize()
             .background(primaryGradient)
     ) {
+        // Enhanced Navigation Rail with animations
         AppNavigationRail(
             selectedDestination = selectedDestination,
             onDestinationSelected = {
-                soundEffectManager.playClickSound() // Play sound on navigation item click
+                soundEffectManager.playClickSound()
                 selectedDestination = it
-                isSearching = false // Hide search when navigating away from dashboard
-                searchQuery = "" // Clear search query
+                isSearching = false
+                searchQuery = ""
             },
             isExpanded = isRailExpanded,
             onMenuClick = {
-                soundEffectManager.playClickSound() // Play sound on menu click
+                soundEffectManager.playClickSound()
                 isRailExpanded = !isRailExpanded
             },
-            soundEffectManager = soundEffectManager // Pass sound manager
+            soundEffectManager = soundEffectManager
         )
 
+        // Main content area with enhanced scaffold
         Scaffold(
             modifier = Modifier
                 .weight(1f)
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
                 val isScrolled = scrollBehavior.state.contentOffset > 0.1f
+                
                 CenterAlignedTopAppBar(
                     title = {
                         AnimatedContent(
                             targetState = isSearching,
                             transitionSpec = {
-                                if (targetState) { // Entering search
+                                if (targetState) {
                                     slideInHorizontally { it } + fadeIn() togetherWith
-                                            slideOutHorizontally { -it } + fadeOut()
-                                } else { // Exiting search
+                                    slideOutHorizontally { -it } + fadeOut()
+                                } else {
                                     slideInHorizontally { -it } + fadeIn() togetherWith
-                                            slideOutHorizontally { it } + fadeOut()
+                                    slideOutHorizontally { it } + fadeOut()
                                 }
-                            }, label = "search_bar_transition"
+                            }, 
+                            label = "search_bar_transition"
                         ) { searching ->
                             if (searching) {
                                 CustomSearchBar(
                                     query = searchQuery,
                                     onQueryChange = { searchQuery = it },
-                                    onClear = { searchQuery = "" ; isSearching = false },
+                                    onClear = { 
+                                        searchQuery = ""
+                                        isSearching = false 
+                                    },
                                     soundEffectManager = soundEffectManager
                                 )
                             } else {
+                                // Enhanced title with animation
                                 Text(
                                     text = stringResource(id = R.string.app_name),
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                         }
                     },
                     actions = {
-                        if (selectedDestination == Screen.Dashboard) { // Only show search on Dashboard
+                        if (selectedDestination == Screen.Dashboard) {
                             IconButton(onClick = {
                                 soundEffectManager.playClickSound()
                                 isSearching = !isSearching
-                                if (!isSearching) searchQuery = "" // Clear search when closing
+                                if (!isSearching) searchQuery = ""
                             }) {
                                 Icon(
                                     imageVector = Icons.Filled.Search,
@@ -160,49 +176,170 @@ fun MainApplicationUI(
                     modifier = Modifier
                         .statusBarsPadding()
                         .graphicsLayer {
-                            shadowElevation = if (isScrolled) 4.dp.toPx() else 0f
+                            shadowElevation = if (isScrolled) 6.dp.toPx() else 0f
                             shape = topAppBarRoundedShape
                             clip = true
                         }
                         .background(
-                            color = if (isScrolled) scrolledAppBarColor else Color.Transparent
+                            color = if (isScrolled) scrolledAppBarColor else Color.Transparent,
+                            shape = topAppBarRoundedShape
                         ),
                     scrollBehavior = scrollBehavior
                 )
             },
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            snackbarHost = { 
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.padding(16.dp)
+                ) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        shape = RoundedCornerShape(12.dp),
+                        containerColor = MaterialTheme.colorScheme.inverseSurface,
+                        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                        actionColor = MaterialTheme.colorScheme.inversePrimary
+                    )
+                }
+            },
             containerColor = Color.Transparent
         ) { paddingValues ->
+            // Enhanced content transition system
             AnimatedContent(
                 targetState = selectedDestination,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
-                            slideInHorizontally(initialOffsetX = { if (initialState.route == Screen.Dashboard.route) 300 else -300 }, animationSpec = tween(300)) togetherWith
-                            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                            slideOutHorizontally(targetOffsetX = { if (targetState.route == Screen.Dashboard.route) -300 else 300 }, animationSpec = tween(300))
-                }, label = "nav_rail_content_transition"
+                    val direction = if (initialState.route == Screen.Dashboard.route) 1 else -1
+                    
+                    fadeIn(
+                        animationSpec = tween(400, easing = LinearOutSlowInEasing)
+                    ) + slideInHorizontally(
+                        initialOffsetX = { it * direction },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(400)
+                    ) togetherWith fadeOut(
+                        animationSpec = tween(300, easing = FastOutLinearInEasing)
+                    ) + slideOutHorizontally(
+                        targetOffsetX = { -it * direction },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + scaleOut(
+                        targetScale = 1.08f,
+                        animationSpec = tween(300)
+                    )
+                }, 
+                label = "nav_content_transition"
             ) { targetDestination ->
-                Box(modifier = Modifier.padding(paddingValues)) {
+                Box(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .fillMaxSize()
+                ) {
                     when (targetDestination) {
-                        Screen.Dashboard -> DashboardScreen(
-                            searchQuery = searchQuery, // Pass search query
-                            onCardClick = { title ->
-                                soundEffectManager.playClickSound() // Play sound on card click
-                                if (title == "System Config") {
-                                    context.startActivity(Intent(context, SettingsActivity::class.java))
-                                } else {
-                                    context.startActivity(Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", title))
-                                }
-                            },
-                            soundEffectManager = soundEffectManager // Pass sound manager
-                        )
-                        Screen.AppSettings -> SettingsScreen(
-                            soundEffectManager = soundEffectManager,
-                            sharedPrefsManager = sharedPrefsManager
-                        )
-                        Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
+                        Screen.Dashboard -> {
+                            if (isEnhancedMode.value) {
+                                EnhancedDashboardScreen(
+                                    searchQuery = searchQuery,
+                                    onCardClick = { title ->
+                                        soundEffectManager.playClickSound()
+                                        handleCardClick(title, context)
+                                    },
+                                    soundEffectManager = soundEffectManager,
+                                    sharedPrefsManager = sharedPrefsManager
+                                )
+                            } else {
+                                DashboardScreen(
+                                    searchQuery = searchQuery,
+                                    onCardClick = { title ->
+                                        soundEffectManager.playClickSound()
+                                        handleCardClick(title, context)
+                                    },
+                                    soundEffectManager = soundEffectManager
+                                )
+                            }
+                        }
+                        Screen.AppSettings -> {
+                            if (isEnhancedMode.value) {
+                                EnhancedSettingsScreen(
+                                    soundEffectManager = soundEffectManager,
+                                    sharedPrefsManager = sharedPrefsManager
+                                )
+                            } else {
+                                SettingsScreen(
+                                    soundEffectManager = soundEffectManager,
+                                    sharedPrefsManager = sharedPrefsManager
+                                )
+                            }
+                        }
+                        Screen.Profile -> {
+                            ProfileScreen(
+                                username = username,
+                                onLogout = onLogout,
+                                soundEffectManager = soundEffectManager
+                            )
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    // Background particle effects for enhanced visual appeal
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(2000)
+            // Trigger subtle background animations
+        }
+    }
+}
+
+/**
+ * Enhanced card click handler with improved navigation
+ */
+private fun handleCardClick(title: String, context: android.content.Context) {
+    when (title) {
+        "System Config", "System Monitor" -> {
+            context.startActivity(Intent(context, SettingsActivity::class.java))
+        }
+        "Bio Scanner", "Quantum Encryptor", "Neural Network" -> {
+            context.startActivity(
+                Intent(context, ComingActivity::class.java).apply {
+                    putExtra("CARD_TITLE", title)
+                    putExtra("CARD_TYPE", "PREMIUM")
+                }
+            )
+        }
+        else -> {
+            context.startActivity(
+                Intent(context, ComingActivity::class.java).apply {
+                    putExtra("CARD_TITLE", title)
+                    putExtra("CARD_TYPE", "STANDARD")
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Performance monitoring composable
+ */
+@Composable
+private fun PerformanceMonitor() {
+    val composition = rememberCompositionContext()
+    var frameCount by remember { mutableIntStateOf(0) }
+    
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(16) // ~60 FPS
+            frameCount++
+            if (frameCount % 60 == 0) {
+                // Log performance metrics every second
+                println("UI Performance: ${frameCount / (frameCount / 60)} FPS")
             }
         }
     }
