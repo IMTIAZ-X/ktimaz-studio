@@ -27,12 +27,7 @@ import com.ktimazstudio.managers.SoundEffectManager
  * Enhanced setting section with header and grouped items
  */
 @Composable
-fun SettingSection(
-    title: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
-, modifier: Modifier = Modifier) {
+fun SettingSection(title: String, icon: ImageVector, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
 
     Card(
         shape = RoundedCornerShape(16.dp),
