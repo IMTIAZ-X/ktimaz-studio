@@ -142,8 +142,8 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .offset(
-                        x = (x * 400.dp),
-                        y = (y * 800.dp) + (particleOffset * 100.dp * (index % 3 + 1))
+                        x = (x * 400).dp,
+                        y = (y * 800).dp + ((particleOffset * 100f) * (index % 3 + 1)).dp
                     )
                     .size((4 + index % 3).dp)
                     .clip(CircleShape)
