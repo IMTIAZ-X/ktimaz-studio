@@ -1,3 +1,4 @@
+import com.ktimazstudio.DevActivity
 package com.ktimazstudio.ui.screens
 
 import android.content.Intent
@@ -35,7 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import com.ktimazstudio.ComingActivity
+import com.ktimazstudio.DevScreen
 import com.ktimazstudio.SettingsActivity
 import com.ktimazstudio.enums.*
 import com.ktimazstudio.managers.SoundEffectManager
@@ -655,7 +656,7 @@ private fun handleModuleClick(
         }
         else -> {
             context.startActivity(
-                Intent(context, ComingActivity::class.java).putExtra("CARD_TITLE", module.title)
+                Intent(context, DevScreen::class.java).putExtra("CARD_TITLE", module.title)
             )
         }
     }
