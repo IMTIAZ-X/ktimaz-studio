@@ -1,3 +1,4 @@
+import com.ktimazstudio.DevActivity
 package com.ktimazstudio.ui
 
 import android.content.Intent
@@ -24,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import com.ktimazstudio.R
 import com.ktimazstudio.SettingsActivity
-import com.ktimazstudio.ComingActivity
+import com.ktimazstudio.DevScreen
 import com.ktimazstudio.enums.Screen
 import com.ktimazstudio.managers.SoundEffectManager
 import com.ktimazstudio.managers.SharedPreferencesManager
@@ -308,7 +309,7 @@ private fun handleCardClick(title: String, context: android.content.Context) {
         }
         "Bio Scanner", "Quantum Encryptor", "Neural Network" -> {
             context.startActivity(
-                Intent(context, ComingActivity::class.java).apply {
+                Intent(context, DevScreen::class.java).apply { // fixed 
                     putExtra("CARD_TITLE", title)
                     putExtra("CARD_TYPE", "PREMIUM")
                 }
@@ -316,7 +317,7 @@ private fun handleCardClick(title: String, context: android.content.Context) {
         }
         else -> {
             context.startActivity(
-                Intent(context, ComingActivity::class.java).apply {
+                Intent(context, DevScreen::class.java).apply { // fixed 
                     putExtra("CARD_TITLE", title)
                     putExtra("CARD_TYPE", "STANDARD")
                 }
