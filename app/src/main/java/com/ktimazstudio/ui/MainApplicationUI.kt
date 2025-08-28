@@ -1,4 +1,3 @@
-import com.ktimazstudio.DevActivity
 package com.ktimazstudio.ui
 
 import android.content.Intent
