@@ -72,7 +72,7 @@ fun SettingSection(title: String, icon: ImageVector, modifier: Modifier = Modifi
  * Dropdown setting item for enum selections
  */
 @Composable
-fun <T : Enum<T>> SettingDropdown(
+fun <T : Enum<T>> SettingDropdown(modifier: Modifier = Modifier, 
     title: String,
     description: String,
     leadingIcon: @Composable () -> Unit,
