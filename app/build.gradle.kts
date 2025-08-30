@@ -35,7 +35,6 @@ android {
 
     signingConfigs {
         create("release") {
-            // Enhanced signing configuration
             val storeFilePath = System.getenv("RELEASE_STORE_FILE") ?: "Ktimazstudio.keystore"
             val storePass = System.getenv("RELEASE_STORE_PASSWORD") ?: "ktimazstudio123"
             val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "ktimazstudio" 
@@ -86,13 +85,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi"
-        )
+    // FIXED: Updated Kotlin options to use compilerOptions DSL
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+            freeCompilerArgs.addAll(
+                listOf(
+                    "-opt-in=kotlin.RequiresOptIn",
+                    "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                    "-opt-in=androidx.compose.animation.ExperimentalAnimationApi"
+                )
+            )
+        }
     }
 
     composeOptions {
