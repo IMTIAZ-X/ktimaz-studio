@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -27,8 +28,12 @@ import com.ktimazstudio.managers.SoundEffectManager
  * Enhanced setting section with header and grouped items
  */
 @Composable
-fun SettingSection(title: String, icon: ImageVector, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-
+fun SettingSection(
+    title: String, 
+    icon: ImageVector, 
+    modifier: Modifier = Modifier, 
+    content: @Composable ColumnScope.() -> Unit
+) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -72,7 +77,7 @@ fun SettingSection(title: String, icon: ImageVector, modifier: Modifier = Modifi
  * Dropdown setting item for enum selections
  */
 @Composable
-fun <T : Enum<T>> SettingDropdown(modifier: Modifier = Modifier, 
+fun <T : Enum<T>> SettingDropdown(
     title: String,
     description: String,
     leadingIcon: @Composable () -> Unit,
