@@ -188,7 +188,7 @@ class EnhancedSecurityManager(private val context: Context) {
         return missingCount >= 3
     }
 
-    private fun checkTelephonyFeatures(): Boolean {
+  /*  private fun checkTelephonyFeatures(): Boolean {
         return try {
             val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as android.telephony.TelephonyManager
             val deviceId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -206,7 +206,7 @@ class EnhancedSecurityManager(private val context: Context) {
         } catch (e: Exception) {
             true
         }
-    }
+    }*/
 
     private fun checkSensorAvailability(): Boolean {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
