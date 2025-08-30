@@ -1,4 +1,3 @@
-
 package com.ktimazstudio
 
 import android.content.Context
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.sp
 const val EXTRA_DEV_TITLE = "extra_dev_title"
 const val EXTRA_DEV_MESSAGE = "extra_dev_message"
 
+// FIXED: Changed from 'fun Dev' to 'class DevActivity'
 class DevActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +39,7 @@ class DevActivity : ComponentActivity() {
             )
         }
     }
+    
     companion object {
         fun newIntent(context: Context, title: String, message: String): Intent {
             return Intent(context, DevActivity::class.java).apply {
