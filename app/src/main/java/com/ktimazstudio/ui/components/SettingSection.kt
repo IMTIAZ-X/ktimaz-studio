@@ -340,7 +340,7 @@ fun SettingGroup(
     icon: ImageVector,
     initiallyExpanded: Boolean = true,
     soundEffectManager: SoundEffectManager,
-    modifier: Modifier = Modifier,
+    settingModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by remember { mutableStateOf(initiallyExpanded) }
@@ -356,7 +356,7 @@ fun SettingGroup(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f)
         ),
-        modifier = modifier
+        modifier = settingModifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
