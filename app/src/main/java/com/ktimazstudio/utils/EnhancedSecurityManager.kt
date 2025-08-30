@@ -16,13 +16,13 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.experimental.and
 
 class EnhancedSecurityManager(private val context: Context) {
-    
+
     companion object {
         private const val TAG = "EnhancedSecurityManager"
         private const val SECURITY_CHECK_INTERVAL = 5000L
         private const val MAX_SECURITY_VIOLATIONS = 3
     }
-    
+
     private val securityBreached = AtomicBoolean(false)
     private val violationCount = AtomicLong(0)
     private val lastCheckTime = AtomicLong(System.currentTimeMillis())
@@ -255,8 +255,222 @@ class EnhancedSecurityManager(private val context: Context) {
         return detectionMethods.count { it.invoke() } >= 2
     }
 
-    // root/hooking/app tamper checks remain unchanged...
-    // (keeping full file short for readability, only telephony part was fixed)
+    private fun checkSuperuserApps(): Boolean {
+        val rootApps = listOf(
+            "com.koushikdutta.superuser", "eu.chainfire.supersu", "com.kingroot.kinguser",
+            "com.topjohnwu.magisk", "me.phh.superuser", "com.yellowes.su",
+            "com.thirdparty.superuser", "com.koushikdutta.rommanager"
+        )
+        return rootApps.any { packageName ->
+            try {
+                context.packageManager.getPackageInfo(packageName, 0)
+                true
+            } catch (e: PackageManager.NameNotFoundException) {
+                false
+            }
+        }
+    }
+
+    private fun checkRootBinaries(): Boolean {
+        val rootBinaries = listOf(
+            "/sbin/su", "/system/bin/su", "/system/xbin/su", "/data/local/xbin/su",
+            "/data/local/bin/su", "/system/sd/xbin/su", "/system/bin/failsafe/su",
+            "/data/local/su", "/su/bin/su"
+        )
+        return rootBinaries.any { path ->
+            File(path).exists() && File(path).canExecute()
+        }
+    }
+
+    private fun checkRootFiles(): Boolean {
+        val rootFiles = listOf(
+            "/system/app/Superuser.apk", "/system/app/SuperSU.apk",
+            "/system/etc/init.d/99SuperSUDaemon", "/system/xbin/daemonsu",
+            "/system/etc/init.d/99su", "/data/data/com.android.shell/su"
+        )
+        return rootFiles.any { File(it).exists() }
+    }
+
+    private fun checkSystemProperties(): Boolean {
+        val suspiciousProps = mapOf(
+            "ro.debuggable" to "1", "ro.secure" to "0", "service.adb.root" to "1"
+        )
+        return try {
+            val process = ProcessBuilder("getprop").start()
+            val props = process.inputStream.bufferedReader().readText()
+            suspiciousProps.any { (key, value) ->
+                props.contains("[$key]: [$value]")
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun checkWritableSystemPaths(): Boolean {
+        val systemPaths = listOf("/system", "/system/bin", "/system/sbin", "/system/xbin", "/vendor/bin", "/sbin")
+        return systemPaths.any { path -> File(path).canWrite() }
+    }
+
+    private fun checkSuCommand(): Boolean {
+        return try {
+            val process = ProcessBuilder("which", "su").start()
+            val output = process.inputStream.bufferedReader().readText().trim()
+            output.isNotEmpty() && !output.contains("not found")
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun checkMagiskFiles(): Boolean {
+        val magiskFiles = listOf(
+            "/sbin/.magisk", "/data/adb/magisk", "/data/adb/modules", "/cache/.disable_magisk",
+            "/dev/.magisk.unblock", "/cache/magisk.log", "/data/adb/magisk.img", "/data/magisk.apk"
+        )
+        return magiskFiles.any { File(it).exists() }
+    }
+
+    private fun checkBusyBoxFiles(): Boolean {
+        val busyBoxPaths = listOf(
+            "/system/bin/busybox", "/system/xbin/busybox",
+            "/data/local/xbin/busybox", "/sbin/busybox", "/data/local/busybox", "/system/sd/xbin/busybox"
+        )
+        return busyBoxPaths.any { path ->
+            File(path).exists() && File(path).canExecute()
+        }
+    }
+
+    private fun isAdvancedHookingDetected(): Boolean {
+        return isXposedDetected() || isFridaDetected() || isCydiaSubstrateDetected() ||
+               isLSPosedDetected() || isRiruDetected() || isEdXposedDetected()
+    }
+
+    private fun isXposedDetected(): Boolean {
+        val xposedFiles = listOf(
+            "/system/framework/XposedBridge.jar", "/system/bin/app_process_xposed",
+            "/system/lib/libxposed_art.so", "/system/lib64/libxposed_art.so",
+            "/data/data/de.robv.android.xposed.installer"
+        )
+        if (xposedFiles.any { File(it).exists() }) return true
+        try {
+            context.packageManager.getPackageInfo("de.robv.android.xposed.installer", 0)
+            return true
+        } catch (e: PackageManager.NameNotFoundException) {
+        }
+        return System.getenv("CLASSPATH")?.contains("XposedBridge") == true
+    }
+
+    private fun isFridaDetected(): Boolean {
+        val fridaFiles = listOf(
+            "/data/local/tmp/frida-server", "/data/local/tmp/re.frida.server",
+            "/sdcard/frida-server", "/system/bin/frida-server",
+            "/system/lib/frida-agent.so", "/system/lib64/frida-agent.so"
+        )
+        if (fridaFiles.any { File(it).exists() }) return true
+        return try {
+            val process = ProcessBuilder("sh", "-c", "netstat -an | grep :27042").start()
+            process.inputStream.bufferedReader().readText().isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun isCydiaSubstrateDetected(): Boolean {
+        val substrateFiles = listOf(
+            "/Library/MobileSubstrate", "/usr/libexec/cydia",
+            "/System/Library/LaunchDaemons/com.saurik.Cydia.Startup.plist", "/data/local/tmp/substrate"
+        )
+        return substrateFiles.any { File(it).exists() }
+    }
+
+    private fun isLSPosedDetected(): Boolean {
+        try {
+            context.packageManager.getPackageInfo("org.lsposed.manager", 0)
+            return true
+        } catch (e: PackageManager.NameNotFoundException) {
+            val lsposedFiles = listOf(
+                "/data/adb/lspd", "/data/adb/modules/riru_lsposed", "/data/adb/modules/zygisk_lsposed"
+            )
+            return lsposedFiles.any { File(it).exists() }
+        }
+    }
+
+    private fun isRiruDetected(): Boolean {
+        val riruFiles = listOf(
+            "/data/adb/riru", "/data/misc/riru", "/system/lib/libriru.so", "/system/lib64/libriru.so"
+        )
+        return riruFiles.any { File(it).exists() }
+    }
+
+    private fun isEdXposedDetected(): Boolean {
+        return try {
+            context.packageManager.getPackageInfo("org.meowcat.edxposed.manager", 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            val edxposedFiles = listOf("/data/adb/edxposed", "/system/framework/edxposed.jar")
+            edxposedFiles.any { File(it).exists() }
+        }
+    }
+
+    private fun isApplicationTampered(): Boolean {
+        return !verifySignature() || !verifyCodeIntegrity() || !verifyResourceIntegrity() || isDebuggingFlagsSet()
+    }
+
+    private fun verifySignature(): Boolean {
+        val currentSignature = getSignatureSha256Hash()
+        return currentSignature?.lowercase() == expectedSignature.lowercase()
+    }
+
+    private fun getSignatureSha256Hash(): String? {
+        return try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            }
+            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.signingInfo?.apkContentsSigners
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.signatures
+            }
+            if (signatures != null && signatures.isNotEmpty()) {
+                val md = MessageDigest.getInstance("SHA-256")
+                val hashBytes = md.digest(signatures[0].toByteArray())
+                hashBytes.joinToString("") { "%02x".format(it.and(0xff.toByte())) }
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun verifyCodeIntegrity(): Boolean {
+        return try {
+            val mapsFile = File("/proc/self/maps")
+            if (!mapsFile.exists()) return false
+            val mapsContent = mapsFile.readText()
+            val suspiciousLibraries = listOf("frida", "xposed", "substrate", "lsposed", "edxposed", "riru", "zygisk")
+            !suspiciousLibraries.any { lib -> mapsContent.contains(lib, ignoreCase = true) }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun verifyResourceIntegrity(): Boolean {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val apkPath = packageInfo.applicationInfo?.sourceDir ?: return false
+            val apkFile = File(apkPath)
+            apkFile.exists() && apkFile.canRead() && apkFile.length() > 0
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun isDebuggingFlagsSet(): Boolean {
+        val appInfo = context.applicationInfo
+        return (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    }
 
     fun isVpnActive(): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
