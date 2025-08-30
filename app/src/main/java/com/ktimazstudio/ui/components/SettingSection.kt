@@ -25,13 +25,78 @@ import androidx.compose.ui.unit.dp
 import com.ktimazstudio.managers.SoundEffectManager
 
 /**
+ * Base reusable Setting Item
+ */
+@Composable
+fun SettingItem(
+    title: String,
+    description: String,
+    leadingIcon: @Composable () -> Unit,
+    onClick: (() -> Unit)? = null,
+    control: (@Composable (() -> Unit))? = null,
+    soundEffectManager: SoundEffectManager? = null,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (pressed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.surface
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                enabled = onClick != null
+            ) {
+                soundEffectManager?.playClickSound()
+                onClick?.invoke()
+            }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Leading icon
+        leadingIcon()
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Texts
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (description.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Optional control (switch, arrow, slider, etc.)
+        control?.invoke()
+    }
+}
+
+/**
  * Enhanced setting section with header and grouped items
  */
 @Composable
 fun SettingSection(
-    title: String, 
-    icon: ImageVector, 
-    modifier: Modifier = Modifier, 
+    title: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -66,7 +131,7 @@ fun SettingSection(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            
+
             // Section Content
             content()
         }
@@ -88,14 +153,12 @@ fun <T : Enum<T>> SettingDropdown(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    
+
     SettingItem(
         title = title,
         description = description,
         leadingIcon = leadingIcon,
-        onClick = {
-            expanded = true
-        },
+        onClick = { expanded = true },
         control = {
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -115,7 +178,7 @@ fun <T : Enum<T>> SettingDropdown(
         },
         soundEffectManager = soundEffectManager
     )
-    
+
     // Dropdown Menu
     DropdownMenu(
         expanded = expanded,
@@ -129,11 +192,11 @@ fun <T : Enum<T>> SettingDropdown(
     ) {
         options.forEach { option ->
             DropdownMenuItem(
-                text = { 
+                text = {
                     Text(
                         formatEnumName(option.name),
                         style = MaterialTheme.typography.bodyMedium
-                    ) 
+                    )
                 },
                 onClick = {
                     soundEffectManager.playClickSound()
@@ -141,9 +204,9 @@ fun <T : Enum<T>> SettingDropdown(
                     expanded = false
                 },
                 colors = MenuDefaults.itemColors(
-                    textColor = if (option == currentValue) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
+                    textColor = if (option == currentValue)
+                        MaterialTheme.colorScheme.primary
+                    else
                         MaterialTheme.colorScheme.onSurface
                 )
             )
@@ -169,11 +232,7 @@ fun SettingToggle(
         title = title,
         description = description,
         leadingIcon = leadingIcon,
-        onClick = if (enabled) {
-            {
-                onCheckedChange(!checked)
-            }
-        } else null,
+        onClick = if (enabled) { { onCheckedChange(!checked) } } else null,
         control = {
             Switch(
                 checked = checked,
@@ -282,7 +341,7 @@ fun SettingInfo(
         title = title,
         description = description,
         leadingIcon = leadingIcon,
-        control = value?.let { 
+        control = value?.let {
             {
                 Text(
                     text = it,
@@ -314,17 +373,17 @@ fun SettingDivider(
     modifier: Modifier = Modifier
 ) {
     var visible by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(Unit) {
         visible = true
     }
-    
+
     val alpha by animateFloatAsState(
         targetValue = if (visible) 0.3f else 0f,
         animationSpec = tween(300),
         label = "divider_alpha"
     )
-    
+
     HorizontalDivider(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha),
         modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -344,13 +403,13 @@ fun SettingGroup(
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by remember { mutableStateOf(initiallyExpanded) }
-    
+
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(300),
         label = "expand_rotation"
     )
-    
+
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
@@ -365,16 +424,14 @@ fun SettingGroup(
             SettingItem(
                 title = title,
                 description = if (expanded) "Tap to collapse" else "Tap to expand",
-                leadingIcon = { 
+                leadingIcon = {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
-                    ) 
+                    )
                 },
-                onClick = {
-                    expanded = !expanded
-                },
+                onClick = { expanded = !expanded },
                 control = {
                     Icon(
                         imageVector = Icons.Filled.ArrowDropDown,
