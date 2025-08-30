@@ -17,14 +17,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import com.ktimazstudio.R
+import com.ktimazstudio.DevActivity
 import com.ktimazstudio.SettingsActivity
-import com.ktimazstudio.DevScreen
+import com.ktimazstudio.EXTRA_DEV_TITLE
+import com.ktimazstudio.EXTRA_DEV_MESSAGE
 import com.ktimazstudio.enums.Screen
 import com.ktimazstudio.managers.SoundEffectManager
 import com.ktimazstudio.managers.SharedPreferencesManager
@@ -143,7 +143,7 @@ fun MainApplicationUI(
                             } else {
                                 // Enhanced title with animation
                                 Text(
-                                    text = stringResource(id = R.string.app_name),
+                                    text = "Ktimaz Studio",
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -250,7 +250,7 @@ fun MainApplicationUI(
                                         handleCardClick(title, context)
                                     },
                                     soundEffectManager = soundEffectManager,
-                                    sharedPrefsManager = sharedPrefsManager
+                                    sharedPreferencesManager = sharedPrefsManager
                                 )
                             } else {
                                 DashboardScreen(
@@ -308,17 +308,17 @@ private fun handleCardClick(title: String, context: android.content.Context) {
         }
         "Bio Scanner", "Quantum Encryptor", "Neural Network" -> {
             context.startActivity(
-                Intent(context, DevScreen::class.java).apply { // fixed 
-                    putExtra("CARD_TITLE", title)
-                    putExtra("CARD_TYPE", "PREMIUM")
+                Intent(context, DevActivity::class.java).apply {
+                    putExtra(EXTRA_DEV_TITLE, title)
+                    putExtra(EXTRA_DEV_MESSAGE, "This $title module is under development and will be available in a future update.")
                 }
             )
         }
         else -> {
             context.startActivity(
-                Intent(context, DevScreen::class.java).apply { // fixed 
-                    putExtra("CARD_TITLE", title)
-                    putExtra("CARD_TYPE", "STANDARD")
+                Intent(context, DevActivity::class.java).apply {
+                    putExtra(EXTRA_DEV_TITLE, title)
+                    putExtra(EXTRA_DEV_MESSAGE, "The $title feature is coming soon. Stay tuned for updates!")
                 }
             )
         }
