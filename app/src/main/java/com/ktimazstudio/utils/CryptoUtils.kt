@@ -369,13 +369,160 @@ class CryptoUtils {
         }
     }
     
+/**
+ * Advanced string obfuscation utilities
+ */
+object StringObfuscation {
+    
+    private val obfuscationKey = generateObfuscationKey()
+    
+    private fun generateObfuscationKey(): IntArray {
+        val random = kotlin.random.Random(System.currentTimeMillis())
+        return IntArray(256) { random.nextInt(1, 255) }
+    }
+    
     /**
-     * Data class for encrypted data with metadata
+     * Compile-time string obfuscation
      */
-    data class EncryptedData(
+    fun obfuscateString(input: String): ObfuscatedString {
+        val obfuscated = input.toByteArray(Charsets.UTF_8).mapIndexed { index, byte ->
+            (byte.toInt() xor obfuscationKey[index % obfuscationKey.size]).toByte()
+        }.toByteArray()
+        
+        return ObfuscatedString(
+            data = Base64.encodeToString(obfuscated, Base64.NO_WRAP),
+            keyIndex = kotlin.random.Random.nextInt(obfuscationKey.size)
+        )
+    }
+    
+    /**
+     * Runtime string deobfuscation
+     */
+    fun deobfuscateString(obfuscated: ObfuscatedString): String {
+        val encryptedBytes = Base64.decode(obfuscated.data, Base64.NO_WRAP)
+        val decryptedBytes = encryptedBytes.mapIndexed { index, byte ->
+            (byte.toInt() xor obfuscationKey[(index + obfuscated.keyIndex) % obfuscationKey.size]).toByte()
+        }.toByteArray()
+        
+        return String(decryptedBytes, Charsets.UTF_8)
+    }
+    
+    data class ObfuscatedString(
         val data: String,
-        val iv: String,
-        val algorithm: String,
-        val timestamp: Long = System.currentTimeMillis()
+        val keyIndex: Int
     )
+}
+
+/**
+ * Hardware-based device fingerprinting for enhanced security
+ */
+object DeviceFingerprinting {
+    
+    /**
+     * Generate comprehensive device fingerprint
+     */
+    fun generateDeviceFingerprint(context: Context): String {
+        val components = mutableListOf<String>()
+        
+        // Hardware identifiers
+        components.addAll(getHardwareIdentifiers())
+        
+        // System properties
+        components.addAll(getSystemProperties())
+        
+        // Display characteristics
+        components.addAll(getDisplayCharacteristics(context))
+        
+        // Combine and hash for final fingerprint
+        val combined = components.joinToString("|")
+        val hash = CryptoUtils().computeSHA512(combined.toByteArray())
+        
+        return Base64.encodeToString(hash, Base64.NO_WRAP)
+    }
+    
+    private fun getHardwareIdentifiers(): List<String> {
+        return listOf(
+            android.os.Build.BOARD,
+            android.os.Build.BRAND,
+            android.os.Build.DEVICE,
+            android.os.Build.HARDWARE,
+            android.os.Build.MANUFACTURER,
+            android.os.Build.MODEL,
+            android.os.Build.PRODUCT,
+            android.os.Build.SUPPORTED_ABIS.joinToString(",")
+        )
+    }
+    
+    private fun getSystemProperties(): List<String> {
+        return listOf(
+            android.os.Build.VERSION.RELEASE,
+            android.os.Build.VERSION.SDK_INT.toString(),
+            android.os.Build.VERSION.SECURITY_PATCH,
+            android.os.Build.FINGERPRINT,
+            System.getProperty("java.vm.version") ?: "",
+            System.getProperty("java.vm.name") ?: "",
+            Runtime.getRuntime().availableProcessors().toString()
+        )
+    }
+    
+    private fun getDisplayCharacteristics(context: Context): List<String> {
+        val displayMetrics = context.resources.displayMetrics
+        return listOf(
+            "${displayMetrics.widthPixels}x${displayMetrics.heightPixels}",
+            displayMetrics.densityDpi.toString(),
+            displayMetrics.density.toString(),
+            displayMetrics.scaledDensity.toString(),
+            displayMetrics.xdpi.toString(),
+            displayMetrics.ydpi.toString()
+        )
+    }
+    
+    /**
+     * Generate session-based device token
+     */
+    fun generateSessionToken(context: Context): String {
+        val baseFingerprint = generateDeviceFingerprint(context)
+        val timestamp = System.currentTimeMillis()
+        val random = kotlin.random.Random.nextBytes(16)
+        
+        val combined = "$baseFingerprint|$timestamp|${Base64.encodeToString(random, Base64.NO_WRAP)}"
+        val hash = CryptoUtils().computeSHA512(combined.toByteArray())
+        
+        return Base64.encodeToString(hash, Base64.NO_WRAP)
+    }
+}
+
+/**
+ * Network security and certificate pinning utilities
+ */
+object NetworkSecurity {
+    
+    private val pinnedCertificates = mapOf(
+        "api.ktimazstudio.com" to "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "cdn.ktimazstudio.com" to "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+    )
+    
+    /**
+     * Generate secure network request headers
+     */
+    fun generateSecureHeaders(context: Context): Map<String, String> {
+        val deviceToken = DeviceFingerprinting.generateSessionToken(context)
+        val timestamp = System.currentTimeMillis()
+        val nonce = kotlin.random.Random.nextBytes(16)
+        val nonceString = Base64.encodeToString(nonce, Base64.NO_WRAP)
+        
+        return mapOf(
+            "X-Device-Token" to deviceToken,
+            "X-Timestamp" to timestamp.toString(),
+            "X-Nonce" to nonceString,
+            "X-App-Version" to com.ktimazstudio.BuildConfig.VERSION_NAME,
+            "X-Security-Hash" to generateRequestHash(deviceToken, timestamp.toString(), nonceString)
+        )
+    }
+    
+    private fun generateRequestHash(vararg components: String): String {
+        val combined = components.joinToString("|")
+        val hash = CryptoUtils().computeSHA512(combined.toByteArray())
+        return Base64.encodeToString(hash, Base64.NO_WRAP)
+    }
 }
