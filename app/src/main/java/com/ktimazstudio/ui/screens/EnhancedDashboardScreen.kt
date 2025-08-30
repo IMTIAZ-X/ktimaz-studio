@@ -1,4 +1,3 @@
-import com.ktimazstudio.DevActivity
 package com.ktimazstudio.ui.screens
 
 import android.content.Intent
@@ -36,7 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import com.ktimazstudio.DevScreen
+import com.ktimazstudio.DevActivity
 import com.ktimazstudio.SettingsActivity
 import com.ktimazstudio.enums.*
 import com.ktimazstudio.managers.SoundEffectManager
@@ -58,15 +57,15 @@ fun EnhancedDashboardScreen(
     searchQuery: String,
     onCardClick: (String) -> Unit,
     soundEffectManager: SoundEffectManager,
-    sharedPrefsManager: SharedPreferencesManager
+    sharedPreferencesManager: SharedPreferencesManager
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     
     // Get user preferences
-    val dashboardViewType = remember { mutableStateOf(sharedPrefsManager.getDashboardViewType()) }
-    val cardSize = remember { mutableStateOf(sharedPrefsManager.getCardSize()) }
-    val layoutDensity = remember { mutableStateOf(sharedPrefsManager.getLayoutDensity()) }
+    val dashboardViewType = remember { mutableStateOf(sharedPreferencesManager.getDashboardViewType()) }
+    val cardSize = remember { mutableStateOf(sharedPreferencesManager.getCardSize()) }
+    val layoutDensity = remember { mutableStateOf(sharedPreferencesManager.getLayoutDensity()) }
     
     // Enhanced module data
     val modules = remember {
@@ -394,7 +393,7 @@ private fun EnhancedModuleCard(
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            module.category.icon.defaultTint.copy(alpha = 0.1f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             MaterialTheme.colorScheme.surface.copy(alpha = 0.05f)
                         )
                     )
@@ -641,6 +640,7 @@ private fun ModuleListItem(
     }
 }
 
+// FIXED: Made function private and corrected DevActivity reference
 private fun handleModuleClick(
     module: ModuleItem,
     context: android.content.Context,
@@ -656,12 +656,11 @@ private fun handleModuleClick(
         }
         else -> {
             context.startActivity(
-                Intent(context, DevScreen::class.java).putExtra("CARD_TITLE", module.title)
+                Intent(context, DevActivity::class.java).apply {
+                    putExtra(EXTRA_DEV_TITLE, module.title)
+                    putExtra(EXTRA_DEV_MESSAGE, "This ${module.title} module is under development.")
+                }
             )
         }
     }
 }
-
-// Extension property for getting default tint color from category
-private val androidx.compose.ui.graphics.vector.ImageVector.defaultTint: androidx.compose.ui.graphics.Color
-    @Composable get() = MaterialTheme.colorScheme.primary

@@ -58,7 +58,7 @@ fun EnhancedSettingsScreen(
         SettingSection(
             title = "Interface & Experience",
             icon = Icons.Filled.Palette
-        ), content = {
+        ) {
             // Old UI Toggle with confirmation
             SettingItem(
                 title = "Classic Interface",
@@ -187,7 +187,7 @@ fun EnhancedSettingsScreen(
         SettingSection(
             title = "Interaction & Feedback",
             icon = Icons.Filled.TouchApp
-        ), content = {
+        ) {
             // Sound Effects
             SettingItem(
                 title = "Sound Effects",
@@ -248,7 +248,7 @@ fun EnhancedSettingsScreen(
         SettingSection(
             title = "Security & Privacy",
             icon = Icons.Filled.Security
-        ), content = {
+        ) {
             // Secure Mode
             SettingItem(
                 title = "Enhanced Security",
@@ -326,7 +326,7 @@ fun EnhancedSettingsScreen(
         SettingSection(
             title = "System Information",
             icon = Icons.Filled.Info
-        ), content = {
+        ) {
             // About
             SettingItem(
                 title = "About Application",
@@ -390,7 +390,7 @@ private fun AboutDialog(
                 )
                 
                 Text(
-                    "🚀 Enhanced Features:",
+                    "Enhanced Features:",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -418,7 +418,7 @@ private fun AboutDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    "Developed by Ktimaz Studio with ❤️",
+                    "Developed by Ktimaz Studio",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
