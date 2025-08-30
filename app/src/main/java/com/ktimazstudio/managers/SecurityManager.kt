@@ -14,6 +14,7 @@ import com.ktimazstudio.BuildConfig
 import com.ktimazstudio.enums.SecurityIssue
 import com.ktimazstudio.utils.CryptoUtils
 import com.ktimazstudio.utils.DeviceFingerprinting
+import com.ktimazstudio.utils.NetworkSecurity
 import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.File
@@ -665,6 +666,12 @@ class SecurityManager(private val context: Context) {
         return (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
 
+    /**
+     * VPN Detection
+     */
+    fun isVpnActive(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        
     /**
      * VPN Detection
      */
