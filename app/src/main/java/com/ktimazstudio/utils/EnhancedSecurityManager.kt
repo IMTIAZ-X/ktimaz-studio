@@ -144,7 +144,7 @@ class EnhancedSecurityManager(private val context: Context) {
             ::checkBuildProperties,
             ::checkEmulatorFiles,
             ::checkHardwareFeatures,
-            ::checkTelephonyFeatures,
+           // ::checkTelephonyFeatures,
             ::checkSensorAvailability,
             ::checkCpuArchitecture,
             ::checkMemoryPatterns,
@@ -188,8 +188,8 @@ class EnhancedSecurityManager(private val context: Context) {
         return missingCount >= 3
     }
 
-    private fun checkTelephonyFeatures(): Boolean {
-        /*return try {
+  /*  private fun checkTelephonyFeatures(): Boolean {
+        return try {
             val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as android.telephony.TelephonyManager
             val deviceId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (context.checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
@@ -205,8 +205,8 @@ class EnhancedSecurityManager(private val context: Context) {
             telephonyManager.networkOperatorName.contains("android", ignoreCase = true)
         } catch (e: Exception) {
             true
-        }*/
-    }
+        }
+    }*/
 
     private fun checkSensorAvailability(): Boolean {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
