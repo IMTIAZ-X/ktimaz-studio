@@ -389,7 +389,6 @@ fun SettingGroup(
                 },
                 soundEffectManager = soundEffectManager
             )
-            
             // Content
             AnimatedVisibility(
                 visible = expanded,
