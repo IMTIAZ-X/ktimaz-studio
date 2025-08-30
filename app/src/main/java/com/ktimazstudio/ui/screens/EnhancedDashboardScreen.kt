@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import com.ktimazstudio.DevActivity
 import com.ktimazstudio.SettingsActivity
+import com.ktimazstudio.EXTRA_DEV_TITLE
+import com.ktimazstudio.EXTRA_DEV_MESSAGE
 import com.ktimazstudio.enums.*
 import com.ktimazstudio.managers.SoundEffectManager
 import com.ktimazstudio.managers.SharedPreferencesManager
