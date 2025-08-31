@@ -43,20 +43,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      # FIXED: Create keystore with correct credentials matching build.gradle.kts
-      - name: Create release keystore
-        run: |
-          mkdir -p app/
-          keytool -genkey -v \
-            -keystore app/Ktimazstudio.keystore \
-            -storepass ktimazstudio123 \
-            -alias ktimazstudio \
-            -keypass ktimazstudio123 \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "C=US, O=Ktimaz Studio, CN=Ktimaz Studio"
-
       - name: Run Lint
         run: ./gradlew lintDebug
 
