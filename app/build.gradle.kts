@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.ktimazstudio"
-        minSdk = 26
+        minSdk = 25
         targetSdk = 35
         versionCode = 1000
         versionName = "3.0"
