@@ -43,6 +43,28 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+      # FIXED: Use existing keystore and verify it exists
+      - name: Setup Release Keystore
+        run: |
+          echo "Checking for existing keystore..."
+          if [ -f "app/Ktimazstudio.keystore" ]; then
+            echo "Found existing keystore at app/Ktimazstudio.keystore"
+            ls -la app/Ktimazstudio.keystore
+          else
+            echo "Keystore not found, creating new one..."
+            keytool -genkey -v \
+              -keystore app/Ktimazstudio.keystore \
+              -storepass ktimazstudio123 \
+              -alias ktimazstudio \
+              -keypass ktimazstudio123 \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "C=US, O=Ktimaz Studio, CN=Ktimaz Studio"
+            echo "Created new keystore"
+            ls -la app/Ktimazstudio.keystore
+          fi
+
       - name: Run Lint
         run: ./gradlew lintDebug
 
@@ -75,10 +97,10 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      # FIXED: Use correct keystore environment variables
+      # FIXED: Correct environment variables and path
       - name: Build Release APK
         env:
-          RELEASE_STORE_FILE: app/Ktimazstudio.keystore
+          RELEASE_STORE_FILE: Ktimazstudio.keystore
           RELEASE_STORE_PASSWORD: ktimazstudio123
           RELEASE_KEY_ALIAS: ktimazstudio
           RELEASE_KEY_PASSWORD: ktimazstudio123
