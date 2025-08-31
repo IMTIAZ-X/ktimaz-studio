@@ -43,10 +43,19 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Create debug keystore for release signing
+      # FIXED: Create keystore with correct credentials matching build.gradle.kts
+      - name: Create release keystore
         run: |
           mkdir -p app/
-          keytool -genkey -v -keystore app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
+          keytool -genkey -v \
+            -keystore app/Ktimazstudio.keystore \
+            -storepass ktimazstudio123 \
+            -alias ktimazstudio \
+            -keypass ktimazstudio123 \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "C=US, O=Ktimaz Studio, CN=Ktimaz Studio"
 
       - name: Run Lint
         run: ./gradlew lintDebug
@@ -80,12 +89,13 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
+      # FIXED: Use correct keystore environment variables
       - name: Build Release APK
         env:
-          RELEASE_STORE_FILE: app/debug.keystore
-          RELEASE_STORE_PASSWORD: android
-          RELEASE_KEY_ALIAS: androiddebugkey
-          RELEASE_KEY_PASSWORD: android
+          RELEASE_STORE_FILE: app/Ktimazstudio.keystore
+          RELEASE_STORE_PASSWORD: ktimazstudio123
+          RELEASE_KEY_ALIAS: ktimazstudio
+          RELEASE_KEY_PASSWORD: ktimazstudio123
         run: ./gradlew assembleRelease
 
       - name: Upload Release APK
