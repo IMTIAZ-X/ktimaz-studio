@@ -125,6 +125,7 @@ android {
 dependencies {
     implementation("org.bouncycastle:bcprov-jdk15on:1.70")
     implementation("org.conscrypt:conscrypt-android:2.5.2")
+    implementation ("androidx.fragment:fragment-ktx:1.8.4")
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
