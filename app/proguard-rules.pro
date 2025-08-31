@@ -280,7 +280,7 @@
 -adaptresourcefilecontents
 
 # Remove unused resources
--shrinkresources
+#-shrinkresources
 
 # Security: Keep critical security method names from being obfuscated
 -keepnames class com.ktimazstudio.utils.EnhancedSecurityManager {
