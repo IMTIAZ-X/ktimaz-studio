@@ -43,18 +43,32 @@ android {
             null
         }
 
-    signingConfigs {
+/*    signingConfigs {
         create("release") {
             val storeFilePath = System.getenv("RELEASE_STORE_FILE") ?: "Ktimazstudio.keystore"
             val storePass = System.getenv("RELEASE_STORE_PASSWORD") ?: "ktimazstudio123"
             val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "ktimazstudio" 
             val keyPass = System.getenv("RELEASE_KEY_PASSWORD") ?: "ktimazstudio123"
             
-            storeFile = file(storeFilePath)
-            storePassword = storePass
-            keyAlias = keyAliasName
-            keyPassword = keyPass
+            //storeFile = file(storeFilePath)
+            //storePassword = storePass
+            //keyAlias = keyAliasName
+            //keyPassword = keyPass
             
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
+        }
+    }
+    */
+    
+      signingConfigs {
+        create("release") {
+            storeFile = file(project.property("RELEASE_STORE_FILE") as String)
+            storePassword = project.property("RELEASE_STORE_PASSWORD") as String
+            keyAlias = project.property("RELEASE_KEY_ALIAS") as String
+            keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
@@ -88,12 +102,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_23
+        targetCompatibility = JavaVersion.VERSION_23
     }
 
     kotlin {
-        jvmToolchain(17)
+        jvmToolchain(23)
     }
     
     /*
