@@ -31,9 +31,9 @@
 -keepattributes *Annotation*, EnclosingMethod, InnerClasses
 
 # Obfuscation & Renaming via dictionary
-#-obfuscationdictionary dict.txt
-#-classobfuscationdictionary dict.txt
-#-packageobfuscationdictionary dict.txt
+-obfuscationdictionary dict.txt
+-classobfuscationdictionary dict.txt
+-packageobfuscationdictionary dict.txt
 
 # Full obfuscation and shrinking
 -dontskipnonpubliclibraryclasses
