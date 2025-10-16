@@ -18,6 +18,10 @@ android {
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     buildFeatures {
@@ -41,18 +45,16 @@ android {
 
     signingConfigs {
         create("release") {
-            // --- Load from env vars or fallback ---
             val storeFilePath = System.getenv("RELEASE_STORE_FILE") ?: "Ktimazstudio.keystore"
             val storePass = System.getenv("RELEASE_STORE_PASSWORD") ?: "ktimazstudio123"
-            val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "ktimazstudio"
+            val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "ktimazstudio" 
             val keyPass = System.getenv("RELEASE_KEY_PASSWORD") ?: "ktimazstudio123"
-
-            // --- Apply to signing config ---
+            
             storeFile = file(storeFilePath)
             storePassword = storePass
             keyAlias = keyAliasName
             keyPassword = keyPass
-
+            
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
@@ -61,9 +63,19 @@ android {
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            buildConfigField("String", "BUILD_VARIANT", "\"debug\"")
+            buildConfigField("boolean", "ENABLE_LOGGING", "true")
+        }
+        
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -83,6 +95,22 @@ android {
     kotlin {
         jvmToolchain(23)
     }
+    
+    /*
+    // FIXED: Updated Kotlin options to use compilerOptions DSL
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+            freeCompilerArgs.addAll(
+                listOf(
+                    "-opt-in=kotlin.RequiresOptIn",
+                    "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                    "-opt-in=androidx.compose.animation.ExperimentalAnimationApi"
+                )
+            )
+        }
+    }*/
+    
 
     // composeOptions should be inside android block
     composeOptions {
