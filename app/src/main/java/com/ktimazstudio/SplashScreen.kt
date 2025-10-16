@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer // Required for graphicsLayer modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -40,31 +39,25 @@ class SplashScreen : ComponentActivity() {
 @Composable
 fun SplashScreenV2() {
     val context = LocalContext.current
-    // MutableTransitionState helps orchestrate multiple animations based on a single state
     val splashScreenState = remember { MutableTransitionState(false) }
 
     LaunchedEffect(Unit) {
-        // Trigger the animations
         splashScreenState.targetState = true
-        // Delay for animations to play out (adjust as needed)
-        delay(4000) // Total animation duration + buffer
-        // Navigate to MainActivity and finish this activity
+        delay(4000)
         context.startActivity(Intent(context, MainActivity::class.java))
         if (context is ComponentActivity) context.finish()
     }
 
-    // Define the transition for the entire splash screen animation
     val transition = updateTransition(splashScreenState, label = "SplashScreenTransition")
 
-    // Logo scale animation with a spring effect for a more dynamic pop
+    // Logo animations
     val logoScale by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 1000, easing = EaseOutBounce) },
         label = "logoScale"
     ) { state ->
-        if (state) 1.2f else 0.5f // Start slightly smaller, then pop larger
+        if (state) 1.2f else 0.5f
     }
 
-    // Logo rotation animation
     val logoRotation by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 2000, easing = FastOutSlowInEasing) },
         label = "logoRotation"
@@ -72,7 +65,6 @@ fun SplashScreenV2() {
         if (state) 720f else 0f
     }
 
-    // Logo alpha animation for initial fade-in
     val logoAlpha by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 800, delayMillis = 200) },
         label = "logoAlpha"
@@ -80,22 +72,58 @@ fun SplashScreenV2() {
         if (state) 1f else 0f
     }
 
-    // Powered By text alpha animation
+    // Powered By text animations
     val poweredByAlpha by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 800, delayMillis = 2500) }, // Fade in after logo
+        transitionSpec = { tween(durationMillis = 800, delayMillis = 2500) },
         label = "poweredByAlpha"
     ) { state ->
         if (state) 1f else 0f
     }
 
+    val poweredByScale by transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 1000, delayMillis = 2500, easing = EaseOutBack) },
+        label = "poweredByScale"
+    ) { state ->
+        if (state) 1f else 0.8f
+    }
+
+    val poweredByOffsetY by transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 800, delayMillis = 2500, easing = EaseOutCubic) },
+        label = "poweredByOffsetY"
+    ) { state ->
+        if (state) 0f else 30f
+    }
+
+    // Animated gradient background
+    val infiniteGradientTransition = rememberInfiniteTransition(label = "GradientAnimation")
+    val gradientOffset by infiniteGradientTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "gradientOffset"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
+                Brush.linearGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.background
+                        Color(0xFFFF6B6B), // Red
+                        Color(0xFFFFD93D), // Yellow
+                        Color(0xFFFF8C42), // Orange
+                        Color(0xFFFF6B6B)  // Red
+                    ),
+                    start = androidx.compose.ui.geometry.Offset(
+                        gradientOffset * 1000f,
+                        gradientOffset * 1000f
+                    ),
+                    end = androidx.compose.ui.geometry.Offset(
+                        (1 - gradientOffset) * 1000f,
+                        (1 - gradientOffset) * 1000f
                     )
                 )
             )
@@ -114,21 +142,29 @@ fun SplashScreenV2() {
                 modifier = Modifier
                     .size(220.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.12f))
-                    .blur(30.dp)
+                    .background(Color.White.copy(alpha = 0.15f))
+                    .blur(40.dp)
             )
 
             Box(
                 modifier = Modifier
                     .size(150.dp)
-                    .graphicsLayer { // Apply graphicsLayer for scale, rotation, and alpha
+                    .graphicsLayer {
                         scaleX = logoScale
                         scaleY = logoScale
                         rotationZ = logoRotation
                         alpha = logoAlpha
                     }
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.3f),
+                                Color.White.copy(alpha = 0.1f)
+                            )
+                        )
+                    )
+                    .shadow(elevation = 20.dp, shape = CircleShape, ambientColor = Color.White),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -146,25 +182,37 @@ fun SplashScreenV2() {
                 .padding(bottom = 170.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            AdvancedLoadingDots() // Call the advanced version
+            AdvancedLoadingDots()
         }
 
-        // Powered By Text
+        // Powered By Text with advanced animations
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 24.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            Text(
-                text = "Powered by KTiMAZ Studio",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.graphicsLayer {
-                    alpha = poweredByAlpha // Apply alpha animation
+                    alpha = poweredByAlpha
+                    scaleX = poweredByScale
+                    scaleY = poweredByScale
+                    translationY = poweredByOffsetY
                 }
-            )
+            ) {
+                // "Powered by" text
+                Text(
+                    text = "Powered by",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Light,
+                    color = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+                
+                // Animated "ImtBytes" text
+                AnimatedGradientText()
+            }
         }
     }
 }
@@ -203,8 +251,8 @@ fun RippleWaveAnimation() {
 fun AdvancedLoadingDots() {
     val dotCount = 3
     val dotSize = 10.dp
-    val animationDuration = 800 // Duration for one dot's pulse
-    val delayBetweenDots = 200 // Delay before the next dot starts its pulse
+    val animationDuration = 800
+    val delayBetweenDots = 200
 
     val infiniteTransition = rememberInfiniteTransition(label = "LoadingDotsInfiniteTransition")
 
@@ -255,8 +303,47 @@ fun AdvancedLoadingDots() {
                         alpha = dotAlpha
                     }
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(Color.White.copy(alpha = 0.9f))
             )
         }
+    }
+}
+
+/**
+ * Creates an animated gradient text effect for "ImtBytes"
+ */
+@Composable
+fun AnimatedGradientText() {
+    val infiniteTransition = rememberInfiniteTransition(label = "TextGradientAnimation")
+    
+    val textScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "textScale"
+    )
+
+    Box(
+        modifier = Modifier.graphicsLayer {
+            scaleX = textScale
+            scaleY = textScale
+        }
+    ) {
+        Text(
+            text = "ImtBytes",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            style = MaterialTheme.typography.titleLarge.copy(
+                shadow = androidx.compose.ui.graphics.Shadow(
+                    color = Color.Black.copy(alpha = 0.3f),
+                    offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                    blurRadius = 4f
+                )
+            )
+        )
     }
 }
