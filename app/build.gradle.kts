@@ -50,11 +50,6 @@ android {
             val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "ktimazstudio" 
             val keyPass = System.getenv("RELEASE_KEY_PASSWORD") ?: "ktimazstudio123"
             
-            storeFile = file(storeFilePath)
-            storePassword = storePass
-            keyAlias = keyAliasName
-            keyPassword = keyPass
-            
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
