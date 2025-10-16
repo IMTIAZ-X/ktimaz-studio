@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.ktimazstudio"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.ktimazstudio"
         minSdk = 25
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1000
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
