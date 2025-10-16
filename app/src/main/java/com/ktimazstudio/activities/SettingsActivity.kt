@@ -306,9 +306,9 @@ class SettingsActivity : ComponentActivity() {
                             title = { Text("Ktimaz Studio Interface") },
                             text = {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Version: ${java.time.Year.now().value}.alpha.${java.time.LocalDate.now().dayOfYear}", style = MaterialTheme.typography.bodyMedium)
-                                    Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
-                                    Text("© ${java.time.Year.now().value} Ktimaz Design Labs.", style = MaterialTheme.typography.bodySmall)
+                                    // Text("Version: ${java.time.Year.now().value}.alpha.${java.time.LocalDate.now().dayOfYear}", style = MaterialTheme.typography.bodyMedium)
+                                    //Text("Codename: Project Nova Genesis", style = MaterialTheme.typography.bodyMedium)
+                                    //Text("© ${java.time.Year.now().value} Ktimaz Design Labs.", style = MaterialTheme.typography.bodySmall)
                                     Spacer(Modifier.height(8.dp))
                                     Text("\"Pioneering tomorrow's experiences, today.\"", style = MaterialTheme.typography.labelMedium, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                                 }
