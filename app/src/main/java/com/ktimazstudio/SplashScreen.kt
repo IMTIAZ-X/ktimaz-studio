@@ -88,11 +88,7 @@ fun SplashScreenV2() {
 
     val textScale by transition.animateFloat(
         transitionSpec = { 
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium,
-                delayMillis = 2200
-            )
+            tween(durationMillis = 800, delayMillis = 2200, easing = EaseOutBack)
         },
         label = "textScale"
     ) { state ->
