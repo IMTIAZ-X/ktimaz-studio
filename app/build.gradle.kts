@@ -41,10 +41,18 @@ android {
 
     signingConfigs {
         create("release") {
-val storeFilePath = System.getenv("RELEASE_STORE_FILE") ?: "Ktimazstudio.keystore"
+            // --- Load from env vars or fallback ---
+            val storeFilePath = System.getenv("RELEASE_STORE_FILE") ?: "Ktimazstudio.keystore"
             val storePass = System.getenv("RELEASE_STORE_PASSWORD") ?: "ktimazstudio123"
-            val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "ktimazstudio" 
+            val keyAliasName = System.getenv("RELEASE_KEY_ALIAS") ?: "ktimazstudio"
             val keyPass = System.getenv("RELEASE_KEY_PASSWORD") ?: "ktimazstudio123"
+
+            // --- Apply to signing config ---
+            storeFile = file(storeFilePath)
+            storePassword = storePass
+            keyAlias = keyAliasName
+            keyPassword = keyPass
+
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
