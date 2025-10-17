@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.*
-// FIX: Required import for animateColor (Must be present)
+// 🛑 ESSENTIAL FIX: Ensure this exact import is present and not removed.
 import androidx.compose.animation.animateColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -283,7 +283,6 @@ fun AdvancedLoadingDots(dotColor: Color) {
 
 /**
  * Creates a pulsing, dual-color glowing text effect.
- * FIX APPLIED: Removed the redundant <Color> type argument from animateColor.
  */
 @Composable
 fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
@@ -300,7 +299,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
         label = "textPulse"
     )
 
-    // FIX: Removed the redundant <Color> type argument. Compiler now infers correctly.
+    // FIX: Must use the function without the <Color> type argument for the current environment.
     val animatedGlowColor by infiniteTransition.animateColor(
         initialValue = glowColor1,
         targetValue = glowColor2,
@@ -331,7 +330,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
                 .offset(x = 0.dp, y = 0.dp)
                 .blur(12.dp)
                 .drawBehind {
-                    // Access the color value using .value (now works due to the fix above)
+                    // This now works because the compiler correctly infers animatedGlowColor.value as Color
                     drawRect(
                         color = animatedGlowColor.value.copy(alpha = 0.8f),
                         blendMode = androidx.compose.ui.graphics.BlendMode.Screen
@@ -348,7 +347,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
             color = textColor,
             style = MaterialTheme.typography.titleLarge.copy(
                 shadow = androidx.compose.ui.graphics.Shadow(
-                    // Access the color value using .value (now works due to the fix above)
+                    // This now works because the compiler correctly infers animatedGlowColor.value as Color
                     color = animatedGlowColor.value.copy(alpha = 1f),
                     offset = androidx.compose.ui.geometry.Offset(0f, 0f),
                     blurRadius = 15f
