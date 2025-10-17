@@ -1,6 +1,8 @@
 package com.ktimazstudio
 
+import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,107 +10,133 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import kotlinx.coroutines.delay
 
+// ---------- THEME WRAPPER ---------- //
+@Composable
+fun KTiMAZTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+
+        darkTheme -> darkColorScheme()
+        else -> lightColorScheme()
+    }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.primary.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
+    }
+
+    MaterialTheme(colorScheme = colorScheme, typography = Typography(), content = content)
+}
+
+// ---------- MAIN SPLASH ---------- //
 class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            SplashScreenV2()
+            KTiMAZTheme {
+                SplashScreenPro()
+            }
         }
     }
 }
 
 @Composable
-fun SplashScreenV2() {
+fun SplashScreenPro() {
     val context = LocalContext.current
-    val splashScreenState = remember { MutableTransitionState(false) }
+    var startAnimation by remember { mutableStateOf(false) }
+    val dark = isSystemInDarkTheme()
 
     LaunchedEffect(Unit) {
-        splashScreenState.targetState = true
+        startAnimation = true
         delay(4000)
         context.startActivity(Intent(context, MainActivity::class.java))
-        if (context is ComponentActivity) context.finish()
+        (context as? Activity)?.finish()
     }
 
-    val transition = updateTransition(splashScreenState, label = "SplashScreenTransition")
+    // Animations
+    val logoScale by animateFloatAsState(
+        targetValue = if (startAnimation) 1.1f else 0.6f,
+        animationSpec = tween(1000, easing = EaseOutBack)
+    )
+    val logoRotation by animateFloatAsState(
+        targetValue = if (startAnimation) 360f else 0f,
+        animationSpec = tween(2500, easing = LinearEasing)
+    )
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(800)
+    )
+    val poweredAlpha by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(1000, delayMillis = 2500)
+    )
 
-    val logoScale by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 1000, easing = EaseOutBounce) },
-        label = "logoScale"
-    ) { state ->
-        if (state) 1.2f else 0.5f
-    }
+    // Background gradient shift
+    val infiniteTransition = rememberInfiniteTransition(label = "bg")
+    val gradientShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            tween(6000, easing = LinearEasing),
+            RepeatMode.Reverse
+        ),
+        label = "bgShift"
+    )
 
-    val logoRotation by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 2000, easing = FastOutSlowInEasing) },
-        label = "logoRotation"
-    ) { state ->
-        if (state) 720f else 0f
-    }
+    val backgroundBrush = Brush.linearGradient(
+        colors = if (dark) {
+            listOf(Color(0xFF0D0D0D), Color(0xFF1E1E1E), MaterialTheme.colorScheme.primary)
+        } else {
+            listOf(MaterialTheme.colorScheme.primaryContainer, Color.White, MaterialTheme.colorScheme.primary)
+        },
+        start = Offset(gradientShift, 0f),
+        end = Offset(0f, gradientShift)
+    )
 
-    val logoAlpha by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 800, delayMillis = 200) },
-        label = "logoAlpha"
-    ) { state ->
-        if (state) 1f else 0f
-    }
-
-    val poweredByAlpha by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 800, delayMillis = 2500) },
-        label = "poweredByAlpha"
-    ) { state ->
-        if (state) 1f else 0f
-    }
-
+    // --- UI Layer --- //
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
+            .background(backgroundBrush)
     ) {
-        // Ripple Wave Effect
-        RippleWaveAnimation()
-
-        // Center Logo
+        // Floating logo
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 100.dp),
             contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(220.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.12f))
-                    .blur(30.dp)
-            )
-
             Box(
                 modifier = Modifier
                     .size(150.dp)
@@ -119,18 +147,18 @@ fun SplashScreenV2() {
                         alpha = logoAlpha
                     }
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = R.mipmap.ic_launcher),
                     contentDescription = "App Logo",
-                    modifier = Modifier.size(120.dp)
+                    modifier = Modifier.size(100.dp)
                 )
             }
         }
 
-        // Loading dots below logo
+        // Animated dots loader
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -140,118 +168,83 @@ fun SplashScreenV2() {
             AdvancedLoadingDots()
         }
 
-        // Animated "Powered by KTiMAZ Studio" text (merged from old code)
+        // Brand text
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 24.dp),
+                .padding(bottom = 28.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.graphicsLayer {
-                    alpha = poweredByAlpha
-                }
+                modifier = Modifier.graphicsLayer { alpha = poweredAlpha }
             ) {
-                val poweredTextColor = if (isSystemInDarkTheme()) 
-                    Color.White.copy(alpha = 0.8f) 
-                else 
+                val poweredColor = if (dark)
+                    Color.White.copy(alpha = 0.8f)
+                else
                     Color.Black.copy(alpha = 0.7f)
 
-                    Text(
-                        text = "Powered by",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Light,
-                        letterSpacing = 2.sp,
-                        color = poweredTextColor,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
+                Text(
+                    text = "Powered by",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = 2.sp,
+                    color = poweredColor,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
                 AnimatedGradientText()
             }
         }
     }
 }
 
-@Composable
-fun RippleWaveAnimation() {
-    val infiniteTransition = rememberInfiniteTransition(label = "RippleWaveAnimation")
-    val rippleRadius by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 400f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rippleRadius"
-    )
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 100.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(rippleRadius.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.08f))
-        )
-    }
-}
-
+// ---------- ANIMATED LOADING DOTS ---------- //
 @Composable
 fun AdvancedLoadingDots() {
+    val infiniteTransition = rememberInfiniteTransition(label = "dots")
     val dotCount = 3
     val dotSize = 10.dp
-    val animationDuration = 800
-    val delayBetweenDots = 200
-    val infiniteTransition = rememberInfiniteTransition(label = "LoadingDotsInfiniteTransition")
+    val animationDuration = 900
+    val delayBetween = 150
 
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        repeat(dotCount) { index ->
-            val dotScale by infiniteTransition.animateFloat(
-                initialValue = 0.7f,
-                targetValue = 0.7f,
+    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        repeat(dotCount) { i ->
+            val scale by infiniteTransition.animateFloat(
+                initialValue = 0.6f,
+                targetValue = 1.2f,
                 animationSpec = infiniteRepeatable(
-                    animation = keyframes {
-                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1))
-                        0.7f at (index * delayBetweenDots) with LinearEasing
-                        1.2f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
-                        0.7f at (index * delayBetweenDots + animationDuration) with LinearEasing
-                        0.7f at durationMillis
+                    keyframes {
+                        durationMillis = animationDuration + delayBetween * dotCount
+                        0.6f at i * delayBetween
+                        1.2f at (i * delayBetween + animationDuration / 2)
+                        0.6f at (i * delayBetween + animationDuration)
                     },
-                    repeatMode = RepeatMode.Restart
+                    RepeatMode.Restart
                 ),
-                label = "dotScale_$index"
+                label = "dotScale$i"
             )
-
-            val dotAlpha by infiniteTransition.animateFloat(
-                initialValue = 0.5f,
-                targetValue = 0.5f,
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.4f,
+                targetValue = 1f,
                 animationSpec = infiniteRepeatable(
-                    animation = keyframes {
-                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1))
-                        0.5f at (index * delayBetweenDots) with LinearEasing
-                        1f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
-                        0.5f at (index * delayBetweenDots + animationDuration) with LinearEasing
-                        0.5f at durationMillis
+                    keyframes {
+                        durationMillis = animationDuration + delayBetween * dotCount
+                        0.4f at i * delayBetween
+                        1f at (i * delayBetween + animationDuration / 2)
+                        0.4f at (i * delayBetween + animationDuration)
                     },
-                    repeatMode = RepeatMode.Restart
+                    RepeatMode.Restart
                 ),
-                label = "dotAlpha_$index"
+                label = "dotAlpha$i"
             )
-
             Box(
                 modifier = Modifier
                     .padding(horizontal = 4.dp)
                     .size(dotSize)
                     .graphicsLayer {
-                        scaleX = dotScale
-                        scaleY = dotScale
-                        alpha = dotAlpha
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = alpha
                     }
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
@@ -260,64 +253,35 @@ fun AdvancedLoadingDots() {
     }
 }
 
+// ---------- BRAND GLOWING TEXT ---------- //
 @Composable
 fun AnimatedGradientText() {
-    val infiniteTransition = rememberInfiniteTransition(label = "TextGradient")
-
-    val gradientShift by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "textGradientShift"
+    val infiniteTransition = rememberInfiniteTransition(label = "text")
+    val shift by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 500f,
+        animationSpec = infiniteRepeatable(tween(4000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "shift"
     )
-
-    val textPulse by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "textPulse"
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 1f, targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "pulse"
     )
+    val dark = isSystemInDarkTheme()
+    val glowColor = if (dark) Color(0xFFFFD93D) else MaterialTheme.colorScheme.primary
+    val textColor = if (dark) Color.White else Color.Black
 
-    val isDark = isSystemInDarkTheme()
-    val glowColor = if (isDark) Color(0xFFFFD93D) else MaterialTheme.colorScheme.primary
-    val textColor = if (isDark) Color.White else Color.Black
-
-    Box(
-        modifier = Modifier
-            .graphicsLayer {
-                scaleX = textPulse
-                scaleY = textPulse
-            }
-    ) {
-        // Glow shadow
+    Box(Modifier.graphicsLayer { scaleX = pulse; scaleY = pulse }) {
         Text(
-            text = "ImtBytes",
+            text = "KTiMAZ Studio",
             fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp,
-            color = textColor.copy(alpha = 0.25f),
-            modifier = Modifier
-                .offset(x = 2.dp, y = 2.dp)
-                .blur(8.dp)
-        )
-
-        // Main glowing text
-        Text(
-            text = "ImtBytes",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp,
             color = textColor,
+            letterSpacing = 1.sp,
             style = MaterialTheme.typography.titleLarge.copy(
-                shadow = androidx.compose.ui.graphics.Shadow(
+                shadow = Shadow(
                     color = glowColor.copy(alpha = 0.6f),
-                    offset = androidx.compose.ui.geometry.Offset(0f, 0f),
+                    offset = Offset(0f, 0f),
                     blurRadius = 20f
                 )
             )
