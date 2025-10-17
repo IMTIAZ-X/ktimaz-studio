@@ -27,90 +27,78 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-// Assuming MainActivity exists in the same package or is properly imported/declared
-// You must have a resource R.mipmap.ic_launcher and a MainActivity::class.java defined
+// --- NEW FUTURISTIC COLORS ---
+private val NeonCyan = Color(0xFF00FFFF)
+private val ElectricPurple = Color(0xFFB500FF)
+private val DarkBackground = Color(0xFF0A0A0A)
+private val DarkAccent = Color(0xFF202020)
 
 class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            // NOTE: MaterialTheme is omitted here, assuming it's applied outside this
-            // or should be wrapped around the SplashScreen call if needed.
+            // In a real app, you would wrap this with your MaterialTheme
             SplashScreenContent()
         }
     }
 }
 
 /**
- * Main Composable for the Splash Screen.
+ * Main Composable for the Advanced Futuristic Splash Screen.
  */
 @Composable
 fun SplashScreenContent() {
     val context = LocalContext.current
-    // MutableTransitionState is used to drive the initial logo/text animations
     val splashScreenState = remember { MutableTransitionState(false) }
 
-    // Navigation logic: starts the animations, waits 4 seconds, then navigates to MainActivity
+    // Navigation logic
     LaunchedEffect(Unit) {
         splashScreenState.targetState = true // Start initial animations
-        delay(4000) // Wait for 4 seconds (time for logo and text animations to play out)
+        delay(4000)
         context.startActivity(Intent(context, MainActivity::class.java))
-        if (context is ComponentActivity) context.finish() // Finish the splash activity
+        if (context is ComponentActivity) context.finish()
     }
 
     val transition = updateTransition(splashScreenState, label = "SplashScreenTransition")
 
-    // --- Logo Animations ---
-
-    // 1. Logo Scale (starts small, bounces up)
+    // Logo Animations (Kept, but fine-tuned for the futuristic feel)
     val logoScale by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 1000, easing = EaseOutBounce) },
         label = "logoScale"
-    ) { state ->
-        if (state) 1.2f else 0.5f
-    }
+    ) { state -> if (state) 1.2f else 0.5f }
 
-    // 2. Logo Rotation (720 degrees spin)
     val logoRotation by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 2000, easing = FastOutSlowInEasing) },
         label = "logoRotation"
-    ) { state ->
-        if (state) 720f else 0f
-    }
+    ) { state -> if (state) 720f else 0f }
 
-    // 3. Logo Alpha (fade-in)
     val logoAlpha by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 800, delayMillis = 200) },
         label = "logoAlpha"
-    ) { state ->
-        if (state) 1f else 0f
-    }
+    ) { state -> if (state) 1f else 0f }
 
-    // --- "Powered By" Text Animation ---
-
-    // Alpha for the "Powered by KTiMAZ Studio" text (appears later)
     val poweredByAlpha by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 800, delayMillis = 2500) },
         label = "poweredByAlpha"
-    ) { state ->
-        if (state) 1f else 0f
-    }
+    ) { state -> if (state) 1f else 0f }
 
+    // --- "Ganatire" Inspired Background Gradient ---
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.background
+                        DarkBackground, // Deep Black at the top
+                        DarkAccent,     // Dark Grey/Accent below
+                        DarkBackground, // Deep Black at the bottom
                     )
                 )
             )
     ) {
-        // 1. Ripple Wave Effect (Subtle background animation)
-        RippleWaveAnimation()
+        // 1. Ripple Wave Effect (Now Neon)
+        RippleWaveAnimation(color = NeonCyan.copy(alpha = 0.5f))
 
         // 2. Center Logo and Blur Halo
         Box(
@@ -119,16 +107,16 @@ fun SplashScreenContent() {
                 .padding(bottom = 100.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Blurred Halo Effect
+            // Futuristic Halo Effect (Neon Purple Blur)
             Box(
                 modifier = Modifier
-                    .size(220.dp)
+                    .size(250.dp) // Made slightly larger
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.12f))
-                    .blur(30.dp)
+                    .background(ElectricPurple.copy(alpha = 0.15f))
+                    .blur(40.dp) // Stronger blur
             )
 
-            // Logo Container with Animations (Scale, Rotation, Alpha)
+            // Logo Container with Animations
             Box(
                 modifier = Modifier
                     .size(150.dp)
@@ -139,7 +127,8 @@ fun SplashScreenContent() {
                         alpha = logoAlpha
                     }
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    // Inner background is DarkAccent for a black/dark look
+                    .background(DarkAccent),
                 contentAlignment = Alignment.Center
             ) {
                 // Actual Logo Image (Ensure R.mipmap.ic_launcher exists)
@@ -151,14 +140,14 @@ fun SplashScreenContent() {
             }
         }
 
-        // 3. Loading dots below logo
+        // 3. Loading dots below logo (Now Neon)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 170.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            AdvancedLoadingDots()
+            AdvancedLoadingDots(dotColor = NeonCyan)
         }
 
         // 4. Animated "Powered by KTiMAZ Studio" text
@@ -170,45 +159,43 @@ fun SplashScreenContent() {
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.graphicsLayer {
-                    alpha = poweredByAlpha // Driven by the main transition
-                }
+                modifier = Modifier.graphicsLayer { alpha = poweredByAlpha }
             ) {
-                val poweredTextColor = if (isSystemInDarkTheme())
-                    Color.White.copy(alpha = 0.8f)
-                else
-                    Color.Black.copy(alpha = 0.7f)
+                // Text color is a subtle white/grey against the dark background
+                val poweredTextColor = Color.White.copy(alpha = 0.7f)
 
                 Text(
                     text = "Powered by",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Light,
+                    fontSize = 12.sp, // Slightly larger
+                    fontWeight = FontWeight.Medium,
                     letterSpacing = 2.sp,
                     color = poweredTextColor,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-                AnimatedGradientText()
+                AnimatedGradientText(
+                    glowColor1 = ElectricPurple, // Primary neon glow
+                    glowColor2 = NeonCyan        // Secondary neon glow
+                )
             }
         }
     }
 }
 
 // ----------------------------------------------------------------------
-// SUB-COMPOSABLES FOR ANIMATION EFFECTS
+// SUB-COMPOSABLES FOR ANIMATION EFFECTS (Updated for Dark/Neon)
 // ----------------------------------------------------------------------
 
 /**
  * Creates a subtle, continuously expanding wave effect centered below the logo.
  */
 @Composable
-fun RippleWaveAnimation() {
+fun RippleWaveAnimation(color: Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "RippleWaveAnimation")
-    // The radius expands from 0f to 400f over 3 seconds
     val rippleRadius by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 400f,
+        targetValue = 500f, // Made larger for a wider, more dramatic effect
         animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
+            animation = tween(3500, easing = LinearEasing), // Slower, wider pulse
             repeatMode = RepeatMode.Restart
         ),
         label = "rippleRadius"
@@ -223,70 +210,59 @@ fun RippleWaveAnimation() {
             modifier = Modifier
                 .size(rippleRadius.dp)
                 .clip(CircleShape)
-                // Use low opacity white for a faint, ethereal ripple
-                .background(Color.White.copy(alpha = 0.08f))
+                .background(color.copy(alpha = 0.1f)) // Use the passed neon color
         )
     }
 }
 
 /**
  * Creates a modern, staggered three-dot loading animation.
- * FIX: Adjusted keyframe timing for a perfect, infinite loop.
  */
 @Composable
-fun AdvancedLoadingDots() {
+fun AdvancedLoadingDots(dotColor: Color) {
     val dotCount = 3
-    val dotSize = 10.dp
-    val singleDotDuration = 400 // Time for one dot to scale up and down
-    val delayBetweenDots = 200 // Stagger delay
-    // Total duration for one full cycle (400ms * 2 + 200ms * (3-1)) = 1200ms
+    val dotSize = 12.dp // Slightly larger dots
+    val singleDotDuration = 400
+    val delayBetweenDots = 200
     val totalDuration = singleDotDuration * 2 + delayBetweenDots * (dotCount - 1)
 
     val infiniteTransition = rememberInfiniteTransition(label = "LoadingDotsInfiniteTransition")
 
     Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp), // Use spacedBy for cleaner padding
+        horizontalArrangement = Arrangement.spacedBy(6.dp), // More spacing
         verticalAlignment = Alignment.CenterVertically
     ) {
         repeat(dotCount) { index ->
-            val startDelay = index * delayBetweenDots // 0ms, 200ms, 400ms
+            val startDelay = index * delayBetweenDots
 
             // Dot Scale Animation
             val dotScale by infiniteTransition.animateFloat(
-                initialValue = 0.7f,
-                targetValue = 0.7f,
+                initialValue = 0.6f, // Starts smaller
+                targetValue = 0.6f,
                 animationSpec = infiniteRepeatable(
                     animation = keyframes {
                         durationMillis = totalDuration
-                        // 1. Initial State (Start of stagger)
-                        0.7f at startDelay with LinearEasing
-                        // 2. Peak (Scale Up)
-                        1.2f at startDelay + singleDotDuration / 2 with LinearEasing
-                        // 3. Return (Scale Down)
-                        0.7f at startDelay + singleDotDuration with LinearEasing
-                        // 4. Hold/Wait until the end of the full cycle (ensures a smooth loop)
-                        0.7f at durationMillis
+                        0.6f at startDelay with LinearEasing
+                        1.4f at startDelay + singleDotDuration / 2 with LinearEasing // Larger peak
+                        0.6f at startDelay + singleDotDuration with LinearEasing
+                        0.6f at durationMillis
                     },
                     repeatMode = RepeatMode.Restart
                 ),
                 label = "dotScale_$index"
             )
 
-            // Dot Alpha Animation (synchronised with scale)
+            // Dot Alpha Animation
             val dotAlpha by infiniteTransition.animateFloat(
-                initialValue = 0.5f,
-                targetValue = 0.5f,
+                initialValue = 0.4f,
+                targetValue = 0.4f,
                 animationSpec = infiniteRepeatable(
                     animation = keyframes {
                         durationMillis = totalDuration
-                        // 1. Initial State
-                        0.5f at startDelay with LinearEasing
-                        // 2. Peak (Alpha Up)
+                        0.4f at startDelay with LinearEasing
                         1f at startDelay + singleDotDuration / 2 with LinearEasing
-                        // 3. Return (Alpha Down)
-                        0.5f at startDelay + singleDotDuration with LinearEasing
-                        // 4. Hold/Wait
-                        0.5f at durationMillis
+                        0.4f at startDelay + singleDotDuration with LinearEasing
+                        0.4f at durationMillis
                     },
                     repeatMode = RepeatMode.Restart
                 ),
@@ -302,34 +278,43 @@ fun AdvancedLoadingDots() {
                         alpha = dotAlpha
                     }
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(dotColor) // Use the neon dot color
             )
         }
     }
 }
 
 /**
- * Creates a pulsing, glowing text effect with a fixed studio name.
- * FIX: Replaced "example" with "KTiMAZ Studio".
+ * Creates a pulsing, glowing text effect with dual neon glow.
  */
 @Composable
-fun AnimatedGradientText() {
-    val infiniteTransition = rememberInfiniteTransition(label = "TextGradient")
+fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
+    val infiniteTransition = rememberInfiniteTransition(label = "TextGlowPulse")
 
-    // Text Pulse Animation (subtle breathing effect)
+    // Text Pulse Animation
     val textPulse by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.08f,
+        targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
+            animation = tween(1500, easing = FastOutSlowInEasing), // Faster pulse
             repeatMode = RepeatMode.Reverse
         ),
         label = "textPulse"
     )
 
-    val isDark = isSystemInDarkTheme()
-    val glowColor = if (isDark) Color(0xFFFFD93D) else MaterialTheme.colorScheme.primary
-    val textColor = if (isDark) Color.White else Color.Black
+    // Animated glow color shift for a more dynamic neon look
+    val animatedGlowColor by infiniteTransition.animateColor(
+        initialValue = glowColor1,
+        targetValue = glowColor2,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "animatedGlowColor"
+    )
+
+    // Text color is White/Light Grey against the dark background
+    val textColor = Color.White
 
     Box(
         modifier = Modifier
@@ -338,30 +323,36 @@ fun AnimatedGradientText() {
                 scaleY = textPulse
             }
     ) {
-        // 1. Glow shadow (for depth/diffusion)
+        // 1. Shadow for deep diffusion/secondary glow (Purple)
         Text(
-            text = "KTiMAZ Studio", // FIXED: Placeholder replaced
-            fontSize = 22.sp,
+            text = "KTiMAZ Studio",
+            fontSize = 26.sp, // Larger text
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp,
-            color = textColor.copy(alpha = 0.25f),
+            letterSpacing = 2.sp, // Wider spacing
+            color = DarkBackground, // Shadow color blends with background (hidden text effect)
             modifier = Modifier
-                .offset(x = 2.dp, y = 2.dp)
-                .blur(8.dp)
+                .offset(x = 0.dp, y = 0.dp) // Centered shadow
+                .blur(12.dp) // Intense blur
+                .drawBehind {
+                    drawRect(
+                        color = animatedGlowColor.copy(alpha = 0.8f),
+                        blendMode = androidx.compose.ui.graphics.BlendMode.Screen // Lightens the effect
+                    )
+                }
         )
 
-        // 2. Main glowing text (with text style shadow for a crisp glow)
+        // 2. Main glowing text (with text style shadow for crisp edges)
         Text(
-            text = "KTiMAZ Studio", // FIXED: Placeholder replaced
-            fontSize = 22.sp,
+            text = "KTiMAZ Studio",
+            fontSize = 26.sp,
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp,
+            letterSpacing = 2.sp,
             color = textColor,
             style = MaterialTheme.typography.titleLarge.copy(
                 shadow = androidx.compose.ui.graphics.Shadow(
-                    color = glowColor.copy(alpha = 0.6f),
+                    color = animatedGlowColor.copy(alpha = 1f), // Use the animated color for the glow
                     offset = androidx.compose.ui.geometry.Offset(0f, 0f),
-                    blurRadius = 20f
+                    blurRadius = 15f
                 )
             )
         )
