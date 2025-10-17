@@ -152,14 +152,19 @@ fun SplashScreenV2() {
                     alpha = poweredByAlpha
                 }
             ) {
-                Text(
-                    text = "Powered by",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Light,
-                    letterSpacing = 2.sp,
-                    color = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+                val poweredTextColor = if (isSystemInDarkTheme()) 
+                    Color.White.copy(alpha = 0.8f) 
+                else 
+                    Color.Black.copy(alpha = 0.7f)
+
+                    Text(
+                        text = "Powered by",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Light,
+                        letterSpacing = 2.sp,
+                        color = poweredTextColor,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
                 AnimatedGradientText()
             }
         }
@@ -278,6 +283,10 @@ fun AnimatedGradientText() {
         label = "textPulse"
     )
 
+    val isDark = isSystemInDarkTheme()
+    val glowColor = if (isDark) Color(0xFFFFD93D) else MaterialTheme.colorScheme.primary
+    val textColor = if (isDark) Color.White else Color.Black
+
     Box(
         modifier = Modifier
             .graphicsLayer {
@@ -287,11 +296,11 @@ fun AnimatedGradientText() {
     ) {
         // Glow shadow
         Text(
-            text = "IMTBYTES",
+            text = "ImtBytes",
             fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp,
-            color = Color.White.copy(alpha = 0.3f),
+            color = textColor.copy(alpha = 0.25f),
             modifier = Modifier
                 .offset(x = 2.dp, y = 2.dp)
                 .blur(8.dp)
@@ -299,14 +308,14 @@ fun AnimatedGradientText() {
 
         // Main glowing text
         Text(
-            text = "IMTBYTES",
+            text = "ImtBytes",
             fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp,
-            color = Color.White,
+            color = textColor,
             style = MaterialTheme.typography.titleLarge.copy(
                 shadow = androidx.compose.ui.graphics.Shadow(
-                    color = Color(0xFFFFD93D).copy(alpha = 0.5f),
+                    color = glowColor.copy(alpha = 0.6f),
                     offset = androidx.compose.ui.geometry.Offset(0f, 0f),
                     blurRadius = 20f
                 )
