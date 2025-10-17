@@ -10,7 +10,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -54,32 +53,30 @@ fun SplashScreenV2() {
     val logoScale by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 1000, easing = EaseOutBounce) },
         label = "logoScale"
-    ) { if (it) 1.2f else 0.5f }
+    ) { state ->
+        if (state) 1.2f else 0.5f
+    }
 
     val logoRotation by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 2000, easing = FastOutSlowInEasing) },
         label = "logoRotation"
-    ) { if (it) 720f else 0f }
+    ) { state ->
+        if (state) 720f else 0f
+    }
 
     val logoAlpha by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 800, delayMillis = 200) },
         label = "logoAlpha"
-    ) { if (it) 1f else 0f }
+    ) { state ->
+        if (state) 1f else 0f
+    }
 
-    val textAlpha by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 1000, delayMillis = 2500) },
-        label = "textAlpha"
-    ) { if (it) 1f else 0f }
-
-    val textScale by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 800, delayMillis = 2500, easing = EaseOutBack) },
-        label = "textScale"
-    ) { if (it) 1f else 0.5f }
-
-    val textOffsetY by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = 900, delayMillis = 2500, easing = EaseOutCubic) },
-        label = "textOffsetY"
-    ) { if (it) 0f else 50f }
+    val poweredByAlpha by transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 800, delayMillis = 2500) },
+        label = "poweredByAlpha"
+    ) { state ->
+        if (state) 1f else 0f
+    }
 
     Box(
         modifier = Modifier
@@ -93,9 +90,10 @@ fun SplashScreenV2() {
                 )
             )
     ) {
+        // Ripple Wave Effect
         RippleWaveAnimation()
 
-        // Logo
+        // Center Logo
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -131,30 +129,27 @@ fun SplashScreenV2() {
             }
         }
 
-        // Futuristic loading indicator (from old version)
+        // Loading dots below logo
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 170.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            FuturisticLoadingIndicator()
+            AdvancedLoadingDots()
         }
 
-        // Animated "Powered by KTiMAZ Studio" text (from old version)
+        // Animated "Powered by KTiMAZ Studio" text (merged from old code)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 40.dp),
+                .padding(bottom = 24.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.graphicsLayer {
-                    alpha = textAlpha
-                    scaleX = textScale
-                    scaleY = textScale
-                    translationY = textOffsetY
+                    alpha = poweredByAlpha
                 }
             ) {
                 Text(
@@ -165,16 +160,12 @@ fun SplashScreenV2() {
                     color = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-
                 AnimatedGradientText()
             }
         }
     }
 }
 
-// -----------------------------------------------------------------------------
-// Ripple background effect
-// -----------------------------------------------------------------------------
 @Composable
 fun RippleWaveAnimation() {
     val infiniteTransition = rememberInfiniteTransition(label = "RippleWaveAnimation")
@@ -202,94 +193,67 @@ fun RippleWaveAnimation() {
     }
 }
 
-// -----------------------------------------------------------------------------
-// Old-style loading dots & bar (kept from old FuturisticLoadingIndicator)
-// -----------------------------------------------------------------------------
 @Composable
-fun FuturisticLoadingIndicator() {
-    val infiniteTransition = rememberInfiniteTransition(label = "LoadingIndicator")
+fun AdvancedLoadingDots() {
+    val dotCount = 3
+    val dotSize = 10.dp
+    val animationDuration = 800
+    val delayBetweenDots = 200
+    val infiniteTransition = rememberInfiniteTransition(label = "LoadingDotsInfiniteTransition")
 
-    val progress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "loadingProgress"
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Animated dots
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            repeat(3) { index ->
-                val dotScale by infiniteTransition.animateFloat(
-                    initialValue = 0.6f,
-                    targetValue = 1.2f,
-                    animationSpec = infiniteRepeatable(
-                        animation = keyframes {
-                            durationMillis = 1200
-                            0.6f at 0
-                            1.2f at (index * 150 + 300) with FastOutSlowInEasing
-                            0.6f at (index * 150 + 600) with FastOutSlowInEasing
-                            0.6f at 1200
-                        },
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "dot_$index"
-                )
+        repeat(dotCount) { index ->
+            val dotScale by infiniteTransition.animateFloat(
+                initialValue = 0.7f,
+                targetValue = 0.7f,
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1))
+                        0.7f at (index * delayBetweenDots) with LinearEasing
+                        1.2f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
+                        0.7f at (index * delayBetweenDots + animationDuration) with LinearEasing
+                        0.7f at durationMillis
+                    },
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "dotScale_$index"
+            )
 
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .graphicsLayer {
-                            scaleX = dotScale
-                            scaleY = dotScale
-                        }
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.9f))
-                        .shadow(4.dp, CircleShape, ambientColor = Color.White)
-                )
-            }
-        }
+            val dotAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.5f,
+                targetValue = 0.5f,
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1))
+                        0.5f at (index * delayBetweenDots) with LinearEasing
+                        1f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
+                        0.5f at (index * delayBetweenDots + animationDuration) with LinearEasing
+                        0.5f at durationMillis
+                    },
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "dotAlpha_$index"
+            )
 
-        // Progress bar
-        Box(
-            modifier = Modifier
-                .width(120.dp)
-                .height(3.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(Color.White.copy(alpha = 0.2f))
-        ) {
             Box(
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(progress)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.6f),
-                                Color.White,
-                                Color.White.copy(alpha = 0.6f)
-                            )
-                        )
-                    )
-                    .shadow(4.dp, ambientColor = Color.White)
+                    .padding(horizontal = 4.dp)
+                    .size(dotSize)
+                    .graphicsLayer {
+                        scaleX = dotScale
+                        scaleY = dotScale
+                        alpha = dotAlpha
+                    }
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
             )
         }
     }
 }
 
-// -----------------------------------------------------------------------------
-// Animated gradient & pulse text (from old AnimatedGradientText)
-// -----------------------------------------------------------------------------
 @Composable
 fun AnimatedGradientText() {
     val infiniteTransition = rememberInfiniteTransition(label = "TextGradient")
@@ -321,9 +285,9 @@ fun AnimatedGradientText() {
                 scaleY = textPulse
             }
     ) {
-        // Shadow/glow layer
+        // Glow shadow
         Text(
-            text = "KTiMAZ Studio",
+            text = "IMTBYTES",
             fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp,
@@ -335,7 +299,7 @@ fun AnimatedGradientText() {
 
         // Main glowing text
         Text(
-            text = "KTiMAZ Studio",
+            text = "IMTBYTES",
             fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp,
@@ -343,6 +307,7 @@ fun AnimatedGradientText() {
             style = MaterialTheme.typography.titleLarge.copy(
                 shadow = androidx.compose.ui.graphics.Shadow(
                     color = Color(0xFFFFD93D).copy(alpha = 0.5f),
+                    offset = androidx.compose.ui.geometry.Offset(0f, 0f),
                     blurRadius = 20f
                 )
             )
