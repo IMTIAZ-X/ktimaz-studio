@@ -302,7 +302,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
         label = "textPulse"
     )
 
-    // Animated glow color shift for a more dynamic neon look
+    // 1. FIX: Specify the type for animateColor as <Color>
     val animatedGlowColor by infiniteTransition.animateColor(
         initialValue = glowColor1,
         targetValue = glowColor2,
@@ -334,8 +334,9 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
                 .offset(x = 0.dp, y = 0.dp) // Centered shadow
                 .blur(12.dp) // Intense blur
                 .drawBehind {
+                    // 2. FIX: Access the color value using .value before calling .copy()
                     drawRect(
-                        color = animatedGlowColor.copy(alpha = 0.8f),
+                        color = animatedGlowColor.value.copy(alpha = 0.8f),
                         blendMode = androidx.compose.ui.graphics.BlendMode.Screen // Lightens the effect
                     )
                 }
@@ -350,7 +351,8 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
             color = textColor,
             style = MaterialTheme.typography.titleLarge.copy(
                 shadow = androidx.compose.ui.graphics.Shadow(
-                    color = animatedGlowColor.copy(alpha = 1f), // Use the animated color for the glow
+                    // 3. FIX: Access the color value using .value
+                    color = animatedGlowColor.value.copy(alpha = 1f), // Use the animated color for the glow
                     offset = androidx.compose.ui.geometry.Offset(0f, 0f),
                     blurRadius = 15f
                 )
