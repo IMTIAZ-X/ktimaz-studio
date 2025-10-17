@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.*
-// FIX: Required import for animateColor
+// FIX: Required import for animateColor (was missing in your last provided code block)
 import androidx.compose.animation.animateColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -29,18 +29,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-// --- NEW FUTURISTIC COLORS FOR UNIQUE STYLE ---
+// --- NEW FUTURISTIC COLORS ---
 private val NeonCyan = Color(0xFF00FFFF)
 private val ElectricPurple = Color(0xFFB500FF)
 private val DarkBackground = Color(0xFF0A0A0A) // Deep Black Background
-private val PoweredByBlack = Color(0xFF000000) // Requested Black color for "Powered by"
+private val PoweredByBlack = Color(0xFF000000) // Black color for "Powered by" text
 
 class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            // Note: In a real app, MaterialTheme should wrap this content.
             SplashScreenContent()
         }
     }
@@ -48,6 +47,7 @@ class SplashScreen : ComponentActivity() {
 
 /**
  * Main Composable for the Splash Screen with Unique Style.
+ * FIX: Updated to use the new dark/neon color scheme and pass parameters to sub-composables.
  */
 @Composable
 fun SplashScreenContent() {
@@ -90,7 +90,7 @@ fun SplashScreenContent() {
             .background(DarkBackground) // Solid Deep Black
     ) {
         // 1. Ripple Wave Effect (Now Neon Cyan)
-        RippleWaveAnimation(color = NeonCyan.copy(alpha = 0.5f))
+        RippleWaveAnimation(color = NeonCyan.copy(alpha = 0.5f)) // FIX: Pass color
 
         // 2. Center Logo and Blur Halo
         Box(
@@ -102,10 +102,10 @@ fun SplashScreenContent() {
             // Futuristic Halo Effect (Neon Purple Blur)
             Box(
                 modifier = Modifier
-                    .size(250.dp) // Larger halo
+                    .size(250.dp)
                     .clip(CircleShape)
                     .background(ElectricPurple.copy(alpha = 0.15f))
-                    .blur(40.dp) // Stronger blur
+                    .blur(40.dp)
             )
 
             // Logo Container with Animations (Inner background is Black)
@@ -138,7 +138,7 @@ fun SplashScreenContent() {
                 .padding(bottom = 170.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            AdvancedLoadingDots(dotColor = NeonCyan)
+            AdvancedLoadingDots(dotColor = NeonCyan) // FIX: Pass color
         }
 
         // 4. Animated "Powered by KTiMAZ Studio" text (with gradient and black text)
@@ -152,9 +152,7 @@ fun SplashScreenContent() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.graphicsLayer { alpha = poweredByAlpha }
             ) {
-                // "Powered by" text must be Black, so we make the background area light/gradient.
-
-                // Unique Gradient Area for Text Background
+                // Unique Gradient Area for Text Background (Gradient under KTiMAZ)
                 Box(
                     modifier = Modifier
                         .width(200.dp)
@@ -180,6 +178,7 @@ fun SplashScreenContent() {
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         // KTiMAZ Studio Text (Neon)
+                        // FIX: Pass required glow colors to the fixed component
                         AnimatedGradientText(
                             glowColor1 = ElectricPurple,
                             glowColor2 = NeonCyan
@@ -192,11 +191,11 @@ fun SplashScreenContent() {
 }
 
 // ----------------------------------------------------------------------
-// SUB-COMPOSABLES FOR ANIMATION EFFECTS (Updated to take Color arguments)
+// SUB-COMPOSABLES FOR ANIMATION EFFECTS (Modified to accept Color)
 // ----------------------------------------------------------------------
 
 @Composable
-fun RippleWaveAnimation(color: Color) {
+fun RippleWaveAnimation(color: Color) { // FIX: Added color parameter
     val infiniteTransition = rememberInfiniteTransition(label = "RippleWaveAnimation")
     val rippleRadius by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -223,7 +222,7 @@ fun RippleWaveAnimation(color: Color) {
 }
 
 @Composable
-fun AdvancedLoadingDots(dotColor: Color) {
+fun AdvancedLoadingDots(dotColor: Color) { // FIX: Added dotColor parameter
     val dotCount = 3
     val dotSize = 12.dp
     val singleDotDuration = 400
@@ -291,7 +290,7 @@ fun AdvancedLoadingDots(dotColor: Color) {
  * FIXES APPLIED: Added type specification for animateColor and used .value for State access.
  */
 @Composable
-fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
+fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) { // FIX: Added color parameters
     val infiniteTransition = rememberInfiniteTransition(label = "TextGlowPulse")
 
     // Text Pulse Animation
@@ -306,7 +305,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
     )
 
     // FIX 1: Specify the type for animateColor as <Color>
-    val animatedGlowColor by infiniteTransition.animateColor(
+    val animatedGlowColor by infiniteTransition.animateColor<Color>( // FIX: Explicit Color type
         initialValue = glowColor1,
         targetValue = glowColor2,
         animationSpec = infiniteRepeatable(
@@ -316,7 +315,6 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
         label = "animatedGlowColor"
     )
 
-    // Text color is White/Light Grey against the dark background
     val textColor = Color.White.copy(alpha = 0.9f)
 
     Box(
@@ -329,7 +327,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
         // 1. Shadow for deep diffusion/secondary glow (Purple)
         Text(
             text = "KTiMAZ Studio",
-            fontSize = 22.sp, // Main text size
+            fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp,
             color = DarkBackground,
