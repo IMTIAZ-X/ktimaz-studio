@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.*
-// FIX: Required import for animateColor (was missing in your last provided code block)
+// FIX: Required import for animateColor (Must be present)
 import androidx.compose.animation.animateColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -18,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -29,11 +28,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-// --- NEW FUTURISTIC COLORS ---
+// --- FUTURISTIC COLORS ---
 private val NeonCyan = Color(0xFF00FFFF)
 private val ElectricPurple = Color(0xFFB500FF)
-private val DarkBackground = Color(0xFF0A0A0A) // Deep Black Background
-private val PoweredByBlack = Color(0xFF000000) // Black color for "Powered by" text
+private val DarkBackground = Color(0xFF0A0A0A)
+private val PoweredByBlack = Color(0xFF000000)
 
 class SplashScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +46,6 @@ class SplashScreen : ComponentActivity() {
 
 /**
  * Main Composable for the Splash Screen with Unique Style.
- * FIX: Updated to use the new dark/neon color scheme and pass parameters to sub-composables.
  */
 @Composable
 fun SplashScreenContent() {
@@ -83,14 +81,13 @@ fun SplashScreenContent() {
         label = "poweredByAlpha"
     ) { state -> if (state) 1f else 0f }
 
-    // --- Unique Background: Deep Black ---
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground) // Solid Deep Black
     ) {
         // 1. Ripple Wave Effect (Now Neon Cyan)
-        RippleWaveAnimation(color = NeonCyan.copy(alpha = 0.5f)) // FIX: Pass color
+        RippleWaveAnimation(color = NeonCyan.copy(alpha = 0.5f))
 
         // 2. Center Logo and Blur Halo
         Box(
@@ -138,7 +135,7 @@ fun SplashScreenContent() {
                 .padding(bottom = 170.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            AdvancedLoadingDots(dotColor = NeonCyan) // FIX: Pass color
+            AdvancedLoadingDots(dotColor = NeonCyan)
         }
 
         // 4. Animated "Powered by KTiMAZ Studio" text (with gradient and black text)
@@ -178,7 +175,6 @@ fun SplashScreenContent() {
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         // KTiMAZ Studio Text (Neon)
-                        // FIX: Pass required glow colors to the fixed component
                         AnimatedGradientText(
                             glowColor1 = ElectricPurple,
                             glowColor2 = NeonCyan
@@ -191,11 +187,11 @@ fun SplashScreenContent() {
 }
 
 // ----------------------------------------------------------------------
-// SUB-COMPOSABLES FOR ANIMATION EFFECTS (Modified to accept Color)
+// SUB-COMPOSABLES FOR ANIMATION EFFECTS
 // ----------------------------------------------------------------------
 
 @Composable
-fun RippleWaveAnimation(color: Color) { // FIX: Added color parameter
+fun RippleWaveAnimation(color: Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "RippleWaveAnimation")
     val rippleRadius by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -216,13 +212,13 @@ fun RippleWaveAnimation(color: Color) { // FIX: Added color parameter
             modifier = Modifier
                 .size(rippleRadius.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.1f)) // Uses dynamic color
+                .background(color.copy(alpha = 0.1f))
         )
     }
 }
 
 @Composable
-fun AdvancedLoadingDots(dotColor: Color) { // FIX: Added dotColor parameter
+fun AdvancedLoadingDots(dotColor: Color) {
     val dotCount = 3
     val dotSize = 12.dp
     val singleDotDuration = 400
@@ -279,7 +275,7 @@ fun AdvancedLoadingDots(dotColor: Color) { // FIX: Added dotColor parameter
                         alpha = dotAlpha
                     }
                     .clip(CircleShape)
-                    .background(dotColor) // Uses dynamic color
+                    .background(dotColor)
             )
         }
     }
@@ -287,10 +283,10 @@ fun AdvancedLoadingDots(dotColor: Color) { // FIX: Added dotColor parameter
 
 /**
  * Creates a pulsing, dual-color glowing text effect.
- * FIXES APPLIED: Added type specification for animateColor and used .value for State access.
+ * FIX APPLIED: Removed the redundant <Color> type argument from animateColor.
  */
 @Composable
-fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) { // FIX: Added color parameters
+fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "TextGlowPulse")
 
     // Text Pulse Animation
@@ -304,8 +300,8 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) { // FIX: Added c
         label = "textPulse"
     )
 
-    // FIX 1: Specify the type for animateColor as <Color>
-    val animatedGlowColor by infiniteTransition.animateColor<Color>( // FIX: Explicit Color type
+    // FIX: Removed the redundant <Color> type argument. Compiler now infers correctly.
+    val animatedGlowColor by infiniteTransition.animateColor(
         initialValue = glowColor1,
         targetValue = glowColor2,
         animationSpec = infiniteRepeatable(
@@ -335,7 +331,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) { // FIX: Added c
                 .offset(x = 0.dp, y = 0.dp)
                 .blur(12.dp)
                 .drawBehind {
-                    // FIX 2: Access the color value using .value before calling .copy()
+                    // Access the color value using .value (now works due to the fix above)
                     drawRect(
                         color = animatedGlowColor.value.copy(alpha = 0.8f),
                         blendMode = androidx.compose.ui.graphics.BlendMode.Screen
@@ -352,7 +348,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) { // FIX: Added c
             color = textColor,
             style = MaterialTheme.typography.titleLarge.copy(
                 shadow = androidx.compose.ui.graphics.Shadow(
-                    // FIX 3: Access the color value using .value
+                    // Access the color value using .value (now works due to the fix above)
                     color = animatedGlowColor.value.copy(alpha = 1f),
                     offset = androidx.compose.ui.geometry.Offset(0f, 0f),
                     blurRadius = 15f
