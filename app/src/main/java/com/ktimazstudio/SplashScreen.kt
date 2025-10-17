@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.*
-// ESSENTIAL: Must import animateColor as an extension function
 import androidx.compose.animation.animateColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -283,7 +282,7 @@ fun AdvancedLoadingDots(dotColor: Color) {
 
 /**
  * Creates a pulsing, dual-color glowing text effect.
- * FIX: Explicitly declaring the property type as State<Color> fixes the compiler mismatch error.
+ * FIX: Removed the 'by' delegate to directly store the State<Color> object, resolving the delegate type mismatch error.
  */
 @Composable
 fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
@@ -300,8 +299,10 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
         label = "textPulse"
     )
 
-    // 🛑 CRITICAL FIX: Explicitly set the type to State<Color> to resolve the "Argument type mismatch" errors.
-    val animatedGlowColor: State<Color> by infiniteTransition.animateColor(
+    // 🛑 CRITICAL FIX: Store the State<Color> object directly.
+    // We remove 'by' and the explicit type annotation (State<Color>) to satisfy the delegate logic.
+    // The type is correctly inferred as State<Color> here, and we access the value via .value.
+    val animatedGlowColor = infiniteTransition.animateColor(
         initialValue = glowColor1,
         targetValue = glowColor2,
         animationSpec = infiniteRepeatable(
@@ -331,7 +332,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
                 .offset(x = 0.dp, y = 0.dp)
                 .blur(12.dp)
                 .drawBehind {
-                    // This now works because the compiler recognizes animatedGlowColor.value as Color
+                    // Access the value using .value (Since animatedGlowColor is a State<Color>)
                     drawRect(
                         color = animatedGlowColor.value.copy(alpha = 0.8f),
                         blendMode = androidx.compose.ui.graphics.BlendMode.Screen
@@ -348,7 +349,7 @@ fun AnimatedGradientText(glowColor1: Color, glowColor2: Color) {
             color = textColor,
             style = MaterialTheme.typography.titleLarge.copy(
                 shadow = androidx.compose.ui.graphics.Shadow(
-                    // This now works because the compiler recognizes animatedGlowColor.value as Color
+                    // Access the value using .value
                     color = animatedGlowColor.value.copy(alpha = 1f),
                     offset = androidx.compose.ui.geometry.Offset(0f, 0f),
                     blurRadius = 15f
