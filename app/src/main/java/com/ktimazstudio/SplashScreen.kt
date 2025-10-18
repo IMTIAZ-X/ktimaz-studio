@@ -329,7 +329,7 @@ fun AnimatedGradientText() {
     )
 
     val isDark = isSystemInDarkTheme()
-    val glowColor = if (isDark) Color(0xFFCCC2DC) else MaterialTheme.colorScheme.primary
+    val glowColor = if (isDark) Color(0xFFD0BCFF) else MaterialTheme.colorScheme.primary
     val textColor = if (isDark) Color.White else Color.Black
 
     Box(
