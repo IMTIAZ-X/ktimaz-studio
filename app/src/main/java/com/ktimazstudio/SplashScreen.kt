@@ -181,7 +181,7 @@ fun SplashScreenContent() {
 
                 Text(
                     text = "Powered by",
-                    fontSize = 15.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Light,
                     letterSpacing = 2.sp,
                     color = Color.Black,
@@ -329,7 +329,7 @@ fun AnimatedGradientText() {
     )
 
     val isDark = isSystemInDarkTheme()
-    val glowColor = if (isDark) Color(0xFFFFD93D) else MaterialTheme.colorScheme.primary
+    val glowColor = if (isDark) Color(0xFFCCC2DC) else MaterialTheme.colorScheme.primary
     val textColor = if (isDark) Color.White else Color.Black
 
     Box(
@@ -342,7 +342,7 @@ fun AnimatedGradientText() {
         // 1. Glow shadow (for depth/diffusion)
         Text(
             text = "IMTBYTES", // FIXED: Placeholder replaced
-            fontSize = 22.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp,
             color = textColor.copy(alpha = 0.25f),
@@ -354,7 +354,7 @@ fun AnimatedGradientText() {
         // 2. Main glowing text (with text style shadow for a crisp glow)
         Text(
             text = "IMTBYTES", // FIXED: Placeholder replaced
-            fontSize = 22.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp,
             color = textColor,
