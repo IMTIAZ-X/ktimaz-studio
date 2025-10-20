@@ -83,10 +83,9 @@ fun SplashScreenContent() {
                 )
             )
     ) {
-        // Ripple animation
         RippleWaveAnimation()
 
-        // Logo section
+        // LOGO Section
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -122,7 +121,17 @@ fun SplashScreenContent() {
             }
         }
 
-        // ✅ Progress bar (added from old code)
+        // ✅ Advanced Loading Dots (from new code)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 230.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            AdvancedLoadingDots()
+        }
+
+        // ✅ Modern Progress Bar (from old code)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -132,7 +141,7 @@ fun SplashScreenContent() {
             ModernLoadingBar()
         }
 
-        // ✅ Powered by text (from old code)
+        // ✅ Powered by text
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -158,7 +167,7 @@ fun SplashScreenContent() {
 }
 
 // -------------------------------------------------------------
-// Ripple background
+// Ripple background animation
 // -------------------------------------------------------------
 @Composable
 fun RippleWaveAnimation() {
@@ -189,7 +198,60 @@ fun RippleWaveAnimation() {
 }
 
 // -------------------------------------------------------------
-// Modern Progress Bar (from old code)
+// ✅ Advanced Loading Dots
+// -------------------------------------------------------------
+@Composable
+fun AdvancedLoadingDots() {
+    val infiniteTransition = rememberInfiniteTransition(label = "LoadingDots")
+
+    val dot1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(800, easing = LinearEasing), RepeatMode.Reverse),
+        label = "dot1"
+    )
+    val dot2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(800, delayMillis = 200, easing = LinearEasing),
+            RepeatMode.Reverse
+        ),
+        label = "dot2"
+    )
+    val dot3 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(800, delayMillis = 400, easing = LinearEasing),
+            RepeatMode.Reverse
+        ),
+        label = "dot3"
+    )
+
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Dot(dot1)
+        Dot(dot2)
+        Dot(dot3)
+    }
+}
+
+@Composable
+fun Dot(scale: Float) {
+    Box(
+        modifier = Modifier
+            .size(10.dp)
+            .graphicsLayer {
+                scaleX = 0.7f + 0.3f * scale
+                scaleY = 0.7f + 0.3f * scale
+            }
+            .clip(CircleShape)
+            .background(Color(0xFF6C63FF).copy(alpha = 0.8f))
+    )
+}
+
+// -------------------------------------------------------------
+// ✅ Modern Progress Bar
 // -------------------------------------------------------------
 @Composable
 fun ModernLoadingBar() {
@@ -198,7 +260,7 @@ fun ModernLoadingBar() {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
+            animation = tween(3500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "progress"
@@ -219,10 +281,7 @@ fun ModernLoadingBar() {
                     .clip(RoundedCornerShape(2.dp))
                     .background(
                         Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFF6C63FF),
-                                Color(0xFFFF6B9D)
-                            )
+                            colors = listOf(Color(0xFF6C63FF), Color(0xFFFF6B9D))
                         )
                     )
             )
@@ -231,7 +290,7 @@ fun ModernLoadingBar() {
 }
 
 // -------------------------------------------------------------
-// Animated studio name (from old code)
+// Animated studio name
 // -------------------------------------------------------------
 @Composable
 fun AnimatedStudioName() {
