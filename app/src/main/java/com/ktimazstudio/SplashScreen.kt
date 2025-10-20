@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -55,30 +54,22 @@ fun SplashScreenContent() {
     val logoScale by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 1000, easing = EaseOutBounce) },
         label = "logoScale"
-    ) { state ->
-        if (state) 1.2f else 0.5f
-    }
+    ) { state -> if (state) 1.2f else 0.5f }
 
     val logoRotation by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 2000, easing = FastOutSlowInEasing) },
         label = "logoRotation"
-    ) { state ->
-        if (state) 720f else 0f
-    }
+    ) { state -> if (state) 720f else 0f }
 
     val logoAlpha by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 800, delayMillis = 200) },
         label = "logoAlpha"
-    ) { state ->
-        if (state) 1f else 0f
-    }
+    ) { state -> if (state) 1f else 0f }
 
     val poweredByAlpha by transition.animateFloat(
         transitionSpec = { tween(durationMillis = 800, delayMillis = 2500) },
         label = "poweredByAlpha"
-    ) { state ->
-        if (state) 1f else 0f
-    }
+    ) { state -> if (state) 1f else 0f }
 
     Box(
         modifier = Modifier
@@ -92,10 +83,10 @@ fun SplashScreenContent() {
                 )
             )
     ) {
-        // Ripple animation (from new code)
+        // Ripple animation
         RippleWaveAnimation()
 
-        // Logo section (unchanged)
+        // Logo section
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -131,17 +122,17 @@ fun SplashScreenContent() {
             }
         }
 
-        // Loading animation (new)
+        // ✅ Progress bar (added from old code)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 170.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            AdvancedLoadingDots()
+            ModernLoadingBar()
         }
 
-        // ✅ Powered by section (merged from old code)
+        // ✅ Powered by text (from old code)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -150,31 +141,25 @@ fun SplashScreenContent() {
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.graphicsLayer {
-                    alpha = poweredByAlpha
-                }
+                modifier = Modifier.graphicsLayer { alpha = poweredByAlpha }
             ) {
                 Text(
                     text = "POWERED BY",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 3.sp,
-                    color = if (isSystemInDarkTheme())
-                        Color.White.copy(alpha = 0.5f)
-                    else
-                        Color.Black.copy(alpha = 0.4f),
+                    color = Color.Black.copy(alpha = 0.5f),
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                AnimatedStudioName() // from old version
+                AnimatedStudioName()
             }
         }
     }
 }
 
-// ---------------------------------------------------------------
-// New effects kept from your latest version
-// ---------------------------------------------------------------
-
+// -------------------------------------------------------------
+// Ripple background
+// -------------------------------------------------------------
 @Composable
 fun RippleWaveAnimation() {
     val infiniteTransition = rememberInfiniteTransition(label = "RippleWaveAnimation")
@@ -187,6 +172,7 @@ fun RippleWaveAnimation() {
         ),
         label = "rippleRadius"
     )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -202,74 +188,51 @@ fun RippleWaveAnimation() {
     }
 }
 
+// -------------------------------------------------------------
+// Modern Progress Bar (from old code)
+// -------------------------------------------------------------
 @Composable
-fun AdvancedLoadingDots() {
-    val dotCount = 3
-    val dotSize = 10.dp
-    val singleDotDuration = 400
-    val delayBetweenDots = 200
-    val totalDuration = singleDotDuration * 2 + delayBetweenDots * (dotCount - 1)
+fun ModernLoadingBar() {
+    val infiniteTransition = rememberInfiniteTransition(label = "LoadingBar")
+    val progress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "progress"
+    )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "LoadingDotsInfiniteTransition")
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        repeat(dotCount) { index ->
-            val startDelay = index * delayBetweenDots
-
-            val dotScale by infiniteTransition.animateFloat(
-                initialValue = 0.7f,
-                targetValue = 0.7f,
-                animationSpec = infiniteRepeatable(
-                    animation = keyframes {
-                        durationMillis = totalDuration
-                        0.7f at startDelay
-                        1.2f at startDelay + singleDotDuration / 2
-                        0.7f at startDelay + singleDotDuration
-                        0.7f at durationMillis
-                    },
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "dotScale_$index"
-            )
-
-            val dotAlpha by infiniteTransition.animateFloat(
-                initialValue = 0.5f,
-                targetValue = 0.5f,
-                animationSpec = infiniteRepeatable(
-                    animation = keyframes {
-                        durationMillis = totalDuration
-                        0.5f at startDelay
-                        1f at startDelay + singleDotDuration / 2
-                        0.5f at startDelay + singleDotDuration
-                        0.5f at durationMillis
-                    },
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "dotAlpha_$index"
-            )
-
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .width(120.dp)
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(Color.Black.copy(alpha = 0.1f))
+        ) {
             Box(
                 modifier = Modifier
-                    .size(dotSize)
-                    .graphicsLayer {
-                        scaleX = dotScale
-                        scaleY = dotScale
-                        alpha = dotAlpha
-                    }
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .fillMaxHeight()
+                    .fillMaxWidth(progress)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF6C63FF),
+                                Color(0xFFFF6B9D)
+                            )
+                        )
+                    )
             )
         }
     }
 }
 
-// ---------------------------------------------------------------
-// From old version — reused for powered by section
-// ---------------------------------------------------------------
-
+// -------------------------------------------------------------
+// Animated studio name (from old code)
+// -------------------------------------------------------------
 @Composable
 fun AnimatedStudioName() {
     val infiniteTransition = rememberInfiniteTransition(label = "StudioName")
@@ -294,8 +257,6 @@ fun AnimatedStudioName() {
         label = "textPulse"
     )
 
-    val isDark = isSystemInDarkTheme()
-
     Box(
         modifier = Modifier.graphicsLayer {
             scaleX = textPulse
@@ -318,8 +279,7 @@ fun AnimatedStudioName() {
                     end = androidx.compose.ui.geometry.Offset(shimmer, 100f)
                 ),
                 shadow = androidx.compose.ui.graphics.Shadow(
-                    color = if (isDark) Color(0xFF6C63FF).copy(alpha = 0.5f)
-                    else Color(0xFF5E35B1).copy(alpha = 0.3f),
+                    color = Color(0xFF6C63FF).copy(alpha = 0.5f),
                     offset = androidx.compose.ui.geometry.Offset(0f, 0f),
                     blurRadius = 25f
                 )
