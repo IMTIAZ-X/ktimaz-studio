@@ -202,39 +202,66 @@ fun RippleWaveAnimation() {
 // -------------------------------------------------------------
 @Composable
 fun AdvancedLoadingDots() {
-    val infiniteTransition = rememberInfiniteTransition(label = "LoadingDots")
+    val dotCount = 3
+    val dotSize = 10.dp
+    val animationDuration = 800 // Duration for one dot's pulse
+    val delayBetweenDots = 200 // Delay before the next dot starts its pulse
 
-    val dot1 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(800, easing = LinearEasing), RepeatMode.Reverse),
-        label = "dot1"
-    )
-    val dot2 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(800, delayMillis = 200, easing = LinearEasing),
-            RepeatMode.Reverse
-        ),
-        label = "dot2"
-    )
-    val dot3 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(800, delayMillis = 400, easing = LinearEasing),
-            RepeatMode.Reverse
-        ),
-        label = "dot3"
-    )
+    val infiniteTransition = rememberInfiniteTransition(label = "LoadingDotsInfiniteTransition")
 
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Dot(dot1)
-        Dot(dot2)
-        Dot(dot3)
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(dotCount) { index ->
+            val dotScale by infiniteTransition.animateFloat(
+                initialValue = 0.7f,
+                targetValue = 0.7f,
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1))
+                        0.7f at (index * delayBetweenDots) with LinearEasing
+                        1.2f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
+                        0.7f at (index * delayBetweenDots + animationDuration) with LinearEasing
+                        0.7f at durationMillis
+                    },
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "dotScale_$index"
+            )
+
+            val dotAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.5f,
+                targetValue = 0.5f,
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = (animationDuration * dotCount + delayBetweenDots * (dotCount - 1))
+                        0.5f at (index * delayBetweenDots) with LinearEasing
+                        1f at (index * delayBetweenDots + animationDuration / 2) with LinearEasing
+                        0.5f at (index * delayBetweenDots + animationDuration) with LinearEasing
+                        0.5f at durationMillis
+                    },
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "dotAlpha_$index"
+            )
+
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .size(dotSize)
+                    .graphicsLayer {
+                        scaleX = dotScale
+                        scaleY = dotScale
+                        alpha = dotAlpha
+                    }
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+        }
     }
 }
+
 
 @Composable
 fun Dot(scale: Float) {
