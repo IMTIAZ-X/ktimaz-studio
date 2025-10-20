@@ -125,7 +125,7 @@ fun SplashScreenContent() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 230.dp),
+                .padding(bottom = 200.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
             AdvancedLoadingDots()
@@ -287,7 +287,7 @@ fun ModernLoadingBar() {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(3500, easing = FastOutSlowInEasing),
+            animation = tween(1500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "progress"
@@ -350,7 +350,7 @@ fun AnimatedStudioName() {
         }
     ) {
         Text(
-            text = "KTiMAZ Studio",
+            text = "IMTBYTES",
             fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.5.sp,
