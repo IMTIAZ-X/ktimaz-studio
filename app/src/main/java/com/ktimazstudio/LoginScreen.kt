@@ -2,8 +2,7 @@ package com.ktimazstudio.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -12,10 +11,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
@@ -60,7 +60,6 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    // TextField colors
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
@@ -77,7 +76,6 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
         errorTrailingIconColor = MaterialTheme.colorScheme.error
     )
 
-    // Background gradient
     val backgroundGradient = Brush.verticalGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
@@ -85,19 +83,6 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
             MaterialTheme.colorScheme.surfaceContainerHigh
         )
     )
-
-    // Account lock timer
-    LaunchedEffect(isLocked) {
-        if (isLocked) {
-            lockTimeRemaining = 30
-            while (lockTimeRemaining > 0) {
-                delay(1000)
-                lockTimeRemaining--
-            }
-            isLocked = false
-            loginAttempts = 0
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -121,7 +106,6 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Logo
                 Image(
                     painter = painterResource(id = R.mipmap.ic_launcher_round),
                     contentDescription = stringResource(id = R.string.app_name) + " Logo",
@@ -148,49 +132,24 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Username field
                 OutlinedTextField(
                     value = usernameInput,
-                    onValueChange = {
-                        usernameInput = it.trim()
-                        errorMessage = null
-                        if (it.length > 20) usernameInput = it.take(20)
-                    },
-                    label = { Text("Username or Email") },
+                    onValueChange = { usernameInput = it.trim(); errorMessage = null },
+                    label = { Text("Username") },
                     leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = "Username Icon") },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
                     shape = RoundedCornerShape(18.dp),
                     colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLocked && !isLoading,
-                    isError = errorMessage != null,
-                    supportingText = if (usernameInput.length > 15) {
-                        { Text("${usernameInput.length}/20 characters") }
-                    } else null
+                    isError = errorMessage != null
                 )
 
-                // Password field
                 OutlinedTextField(
                     value = passwordInput,
-                    onValueChange = {
-                        passwordInput = it
-                        errorMessage = null
-                        if (it.length > 50) passwordInput = it.take(50)
-                    },
+                    onValueChange = { passwordInput = it; errorMessage = null },
                     label = { Text("Password") },
                     leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = "Password Icon") },
-                    trailingIcon = {
-                        IconButton(onClick = {
-                            soundEffectManager.playClickSound()
-                            passwordVisible = !passwordVisible
-                        }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = if (passwordVisible) "Hide password" else "Show password"
-                            )
-                        }
-                    },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
@@ -200,25 +159,33 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                             attemptLogin(
                                 usernameInput, passwordInput, coroutineScope,
                                 soundEffectManager, haptic,
-                                onSuccess = { username -> onLoginSuccess(username) },
+                                onSuccess = { username ->
+                                    onLoginSuccess(username)
+                                },
                                 onError = { message ->
                                     errorMessage = message
                                     loginAttempts++
-                                    if (loginAttempts >= 3) isLocked = true
+                                    if (loginAttempts >= 3) {
+                                        isLocked = true
+                                    }
                                 },
                                 setLoading = { isLoading = it }
                             )
                         }
                     }),
+                    trailingIcon = {
+                        val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                        val description = if (passwordVisible) "Hide password" else "Show password"
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = description)
+                        }
+                    },
                     shape = RoundedCornerShape(18.dp),
                     colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLocked && !isLoading,
-                    isError = errorMessage != null,
-                    supportingText = { PasswordStrengthIndicator(passwordInput) }
+                    isError = errorMessage != null
                 )
 
-                // Error message
                 AnimatedVisibility(
                     visible = errorMessage != null,
                     enter = fadeIn(animationSpec = tween(200)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
@@ -232,21 +199,16 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                     )
                 }
 
-                // Security indicator
-                SecurityStatusIndicator(isSecure = !isLocked && loginAttempts < 3, lockTimeRemaining = lockTimeRemaining)
+                SecurityStatusIndicator(
+                    isSecure = !isLocked && loginAttempts < 3,
+                    lockTimeRemaining = lockTimeRemaining
+                )
 
-                // Login button
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed by interactionSource.collectIsPressedAsState()
                 val scale by animateFloatAsState(
                     targetValue = if (isPressed) 0.98f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                    label = "login_button_scale"
-                )
-                val alpha by animateFloatAsState(
-                    targetValue = if (isPressed) 0.8f else 1.0f,
-                    animationSpec = tween(150),
-                    label = "login_button_alpha"
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
                 )
 
                 Button(
@@ -256,11 +218,15 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                             attemptLogin(
                                 usernameInput, passwordInput, coroutineScope,
                                 soundEffectManager, haptic,
-                                onSuccess = { username -> onLoginSuccess(username) },
+                                onSuccess = { username ->
+                                    onLoginSuccess(username)
+                                },
                                 onError = { message ->
                                     errorMessage = message
                                     loginAttempts++
-                                    if (loginAttempts >= 3) isLocked = true
+                                    if (loginAttempts >= 3) {
+                                        isLocked = true
+                                    }
                                 },
                                 setLoading = { isLoading = it }
                             )
@@ -268,24 +234,25 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 24.dp)
                         .height(56.dp)
-                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha),
+                        .graphicsLayer(scaleX = scale, scaleY = scale),
                     shape = RoundedCornerShape(20.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
-                    enabled = !isLocked && !isLoading
+                    enabled = !isLoading && !isLocked
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                     } else if (isLocked) {
-                        Text("Locked ($lockTimeRemaining s)")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Text("Locked ($lockTimeRemaining s)")
+                        }
                     } else {
                         Text("LOGIN", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
-                // Forgot password
-                TextButton(onClick = { soundEffectManager.playClickSound() }) {
+                TextButton(onClick = { /* Forgot Password */ }) {
                     Text("Forgot password?", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 }
             }
@@ -293,10 +260,8 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
     }
 }
 
-// -------------------- Helper Functions --------------------
-
 @Composable
-private fun SecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
+fun SecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(
             imageVector = if (isSecure) Icons.Filled.Shield else Icons.Filled.Warning,
@@ -305,9 +270,13 @@ private fun SecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
             modifier = Modifier.size(16.dp)
         )
         Text(
-            text = if (lockTimeRemaining > 0) "Account locked - $lockTimeRemaining seconds remaining"
-            else if (isSecure) "Secure connection established"
-            else "Security warning - multiple failed attempts",
+            text = if (lockTimeRemaining > 0) {
+                "Account locked - $lockTimeRemaining seconds remaining"
+            } else if (isSecure) {
+                "Secure connection established"
+            } else {
+                "Security warning - multiple failed attempts"
+            },
             style = MaterialTheme.typography.bodySmall,
             color = if (isSecure) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
         )
@@ -315,9 +284,8 @@ private fun SecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
 }
 
 @Composable
-private fun PasswordStrengthIndicator(password: String) {
+fun PasswordStrengthIndicator(password: String) {
     if (password.isBlank()) return
-
     val strength = calculatePasswordStrength(password)
     val strengthColor = when (strength) {
         in 0..2 -> MaterialTheme.colorScheme.error
@@ -325,24 +293,19 @@ private fun PasswordStrengthIndicator(password: String) {
         else -> MaterialTheme.colorScheme.primary
     }
     val strengthText = when (strength) {
-        0, 1 -> "Weak"
-        2, 3 -> "Fair"
+        0,1 -> "Weak"
+        2,3 -> "Fair"
         4 -> "Good"
         else -> "Strong"
     }
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Strength: $strengthText", style = MaterialTheme.typography.bodySmall, color = strengthColor)
-        LinearProgressIndicator(
-            progress = strength / 5f,
-            modifier = Modifier.width(60.dp).height(3.dp),
-            color = strengthColor,
-            trackColor = strengthColor.copy(alpha = 0.3f)
-        )
+        LinearProgressIndicator(progress = strength.toFloat()/5f, modifier = Modifier.width(60.dp).height(3.dp), color = strengthColor, trackColor = strengthColor.copy(alpha = 0.3f))
     }
 }
 
-private fun calculatePasswordStrength(password: String): Int {
+fun calculatePasswordStrength(password: String): Int {
     var strength = 0
     if (password.length >= 8) strength++
     if (password.any { it.isUpperCase() }) strength++
@@ -352,7 +315,7 @@ private fun calculatePasswordStrength(password: String): Int {
     return strength
 }
 
-private fun attemptLogin(
+fun attemptLogin(
     username: String,
     password: String,
     scope: kotlinx.coroutines.CoroutineScope,
@@ -364,36 +327,17 @@ private fun attemptLogin(
 ) {
     scope.launch {
         setLoading(true)
-        try {
-            delay(1500)
-            val isValid = when {
-                username.isBlank() || password.isBlank() -> false
-                username.length < 3 || password.length < 4 -> false
-                username == "admin" && password == "admin" -> true
-                username == "user" && password == "password" -> true
-                username.contains("@") && password.length >= 6 -> true
-                else -> false
-            }
-            if (isValid) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                soundEffectManager.playClickSound()
-                onSuccess(username)
-            } else {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                soundEffectManager.playClickSound()
-                val errorMsg = when {
-                    username.isBlank() -> "Username is required"
-                    password.isBlank() -> "Password is required"
-                    username.length < 3 -> "Username must be at least 3 characters"
-                    password.length < 4 -> "Password must be at least 4 characters"
-                    else -> "Invalid username or password"
-                }
-                onError(errorMsg)
-            }
-        } catch (e: Exception) {
-            onError("Authentication failed. Please try again.")
-        } finally {
-            setLoading(false)
+        delay(1500)
+        val isValid = username == "admin" && password == "admin"
+        if (isValid) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            soundEffectManager.playClickSound()
+            onSuccess(username)
+        } else {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            soundEffectManager.playClickSound()
+            onError("Invalid username or password")
         }
+        setLoading(false)
     }
 }
