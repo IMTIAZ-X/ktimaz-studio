@@ -58,8 +58,7 @@ import com.ktimazstudio.managers.SoundEffectManager
 @Composable
 fun LoginScreen(
     onLoginSuccess: (username: String) -> Unit,
-    soundEffectManager: SoundEffectManager,
-    modifier: Modifier = Modifier
+    soundEffectManager: SoundEffectManager
 ) {
     // State Management
     var usernameInput by rememberSaveable { mutableStateOf("") }
@@ -139,7 +138,7 @@ fun LoginScreen(
     )
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(backgroundGradient),
         contentAlignment = Alignment.Center
@@ -249,7 +248,7 @@ fun LoginScreen(
                 }
 
                 // Security Status Indicator
-                SecurityStatusIndicator(
+                ShowSecurityStatus(
                     isSecure = !isLocked && loginAttempts < 3,
                     lockTimeRemaining = lockTimeRemaining
                 )
@@ -272,7 +271,7 @@ fun LoginScreen(
                         )
                     },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(
+                    keyboardOptions = KeyboardOptions.Default.copy(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
                     ),
@@ -307,7 +306,7 @@ fun LoginScreen(
                     },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
+                    keyboardOptions = KeyboardOptions.Default.copy(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
@@ -352,7 +351,7 @@ fun LoginScreen(
                     enabled = !isLocked && !isLoading,
                     isError = errorMessage != null,
                     supportingText = {
-                        PasswordStrengthIndicator(password = passwordInput)
+                        ShowPasswordStrength(password = passwordInput)
                     }
                 )
 
@@ -538,7 +537,7 @@ fun LoginScreen(
  * Shows current security status and lockout information
  */
 @Composable
-private fun SecurityStatusIndicator(
+private fun ShowSecurityStatus(
     isSecure: Boolean,
     lockTimeRemaining: Int
 ) {
@@ -573,19 +572,19 @@ private fun SecurityStatusIndicator(
  * Manually calculates and displays password strength
  */
 @Composable
-private fun PasswordStrengthIndicator(password: String) {
+private fun ShowPasswordStrength(password: String) {
     if (password.isBlank()) return
 
-    val strength = calculatePasswordStrength(password)
-    val strengthColor = when {
-        strength <= 2 -> MaterialTheme.colorScheme.error
-        strength <= 4 -> MaterialTheme.colorScheme.tertiary
+    val strength = getPasswordStrength(password)
+    val strengthColor = when (strength) {
+        0, 1, 2 -> MaterialTheme.colorScheme.error
+        3, 4 -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.primary
     }
-    val strengthText = when {
-        strength <= 1 -> "Weak"
-        strength <= 3 -> "Fair"
-        strength == 4 -> "Good"
+    val strengthText = when (strength) {
+        0, 1 -> "Weak"
+        2, 3 -> "Fair"
+        4 -> "Good"
         else -> "Strong"
     }
 
@@ -607,10 +606,11 @@ private fun PasswordStrengthIndicator(password: String) {
                 .clip(RoundedCornerShape(2.dp))
                 .background(strengthColor.copy(alpha = 0.3f))
         ) {
+            val fraction = if (strength > 0) strength.toFloat() / 5f else 0f
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(fraction = strength.toFloat() / 5f)
+                    .fillMaxWidth(fraction = fraction)
                     .clip(RoundedCornerShape(2.dp))
                     .background(strengthColor)
             )
@@ -622,7 +622,7 @@ private fun PasswordStrengthIndicator(password: String) {
  * Manual Password Strength Calculator
  * No external libraries used
  */
-private fun calculatePasswordStrength(password: String): Int {
+private fun getPasswordStrength(password: String): Int {
     var strength = 0
 
     // Length check
