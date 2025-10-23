@@ -248,10 +248,30 @@ fun LoginScreen(
                 }
 
                 // Security Status Indicator
-                ShowSecurityStatus(
-                    isSecure = !isLocked && loginAttempts < 3,
-                    lockTimeRemaining = lockTimeRemaining
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = if (!isLocked && loginAttempts < 3) Icons.Filled.Shield else Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = if (!isLocked && loginAttempts < 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = if (lockTimeRemaining > 0) {
+                            "Account locked - $lockTimeRemaining seconds remaining"
+                        } else if (!isLocked && loginAttempts < 3) {
+                            "Secure connection established"
+                        } else {
+                            "Security warning - multiple failed attempts"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (!isLocked && loginAttempts < 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        fontWeight = if (isLocked || loginAttempts >= 3) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -271,7 +291,7 @@ fun LoginScreen(
                         )
                     },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
                     ),
@@ -306,7 +326,7 @@ fun LoginScreen(
                     },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
@@ -314,21 +334,45 @@ fun LoginScreen(
                         onDone = {
                             focusManager.clearFocus()
                             if (!isLocked && !isLoading) {
-                                performLogin(
-                                    usernameInput, passwordInput, coroutineScope,
-                                    soundEffectManager, haptic,
-                                    onSuccess = { username ->
-                                        onLoginSuccess(username)
-                                    },
-                                    onError = { message ->
-                                        errorMessage = message
-                                        loginAttempts++
-                                        if (loginAttempts >= 3) {
-                                            isLocked = true
+                                coroutineScope.launch {
+                                    isLoading = true
+                                    errorMessage = null
+                                    try {
+                                        delay(1500)
+                                        val isValid = when {
+                                            usernameInput.isBlank() || passwordInput.isBlank() -> false
+                                            usernameInput.length < 3 || passwordInput.length < 4 -> false
+                                            usernameInput == "admin" && passwordInput == "admin" -> true
+                                            usernameInput == "user" && passwordInput == "password" -> true
+                                            usernameInput == "demo" && passwordInput == "demo" -> true
+                                            usernameInput.contains("@") && passwordInput.length >= 6 -> true
+                                            else -> false
                                         }
-                                    },
-                                    setLoading = { isLoading = it }
-                                )
+                                        if (isValid) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            soundEffectManager.playClickSound()
+                                            onLoginSuccess(usernameInput)
+                                        } else {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            soundEffectManager.playClickSound()
+                                            errorMessage = when {
+                                                usernameInput.isBlank() -> "Username is required"
+                                                passwordInput.isBlank() -> "Password is required"
+                                                usernameInput.length < 3 -> "Username must be at least 3 characters"
+                                                passwordInput.length < 4 -> "Password must be at least 4 characters"
+                                                else -> "Invalid username or password. Please try again."
+                                            }
+                                            loginAttempts++
+                                            if (loginAttempts >= 3) isLocked = true
+                                        }
+                                    } catch (e: Exception) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        soundEffectManager.playClickSound()
+                                        errorMessage = "Authentication failed. Please try again."
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
                             }
                         }
                     ),
@@ -350,9 +394,62 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isLocked && !isLoading,
                     isError = errorMessage != null,
-                    supportingText = {
-                        ShowPasswordStrength(password = passwordInput)
-                    }
+                    supportingText = if (passwordInput.isNotBlank()) {
+                        {
+                            val strength = run {
+                                var s = 0
+                                if (passwordInput.length >= 8) s++
+                                if (passwordInput.any { it.isUpperCase() }) s++
+                                if (passwordInput.any { it.isDigit() }) s++
+                                if (passwordInput.any { !it.isLetterOrDigit() }) s++
+                                if (passwordInput.length >= 12) s++
+                                s
+                            }
+                            val strengthColor = if (strength <= 2) {
+                                MaterialTheme.colorScheme.error
+                            } else if (strength <= 4) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            }
+                            val strengthText = if (strength <= 1) {
+                                "Weak"
+                            } else if (strength <= 3) {
+                                "Fair"
+                            } else if (strength == 4) {
+                                "Good"
+                            } else {
+                                "Strong"
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Strength: $strengthText",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = strengthColor,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(60.dp)
+                                        .height(3.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(strengthColor.copy(alpha = 0.3f))
+                                ) {
+                                    val fraction = if (strength > 0) strength.toFloat() / 5f else 0f
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .fillMaxWidth(fraction)
+                                            .clip(RoundedCornerShape(2.dp))
+                                            .background(strengthColor)
+                                    )
+                                }
+                            }
+                        }
+                    } else null
                 )
 
                 // Enhanced Error Message with Icon
@@ -422,21 +519,45 @@ fun LoginScreen(
                     onClick = {
                         focusManager.clearFocus()
                         if (!isLocked && !isLoading) {
-                            performLogin(
-                                usernameInput, passwordInput, coroutineScope,
-                                soundEffectManager, haptic,
-                                onSuccess = { username ->
-                                    onLoginSuccess(username)
-                                },
-                                onError = { message ->
-                                    errorMessage = message
-                                    loginAttempts++
-                                    if (loginAttempts >= 3) {
-                                        isLocked = true
+                            coroutineScope.launch {
+                                isLoading = true
+                                errorMessage = null
+                                try {
+                                    delay(1500)
+                                    val isValid = when {
+                                        usernameInput.isBlank() || passwordInput.isBlank() -> false
+                                        usernameInput.length < 3 || passwordInput.length < 4 -> false
+                                        usernameInput == "admin" && passwordInput == "admin" -> true
+                                        usernameInput == "user" && passwordInput == "password" -> true
+                                        usernameInput == "demo" && passwordInput == "demo" -> true
+                                        usernameInput.contains("@") && passwordInput.length >= 6 -> true
+                                        else -> false
                                     }
-                                },
-                                setLoading = { isLoading = it }
-                            )
+                                    if (isValid) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        soundEffectManager.playClickSound()
+                                        onLoginSuccess(usernameInput)
+                                    } else {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        soundEffectManager.playClickSound()
+                                        errorMessage = when {
+                                            usernameInput.isBlank() -> "Username is required"
+                                            passwordInput.isBlank() -> "Password is required"
+                                            usernameInput.length < 3 -> "Username must be at least 3 characters"
+                                            passwordInput.length < 4 -> "Password must be at least 4 characters"
+                                            else -> "Invalid username or password. Please try again."
+                                        }
+                                        loginAttempts++
+                                        if (loginAttempts >= 3) isLocked = true
+                                    }
+                                } catch (e: Exception) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    soundEffectManager.playClickSound()
+                                    errorMessage = "Authentication failed. Please try again."
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
                         }
                     },
                     modifier = Modifier
@@ -500,7 +621,6 @@ fun LoginScreen(
                 TextButton(
                     onClick = {
                         soundEffectManager.playClickSound()
-                        // TODO: Implement forgot password functionality
                     }
                 ) {
                     Text(
@@ -528,185 +648,6 @@ fun LoginScreen(
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * Security Status Indicator Component
- * Shows current security status and lockout information
- */
-@Composable
-private fun ShowSecurityStatus(
-    isSecure: Boolean,
-    lockTimeRemaining: Int
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(vertical = 4.dp)
-    ) {
-        Icon(
-            imageVector = if (isSecure) Icons.Filled.Shield else Icons.Filled.Warning,
-            contentDescription = null,
-            tint = if (isSecure) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = if (lockTimeRemaining > 0) {
-                "Account locked - $lockTimeRemaining seconds remaining"
-            } else if (isSecure) {
-                "Secure connection established"
-            } else {
-                "Security warning - multiple failed attempts"
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isSecure) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            fontWeight = if (!isSecure) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-}
-
-/**
- * Password Strength Indicator Component
- * Manually calculates and displays password strength
- */
-@Composable
-private fun ShowPasswordStrength(password: String) {
-    if (password.isBlank()) return
-
-    val strength = getPasswordStrength(password)
-    val strengthColor = when (strength) {
-        0, 1, 2 -> MaterialTheme.colorScheme.error
-        3, 4 -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
-    }
-    val strengthText = when (strength) {
-        0, 1 -> "Weak"
-        2, 3 -> "Fair"
-        4 -> "Good"
-        else -> "Strong"
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = "Strength: $strengthText",
-            style = MaterialTheme.typography.bodySmall,
-            color = strengthColor,
-            fontWeight = FontWeight.Medium
-        )
-
-        Box(
-            modifier = Modifier
-                .width(60.dp)
-                .height(3.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(strengthColor.copy(alpha = 0.3f))
-        ) {
-            val fraction = if (strength > 0) strength.toFloat() / 5f else 0f
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(fraction = fraction)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(strengthColor)
-            )
-        }
-    }
-}
-
-/**
- * Manual Password Strength Calculator
- * No external libraries used
- */
-private fun getPasswordStrength(password: String): Int {
-    var strength = 0
-
-    // Length check
-    if (password.length >= 8) strength++
-
-    // Uppercase check
-    if (password.any { it.isUpperCase() }) strength++
-
-    // Digit check
-    if (password.any { it.isDigit() }) strength++
-
-    // Special character check
-    if (password.any { !it.isLetterOrDigit() }) strength++
-
-    // Extra length bonus
-    if (password.length >= 12) strength++
-
-    return strength
-}
-
-/**
- * Login Attempt Handler
- * Validates credentials and handles authentication logic
- */
-private fun performLogin(
-    username: String,
-    password: String,
-    scope: kotlinx.coroutines.CoroutineScope,
-    soundEffectManager: SoundEffectManager,
-    haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
-    onSuccess: (String) -> Unit,
-    onError: (String) -> Unit,
-    setLoading: (Boolean) -> Unit
-) {
-    scope.launch {
-        setLoading(true)
-
-        try {
-            // Simulate network authentication delay
-            delay(1500)
-
-            // Advanced Validation Logic
-            val isValid = when {
-                username.isBlank() || password.isBlank() -> false
-                username.length < 3 || password.length < 4 -> false
-
-                // Predefined valid credentials
-                username == "admin" && password == "admin" -> true
-                username == "user" && password == "password" -> true
-                username == "demo" && password == "demo" -> true
-
-                // Email format with minimum password length
-                username.contains("@") && password.length >= 6 -> true
-
-                else -> false
-            }
-
-            if (isValid) {
-                // Success feedback
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                soundEffectManager.playClickSound()
-                onSuccess(username)
-            } else {
-                // Failure feedback
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                soundEffectManager.playClickSound()
-
-                // Detailed error messages
-                val errorMsg = when {
-                    username.isBlank() -> "Username is required"
-                    password.isBlank() -> "Password is required"
-                    username.length < 3 -> "Username must be at least 3 characters"
-                    password.length < 4 -> "Password must be at least 4 characters"
-                    else -> "Invalid username or password. Please try again."
-                }
-                onError(errorMsg)
-            }
-        } catch (e: Exception) {
-            // Handle unexpected errors
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            soundEffectManager.playClickSound()
-            onError("Authentication failed. Please try again.")
-        } finally {
-            setLoading(false)
         }
     }
 }
