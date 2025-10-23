@@ -223,9 +223,10 @@ fun LoginScreen(
                         painter = painterResource(id = R.mipmap.ic_launcher_round),
                         contentDescription = stringResource(id = R.string.app_name) + " Logo",
                         modifier = Modifier
-                            .size(80.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                            .size(96.dp)
                             .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                            .padding(8.dp)
                     )
                 }
 
@@ -586,11 +587,11 @@ fun LoginScreen(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
-                            Text(
+                            /*Text(
                                 "Authenticating...",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
-                            )
+                            )*/
                         }
                     } else if (isLocked) {
                         Row(
