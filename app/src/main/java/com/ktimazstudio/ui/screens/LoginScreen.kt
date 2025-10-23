@@ -224,6 +224,7 @@ fun LoginScreen(
                         contentDescription = stringResource(id = R.string.app_name) + " Logo",
                         modifier = Modifier
                             .size(80.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
                             .clip(CircleShape)
                     )
                 }
