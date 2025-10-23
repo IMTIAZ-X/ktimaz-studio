@@ -2,6 +2,7 @@ package com.ktimazstudio.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,8 +15,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
@@ -64,12 +64,11 @@ fun LoginScreen(
 
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     // Derived states to avoid recomposition of unrelated UI
-    val isFormValid by derivedStateOf { username.isNotBlank() && password.isNotBlank() }
-    val passwordStrength by derivedStateOf { calculatePasswordStrength(password) }
+    val isFormValid by remember(username, password) { derivedStateOf { username.isNotBlank() && password.isNotBlank() } }
+    val passwordStrength by remember(password) { derivedStateOf { hybridCalculatePasswordStrength(password) } }
 
     // Background gradient (subtle)
     val background = Brush.verticalGradient(
@@ -161,7 +160,7 @@ fun LoginScreen(
                 )
 
                 // Security status indicator
-                SecurityStatusIndicator(isSecure = !isLocked && loginAttempts < 3, lockTimeRemaining = lockTimeRemaining)
+                HybridSecurityStatusIndicator(isSecure = !isLocked && loginAttempts < 3, lockTimeRemaining = lockTimeRemaining)
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -210,7 +209,7 @@ fun LoginScreen(
                         focusManager.clearFocus()
                         if (!isLocked && !isLoading) {
                             // Trigger login flow
-                            performLogin(
+                            hybridPerformLogin(
                                 username = username,
                                 password = password,
                                 coroutineScope = coroutineScope,
@@ -230,7 +229,7 @@ fun LoginScreen(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     soundEffectManager.playClickSound()
                                     if (loginAttempts >= 3) {
-                                        startLockTimer(
+                                        hybridStartLockTimer(
                                             coroutineScope = coroutineScope,
                                             lockSeconds = 30,
                                             onTick = { lockTimeRemaining = it },
@@ -255,7 +254,7 @@ fun LoginScreen(
                     enabled = !isLocked && !isLoading,
                     isError = errorMessage != null,
                     supportingText = {
-                        PasswordStrengthIndicator(strength = passwordStrength, password = password)
+                        HybridPasswordStrengthIndicator(strength = passwordStrength, password = password)
                     }
                 )
 
@@ -283,7 +282,7 @@ fun LoginScreen(
                         focusManager.clearFocus()
                         // same as onDone
                         if (!isLocked && !isLoading) {
-                            performLogin(
+                            hybridPerformLogin(
                                 username = username,
                                 password = password,
                                 coroutineScope = coroutineScope,
@@ -302,7 +301,7 @@ fun LoginScreen(
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     soundEffectManager.playClickSound()
                                     if (loginAttempts >= 3) {
-                                        startLockTimer(
+                                        hybridStartLockTimer(
                                             coroutineScope = coroutineScope,
                                             lockSeconds = 30,
                                             onTick = { lockTimeRemaining = it },
@@ -359,13 +358,14 @@ fun LoginScreen(
     }
 }
 
-// ---------------- Helper Composables & Functions ----------------
+// ---------------- Helper Composables & Functions (renamed to avoid conflicts) ----------------
 
 @Composable
-private fun SecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
+private fun HybridSecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val icon = if (isSecure) Icons.Filled.Shield else Icons.Filled.Warning
         Icon(
-            imageVector = if (isSecure) Icons.Default.Shield else Icons.Default.Warning,
+            imageVector = icon,
             contentDescription = null,
             tint = if (isSecure) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             modifier = Modifier.size(16.dp)
@@ -379,7 +379,7 @@ private fun SecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
 }
 
 @Composable
-private fun PasswordStrengthIndicator(strength: Int, password: String) {
+private fun HybridPasswordStrengthIndicator(strength: Int, password: String) {
     if (password.isBlank()) return
     val (text, progress) = when (strength) {
         in 0..1 -> Pair("Weak", 0.2f)
@@ -394,7 +394,7 @@ private fun PasswordStrengthIndicator(strength: Int, password: String) {
     }
 }
 
-private fun calculatePasswordStrength(password: String): Int {
+private fun hybridCalculatePasswordStrength(password: String): Int {
     var score = 0
     if (password.length >= 8) score++
     if (password.any { it.isUpperCase() }) score++
@@ -404,7 +404,7 @@ private fun calculatePasswordStrength(password: String): Int {
     return score // 0..5
 }
 
-private fun performLogin(
+private fun hybridPerformLogin(
     username: String,
     password: String,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
@@ -424,35 +424,28 @@ private fun performLogin(
         }
 
         if (!validation.first) {
-            // tiny delay to allow UI feedback
             delay(200)
             onError(validation.second)
             return@launch
         }
 
         try {
-            // Simulate network call (keep short for UX)
             delay(900)
 
-            // Replace this block with real authentication call
             val isValid = when {
                 username == "admin" && password == "admin" -> true
-                username.contains("@") && password.length >= 6 -> true // example rule
+                username.contains("@") && password.length >= 6 -> true
                 else -> false
             }
 
-            if (isValid) {
-                onSuccess(username)
-            } else {
-                onError("Invalid username or password")
-            }
+            if (isValid) onSuccess(username) else onError("Invalid username or password")
         } catch (e: Exception) {
             onError("Authentication failed. Try again.")
         }
     }
 }
 
-private fun startLockTimer(
+private fun hybridStartLockTimer(
     coroutineScope: kotlinx.coroutines.CoroutineScope,
     lockSeconds: Int,
     onStart: () -> Unit,
@@ -465,7 +458,7 @@ private fun startLockTimer(
         while (left > 0) {
             onTick(left)
             delay(1000)
-            left--
+            left -= 1
         }
         onFinish()
     }
