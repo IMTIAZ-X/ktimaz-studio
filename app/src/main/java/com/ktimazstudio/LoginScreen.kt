@@ -1,7 +1,5 @@
 package com.ktimazstudio.ui.screens
 
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
@@ -43,28 +41,24 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.ktimazstudio.R
 import com.ktimazstudio.managers.SoundEffectManager
-import java.util.concurrent.Executor
 
 /**
  * Enhanced Login Screen with Advanced Security Features
  * - Password Authentication with Validation
- * - Biometric Authentication (Fingerprint/Face)
- * - Account Lockout Protection
+ * - Account Lockout Protection (3 attempts = 30s lock)
  * - Password Strength Indicator
- * - Modern Animated UI/UX
+ * - Modern Animated UI/UX with Floating Particles
  * - Manual Implementation (No External Libraries)
+ * - Performance Optimized & Highly Secure
  */
 @Composable
 fun LoginScreen(
     onLoginSuccess: (username: String) -> Unit,
     soundEffectManager: SoundEffectManager,
-    biometricManager: BiometricManager,
-    onBiometricEnabled: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // State Management
@@ -76,67 +70,11 @@ fun LoginScreen(
     var loginAttempts by remember { mutableIntStateOf(0) }
     var isLocked by remember { mutableStateOf(false) }
     var lockTimeRemaining by remember { mutableIntStateOf(0) }
-    var showBiometricOption by remember { mutableStateOf(false) }
-    var enableBiometric by remember { mutableStateOf(false) }
-    var showBiometricPrompt by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-
-    // Check Biometric Availability
-    LaunchedEffect(Unit) {
-        showBiometricOption = when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
-            BiometricManager.BIOMETRIC_SUCCESS -> true
-            else -> false
-        }
-    }
-
-    // Handle Biometric Authentication
-    if (showBiometricPrompt && context is FragmentActivity) {
-        DisposableEffect(Unit) {
-            val executor: Executor = context.mainExecutor
-            val biometricPrompt = BiometricPrompt(
-                context,
-                executor,
-                object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        super.onAuthenticationError(errorCode, errString)
-                        errorMessage = "Biometric authentication error: $errString"
-                        soundEffectManager.playClickSound()
-                        showBiometricPrompt = false
-                    }
-
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        super.onAuthenticationSucceeded(result)
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        soundEffectManager.playClickSound()
-                        onLoginSuccess(usernameInput.ifBlank { "biometric_user" })
-                        showBiometricPrompt = false
-                    }
-
-                    override fun onAuthenticationFailed() {
-                        super.onAuthenticationFailed()
-                        errorMessage = "Biometric authentication failed"
-                        soundEffectManager.playClickSound()
-                    }
-                }
-            )
-
-            val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Biometric Login")
-                .setSubtitle("Log in using your biometric credential")
-                .setNegativeButtonText("Use password")
-                .build()
-
-            biometricPrompt.authenticate(promptInfo)
-
-            onDispose {
-                showBiometricPrompt = false
-            }
-        }
-    }
 
     // Account Lockout Timer
     LaunchedEffect(isLocked) {
@@ -179,14 +117,20 @@ fun LoginScreen(
         radius = 1200f
     )
 
-    // Animated Floating Particles
+    // Animated Floating Particles System
     val particlePositions = remember {
-        List(20) { Pair(kotlin.random.Random.nextFloat(), kotlin.random.Random.nextFloat()) }
+        List(25) { 
+            Triple(
+                kotlin.random.Random.nextFloat() * 400f,
+                kotlin.random.Random.nextFloat() * 800f,
+                2f + kotlin.random.Random.nextFloat() * 4f
+            )
+        }
     }
     val infiniteTransition = rememberInfiniteTransition(label = "particles")
     val particleOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 1f,
+        targetValue = 100f,
         animationSpec = infiniteRepeatable(
             animation = tween(20000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
@@ -201,18 +145,19 @@ fun LoginScreen(
         contentAlignment = Alignment.Center
     ) {
         // Animated Background Particles
-        particlePositions.forEachIndexed { index, (x, y) ->
+        particlePositions.forEachIndexed { index, (startX, startY, size) ->
+            val speed = (index % 3 + 1).toFloat()
             Box(
                 modifier = Modifier
                     .offset(
-                        x = (x * 400).dp,
-                        y = (y * 800).dp + ((particleOffset * 100f) * (index % 3 + 1)).dp
+                        x = startX.dp,
+                        y = startY.dp - (particleOffset * speed).dp
                     )
-                    .size((4 + index % 3).dp)
+                    .size(size.dp)
                     .clip(CircleShape)
                     .background(
                         MaterialTheme.colorScheme.primary.copy(
-                            alpha = 0.1f + (index % 3) * 0.05f
+                            alpha = 0.08f + (index % 4) * 0.02f
                         )
                     )
                     .blur(1.dp)
@@ -315,9 +260,9 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = usernameInput,
                     onValueChange = {
-                        usernameInput = it.trim()
+                        val trimmed = it.trim()
+                        usernameInput = if (trimmed.length > 20) trimmed.take(20) else trimmed
                         errorMessage = null
-                        if (it.length > 20) usernameInput = it.take(20)
                     },
                     label = { Text("Username or Email") },
                     leadingIcon = {
@@ -337,7 +282,12 @@ fun LoginScreen(
                     enabled = !isLocked && !isLoading,
                     isError = errorMessage != null,
                     supportingText = if (usernameInput.length > 15) {
-                        { Text("${usernameInput.length}/20 characters", style = MaterialTheme.typography.bodySmall) }
+                        { 
+                            Text(
+                                "${usernameInput.length}/20 characters", 
+                                style = MaterialTheme.typography.bodySmall
+                            ) 
+                        }
                     } else null
                 )
 
@@ -345,9 +295,8 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = passwordInput,
                     onValueChange = {
-                        passwordInput = it
+                        passwordInput = if (it.length > 50) it.take(50) else it
                         errorMessage = null
-                        if (it.length > 50) passwordInput = it.take(50)
                     },
                     label = { Text("Password") },
                     leadingIcon = {
@@ -366,12 +315,11 @@ fun LoginScreen(
                         onDone = {
                             focusManager.clearFocus()
                             if (!isLocked && !isLoading) {
-                                attemptLogin(
+                                performLogin(
                                     usernameInput, passwordInput, coroutineScope,
                                     soundEffectManager, haptic,
                                     onSuccess = { username ->
                                         onLoginSuccess(username)
-                                        if (enableBiometric) onBiometricEnabled(true)
                                     },
                                     onError = { message ->
                                         errorMessage = message
@@ -408,15 +356,6 @@ fun LoginScreen(
                     }
                 )
 
-                // Biometric Authentication Option (Toggle Switch)
-                if (showBiometricOption) {
-                    BiometricEnableOption(
-                        enabled = enableBiometric,
-                        onEnabledChange = { enableBiometric = it },
-                        soundEffectManager = soundEffectManager
-                    )
-                }
-
                 // Enhanced Error Message with Icon
                 AnimatedVisibility(
                     visible = errorMessage != null,
@@ -433,7 +372,8 @@ fun LoginScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -458,10 +398,10 @@ fun LoginScreen(
                 // Login Attempts Warning
                 if (loginAttempts > 0 && !isLocked) {
                     Text(
-                        text = "Login attempts: $loginAttempts/3",
-                        color = if (loginAttempts >= 2) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "⚠️ Login attempts: $loginAttempts/3",
+                        color = if (loginAttempts >= 2) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
                         style = MaterialTheme.typography.bodySmall,
-                        fontWeight = if (loginAttempts >= 2) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (loginAttempts >= 2) FontWeight.Bold else FontWeight.Medium
                     )
                 }
 
@@ -483,12 +423,11 @@ fun LoginScreen(
                     onClick = {
                         focusManager.clearFocus()
                         if (!isLocked && !isLoading) {
-                            attemptLogin(
+                            performLogin(
                                 usernameInput, passwordInput, coroutineScope,
                                 soundEffectManager, haptic,
                                 onSuccess = { username ->
                                     onLoginSuccess(username)
-                                    if (enableBiometric) onBiometricEnabled(true)
                                 },
                                 onError = { message ->
                                     errorMessage = message
@@ -537,7 +476,11 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Icon(
+                                Icons.Filled.Lock, 
+                                contentDescription = null, 
+                                modifier = Modifier.size(20.dp)
+                            )
                             Text(
                                 "Locked ($lockTimeRemaining s)",
                                 style = MaterialTheme.typography.titleMedium,
@@ -554,76 +497,25 @@ fun LoginScreen(
                     }
                 }
 
-                // Biometric Login Button (Separate from Toggle)
-                if (showBiometricOption && enableBiometric) {
-                    OutlinedButton(
-                        onClick = {
-                            soundEffectManager.playClickSound()
-                            showBiometricPrompt = true
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        enabled = !isLocked && !isLoading
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Filled.Fingerprint,
-                                contentDescription = "Biometric Login",
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text(
-                                "LOGIN WITH BIOMETRIC",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                // Forgot Password Link
+                TextButton(
+                    onClick = {
+                        soundEffectManager.playClickSound()
+                        // TODO: Implement forgot password functionality
                     }
-                }
-
-                // Additional Options Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    TextButton(
-                        onClick = {
-                            soundEffectManager.playClickSound()
-                            // Handle forgot password
-                        }
-                    ) {
-                        Text(
-                            "Forgot Password?",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    TextButton(
-                        onClick = {
-                            soundEffectManager.playClickSound()
-                            // Demo login credentials
-                            usernameInput = "admin"
-                            passwordInput = "admin"
-                        }
-                    ) {
-                        Text(
-                            "Demo Login",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text(
+                        "Forgot password?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
 
                 // Security Notice with Encryption Icon
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Text(
                         text = "🔒",
@@ -685,15 +577,15 @@ private fun PasswordStrengthIndicator(password: String) {
     if (password.isBlank()) return
 
     val strength = calculatePasswordStrength(password)
-    val strengthColor = when (strength) {
-        in 0..2 -> MaterialTheme.colorScheme.error
-        in 3..4 -> MaterialTheme.colorScheme.tertiary
+    val strengthColor = when {
+        strength <= 2 -> MaterialTheme.colorScheme.error
+        strength <= 4 -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.primary
     }
-    val strengthText = when (strength) {
-        0, 1 -> "Weak"
-        2, 3 -> "Fair"
-        4 -> "Good"
+    val strengthText = when {
+        strength <= 1 -> "Weak"
+        strength <= 3 -> "Fair"
+        strength == 4 -> "Good"
         else -> "Strong"
     }
 
@@ -708,71 +600,19 @@ private fun PasswordStrengthIndicator(password: String) {
             fontWeight = FontWeight.Medium
         )
 
-        LinearProgressIndicator(
-            progress = { strength / 5f },
+        Box(
             modifier = Modifier
                 .width(60.dp)
                 .height(3.dp)
-                .clip(RoundedCornerShape(2.dp)),
-            color = strengthColor,
-            trackColor = strengthColor.copy(alpha = 0.3f)
-        )
-    }
-}
-
-/**
- * Biometric Enable Option Component
- * Toggle switch for enabling/disabling biometric authentication
- */
-@Composable
-private fun BiometricEnableOption(
-    enabled: Boolean,
-    onEnabledChange: (Boolean) -> Unit,
-    soundEffectManager: SoundEffectManager
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
-        ),
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .clip(RoundedCornerShape(2.dp))
+                .background(strengthColor.copy(alpha = 0.3f))
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    Icons.Filled.Fingerprint,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Column {
-                    Text(
-                        text = "Enable Biometric Login",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Use fingerprint for quick access",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Switch(
-                checked = enabled,
-                onCheckedChange = {
-                    soundEffectManager.playClickSound()
-                    onEnabledChange(it)
-                }
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction = strength.toFloat() / 5f)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(strengthColor)
             )
         }
     }
@@ -784,22 +624,22 @@ private fun BiometricEnableOption(
  */
 private fun calculatePasswordStrength(password: String): Int {
     var strength = 0
-    
+
     // Length check
     if (password.length >= 8) strength++
-    
+
     // Uppercase check
     if (password.any { it.isUpperCase() }) strength++
-    
+
     // Digit check
     if (password.any { it.isDigit() }) strength++
-    
+
     // Special character check
     if (password.any { !it.isLetterOrDigit() }) strength++
-    
+
     // Extra length bonus
     if (password.length >= 12) strength++
-    
+
     return strength
 }
 
@@ -807,7 +647,7 @@ private fun calculatePasswordStrength(password: String): Int {
  * Login Attempt Handler
  * Validates credentials and handles authentication logic
  */
-private fun attemptLogin(
+private fun performLogin(
     username: String,
     password: String,
     scope: kotlinx.coroutines.CoroutineScope,
@@ -828,15 +668,15 @@ private fun attemptLogin(
             val isValid = when {
                 username.isBlank() || password.isBlank() -> false
                 username.length < 3 || password.length < 4 -> false
-                
+
                 // Predefined valid credentials
                 username == "admin" && password == "admin" -> true
                 username == "user" && password == "password" -> true
                 username == "demo" && password == "demo" -> true
-                
+
                 // Email format with minimum password length
                 username.contains("@") && password.length >= 6 -> true
-                
+
                 else -> false
             }
 
@@ -849,7 +689,7 @@ private fun attemptLogin(
                 // Failure feedback
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 soundEffectManager.playClickSound()
-                
+
                 // Detailed error messages
                 val errorMsg = when {
                     username.isBlank() -> "Username is required"
@@ -862,6 +702,8 @@ private fun attemptLogin(
             }
         } catch (e: Exception) {
             // Handle unexpected errors
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            soundEffectManager.playClickSound()
             onError("Authentication failed. Please try again.")
         } finally {
             setLoading(false)
