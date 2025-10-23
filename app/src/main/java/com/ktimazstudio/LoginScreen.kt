@@ -1,26 +1,3 @@
-/*
-Hybrid Secure + Modern + Animated LoginScreen
-Pure Jetpack Compose (Kotlin). No external libraries.
-Features included:
-- Modern UI (gradient, animated logo, card layout)
-- Password strength indicator
-- Login attempts limit (3 tries -> lock for 30s)
-- Account lock timer
-- Security status indicator
-- Smooth animations (logo, particles, button press, error fades)
-- Haptic & Sound hooks (uses provided SoundEffectManager)
-- Performance optimizations (remember, derivedStateOf, minimal recomposition)
-- Manual coroutine-based authentication simulation
-
-Usage:
-Place this file in your Compose UI package and call LoginScreen(
-    onLoginSuccess = { /* handle  },
-    soundEffectManager = soundEffectManagerInstance
-)
-
-Note: Biometric, Demo Login, and Biometric toggle are intentionally omitted.
-*/
-
 package com.ktimazstudio.ui.screens
 
 import androidx.compose.animation.*
