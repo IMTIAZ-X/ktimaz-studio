@@ -1,7 +1,20 @@
 package com.ktimazstudio.ui.screens
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateValue
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +31,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -27,13 +52,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -43,6 +68,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.ktimazstudio.R
 import com.ktimazstudio.managers.SoundEffectManager
+import java.security.MessageDigest
 
 @Composable
 fun LoginScreen(
@@ -57,10 +83,10 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Security states
-    var loginAttempts by rememberSaveable { mutableIntStateOf(0) }
+    // Security states (use mutableStateOf to avoid delegate inference issues)
+    var loginAttempts by rememberSaveable { mutableStateOf(0) }
     var isLocked by rememberSaveable { mutableStateOf(false) }
-    var lockTimeRemaining by rememberSaveable { mutableIntStateOf(0) }
+    var lockTimeRemaining by rememberSaveable { mutableStateOf(0) }
 
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
@@ -85,7 +111,7 @@ fun LoginScreen(
     val particleAnim by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(durationMillis = 22000, easing = LinearEasing))
+        animationSpec = infiniteRepeatable(animation = tween(durationMillis = 22000, easing = androidx.compose.animation.core.LinearEasing))
     )
 
     Box(
@@ -131,12 +157,24 @@ fun LoginScreen(
                     animationSpec = infiniteRepeatable(animation = tween(3000, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse)
                 )
 
-                Box(modifier = Modifier.size(110.dp).graphicsLayer { scaleX = logoScale; scaleY = logoScale }, contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .graphicsLayer { scaleX = logoScale; scaleY = logoScale },
+                    contentAlignment = Alignment.Center
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
-                            .background(Brush.radialGradient(colors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.22f), MaterialTheme.colorScheme.surface.copy(alpha = 0.05f))))
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.05f)
+                                    )
+                                )
+                            )
                     )
                     Image(
                         painter = painterResource(id = R.mipmap.ic_launcher_round),
@@ -174,7 +212,12 @@ fun LoginScreen(
                     label = { Text("Username or Email") },
                     leadingIcon = { Icon(Icons.Outlined.AccountCircle, contentDescription = null) },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrect = false,
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -204,7 +247,12 @@ fun LoginScreen(
                     },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrect = false,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
                     keyboardActions = KeyboardActions(onDone = {
                         focusManager.clearFocus()
                         if (!isLocked && !isLoading) {
@@ -275,7 +323,7 @@ fun LoginScreen(
                 // Login button with press animation and disabled while loading
                 val interactionSource = remember { MutableInteractionSource() }
                 val pressed by interactionSource.collectIsPressedAsState()
-                val buttonScale by animateFloatAsState(targetValue = if (pressed) 0.985f else 1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                val buttonScale by animateFloatAsState(targetValue = if (pressed) 0.985f else 1f, animationSpec = spring(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy))
 
                 Button(
                     onClick = {
@@ -338,12 +386,13 @@ fun LoginScreen(
                 }
 
                 // Forgot password text (placeholder behavior)
-                Text(
-                    text = "Forgot password?",
-                    modifier = Modifier.clickable { soundEffectManager.playClickSound() },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                TextButton(onClick = { soundEffectManager.playClickSound() }) {
+                    Text(
+                        text = "Forgot password?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
 
                 // Security note
                 Text(
