@@ -48,14 +48,10 @@ import com.ktimazstudio.managers.SoundEffectManager
 import kotlin.math.min
 
 /**
- * Merged LoginScreen:
- * - Keeps the **new** UI/design intact
- * - Adds **old** security features (password strength, login attempts lock, demo login, animated error card etc.)
- * - Removes biometric-related code (per request)
- * - Optimized with derivedStateOf and remember where applicable
- *
- * Usage:
- * Provide onLoginSuccess(username), and a SoundEffectManager instance.
+ * Final Merged LoginScreen (no biometric, no demo)
+ * - Keeps the new UI unchanged
+ * - Adds old security features: password strength, lockout, animated error UI, validation, haptic & sound feedback
+ * - Optimized with remember/derivedStateOf
  */
 @Composable
 fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: SoundEffectManager) {
@@ -66,7 +62,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) } // Loading indicator
 
-    // --- Security & auxiliary state (added from old screen) ---
+    // --- Security & auxiliary state (from old screen) ---
     var loginAttempts by rememberSaveable { mutableIntStateOf(0) } // failed attempts count
     var isLocked by rememberSaveable { mutableStateOf(false) }
     var lockTimeRemaining by rememberSaveable { mutableIntStateOf(0) } // seconds
@@ -111,7 +107,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
         )
     }
 
-    // Password strength derived (0..5)
+    // Password strength derived (0..4)
     val passwordStrength by remember(passwordInput) {
         derivedStateOf { calculatePasswordStrength(passwordInput) }
     }
@@ -361,22 +357,13 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                     }
                 }
 
-                // Row with Forgot Password and Demo Login (demo added from old)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                // Forgot Password (left) — Demo Login removed entirely per request
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
                     TextButton(onClick = {
                         soundEffectManager.playClickSound()
                         // TODO: navigate to forgot password
                     }) {
                         Text("Forgot password?", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                    }
-
-                    TextButton(onClick = {
-                        soundEffectManager.playClickSound()
-                        // Demo login autofill (helpful for testing)
-                        usernameInput = "demo"
-                        passwordInput = "demo"
-                    }) {
-                        Text("Demo Login", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                     }
                 }
 
@@ -443,9 +430,10 @@ private fun PasswordStrengthIndicator(password: String, strength: Int) {
 }
 
 /**
- * Reusable login attempt logic (from old code) — optimized and non-blocking.
+ * Reusable login attempt logic — optimized and non-blocking.
  * - setLoading controls the loading indicator
  * - onSuccess / onError callbacks handle results
+ * Note: "demo" credential check removed as requested.
  */
 private fun attemptLogin(
     usernameInput: String,
@@ -468,7 +456,6 @@ private fun attemptLogin(
                 usernameInput.length < 3 || passwordInput.length < 4 -> false
                 usernameInput == "admin" && passwordInput == "admin" -> true
                 usernameInput == "user" && passwordInput == "password" -> true
-                usernameInput == "demo" && passwordInput == "demo" -> true
                 usernameInput.contains("@") && passwordInput.length >= 6 -> true // basic email heuristic
                 else -> false
             }
@@ -504,6 +491,6 @@ private fun calculatePasswordStrength(password: String): Int {
     if (password.any { it.isUpperCase() }) strength++
     if (password.any { it.isDigit() }) strength++
     if (password.any { !it.isLetterOrDigit() }) strength++
-    // cap strength between 0..4 (we will use mapping)
+    // cap strength between 0..4
     return min(4, strength)
 }
