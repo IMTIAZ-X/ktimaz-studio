@@ -6,7 +6,6 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -14,8 +13,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
@@ -45,19 +42,17 @@ import com.ktimazstudio.R
 import com.ktimazstudio.managers.SoundEffectManager
 
 @Composable
-fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: SoundEffectManager) {
+fun LoginScreen(
+    onLoginSuccess: (username: String) -> Unit,
+    soundEffectManager: SoundEffectManager
+) {
     var usernameInput by rememberSaveable { mutableStateOf("") }
     var passwordInput by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
-    var loginAttempts by remember { mutableIntStateOf(0) }
-    var isLocked by remember { mutableStateOf(false) }
-    var lockTimeRemaining by remember { mutableIntStateOf(0) }
-
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -155,28 +150,21 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         focusManager.clearFocus()
-                        if (!isLocked && !isLoading) {
-                            attemptLogin(
-                                usernameInput, passwordInput, coroutineScope,
-                                soundEffectManager, haptic,
-                                onSuccess = { username ->
-                                    onLoginSuccess(username)
-                                },
-                                onError = { message ->
-                                    errorMessage = message
-                                    loginAttempts++
-                                    if (loginAttempts >= 3) {
-                                        isLocked = true
-                                    }
-                                },
-                                setLoading = { isLoading = it }
-                            )
-                        }
+                        attemptLogin(
+                            usernameInput,
+                            passwordInput,
+                            coroutineScope,
+                            soundEffectManager,
+                            haptic,
+                            onSuccess = onLoginSuccess,
+                            onError = { errorMessage = it },
+                            setLoading = { isLoading = it }
+                        )
                     }),
                     trailingIcon = {
                         val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                         val description = if (passwordVisible) "Hide password" else "Show password"
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        IconButton(onClick = { passwordVisible = !passwordVisible; soundEffectManager.playClickSound() }) {
                             Icon(imageVector = image, contentDescription = description)
                         }
                     },
@@ -199,10 +187,7 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                     )
                 }
 
-                SecurityStatusIndicator(
-                    isSecure = !isLocked && loginAttempts < 3,
-                    lockTimeRemaining = lockTimeRemaining
-                )
+                SecurityStatusIndicator(isSecure = true, lockTimeRemaining = 0)
 
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed by interactionSource.collectIsPressedAsState()
@@ -210,50 +195,39 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
                     targetValue = if (isPressed) 0.98f else 1.0f,
                     animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
                 )
+                val alpha by animateFloatAsState(
+                    targetValue = if (isPressed) 0.8f else 1.0f,
+                    animationSpec = tween(150)
+                )
 
                 Button(
                     onClick = {
                         focusManager.clearFocus()
-                        if (!isLocked && !isLoading) {
-                            attemptLogin(
-                                usernameInput, passwordInput, coroutineScope,
-                                soundEffectManager, haptic,
-                                onSuccess = { username ->
-                                    onLoginSuccess(username)
-                                },
-                                onError = { message ->
-                                    errorMessage = message
-                                    loginAttempts++
-                                    if (loginAttempts >= 3) {
-                                        isLocked = true
-                                    }
-                                },
-                                setLoading = { isLoading = it }
-                            )
-                        }
+                        attemptLogin(
+                            usernameInput,
+                            passwordInput,
+                            coroutineScope,
+                            soundEffectManager,
+                            haptic,
+                            onSuccess = onLoginSuccess,
+                            onError = { errorMessage = it },
+                            setLoading = { isLoading = it }
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(top = 24.dp)
                         .height(56.dp)
-                        .graphicsLayer(scaleX = scale, scaleY = scale),
+                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha),
                     shape = RoundedCornerShape(20.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 10.dp),
-                    enabled = !isLoading && !isLocked
+                    enabled = !isLoading
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
-                    } else if (isLocked) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Text("Locked ($lockTimeRemaining s)")
-                        }
                     } else {
                         Text("LOGIN", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     }
-                }
-
-                TextButton(onClick = { /* Forgot Password */ }) {
-                    Text("Forgot password?", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -261,47 +235,26 @@ fun LoginScreen(onLoginSuccess: (username: String) -> Unit, soundEffectManager: 
 }
 
 @Composable
-fun SecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(
-            imageVector = if (isSecure) Icons.Filled.Shield else Icons.Filled.Warning,
-            contentDescription = null,
-            tint = if (isSecure) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = if (lockTimeRemaining > 0) {
-                "Account locked - $lockTimeRemaining seconds remaining"
-            } else if (isSecure) {
-                "Secure connection established"
-            } else {
-                "Security warning - multiple failed attempts"
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isSecure) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-        )
-    }
-}
-
-@Composable
 fun PasswordStrengthIndicator(password: String) {
     if (password.isBlank()) return
     val strength = calculatePasswordStrength(password)
-    val strengthColor = when (strength) {
+    val color = when (strength) {
         in 0..2 -> MaterialTheme.colorScheme.error
-        in 3..4 -> MaterialTheme.colorScheme.tertiary
+        3, 4 -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.primary
     }
-    val strengthText = when (strength) {
-        0,1 -> "Weak"
-        2,3 -> "Fair"
-        4 -> "Good"
-        else -> "Strong"
-    }
+    Text(
+        text = "Password Strength: ${strength * 20}%",
+        color = color,
+        style = MaterialTheme.typography.bodySmall
+    )
+}
 
+@Composable
+fun SecurityStatusIndicator(isSecure: Boolean, lockTimeRemaining: Int) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Strength: $strengthText", style = MaterialTheme.typography.bodySmall, color = strengthColor)
-        LinearProgressIndicator(progress = strength.toFloat()/5f, modifier = Modifier.width(60.dp).height(3.dp), color = strengthColor, trackColor = strengthColor.copy(alpha = 0.3f))
+        val statusText = if (isSecure) "Secure connection" else "Security warning"
+        Text(text = statusText, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -315,29 +268,29 @@ fun calculatePasswordStrength(password: String): Int {
     return strength
 }
 
-fun attemptLogin(
+private fun attemptLogin(
     username: String,
     password: String,
-    scope: kotlinx.coroutines.CoroutineScope,
+    scope: CoroutineScope,
     soundEffectManager: SoundEffectManager,
-    haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
+    haptic: HapticFeedbackType,
     onSuccess: (String) -> Unit,
     onError: (String) -> Unit,
     setLoading: (Boolean) -> Unit
 ) {
+    if (username.isBlank() || password.isBlank()) {
+        onError("Username and Password cannot be empty")
+        return
+    }
+    setLoading(true)
     scope.launch {
-        setLoading(true)
-        delay(1500)
-        val isValid = username == "admin" && password == "admin"
-        if (isValid) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            soundEffectManager.playClickSound()
+        delay(1000) // Simulate API call
+        if (username == "admin" && password == "password") {
             onSuccess(username)
         } else {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            soundEffectManager.playClickSound()
-            onError("Invalid username or password")
+            onError("Invalid credentials")
         }
         setLoading(false)
+        soundEffectManager.playClickSound()
     }
 }
