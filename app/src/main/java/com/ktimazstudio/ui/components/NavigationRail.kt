@@ -40,6 +40,7 @@ fun AppNavigationRail(
             .statusBarsPadding()
             .fillMaxHeight()
             .width(railWidth)
+            .clip(RoundedCornerShape(5.dp))
             .padding(vertical = 12.dp, horizontal = 4.dp),
         containerColor = railContainerColor,
         header = {
