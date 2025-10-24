@@ -15,10 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
 import com.ktimazstudio.enums.Screen
 import com.ktimazstudio.managers.SoundEffectManager
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
 fun AppNavigationRail(
@@ -27,6 +26,7 @@ fun AppNavigationRail(
     isExpanded: Boolean,
     onMenuClick: () -> Unit,
     soundEffectManager: SoundEffectManager, // Pass sound manager
+    shape = RoundedCornerShape(28.dp),
     modifier: Modifier = Modifier
 ) {
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
@@ -35,15 +35,14 @@ fun AppNavigationRail(
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
         label = "nav_rail_width_anim"
     )
-    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp).copy(alpha = 0.95f)
+    val railContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(alpha = 0.95f)
 
     NavigationRail(
         modifier = modifier
             .statusBarsPadding()
-            .clip(RoundedCornerShape(50.dp))
             .fillMaxHeight()
             .width(railWidth)
-            .padding(vertical = 20.dp, horizontal = 10.dp),
+            .padding(vertical = 12.dp, horizontal = 4.dp),
         containerColor = railContainerColor,
         header = {
             val interactionSource = remember { MutableInteractionSource() }
