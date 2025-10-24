@@ -2,5 +2,5 @@ package com.ktimazstudio.enums
 
 // --- Theme Settings Enum ---
 enum class ThemeSetting {
-    LIGHT, DARK, SYSTEM
+    LIGHT, DARK, BATTERY_SAVER
 }
