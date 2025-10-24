@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
