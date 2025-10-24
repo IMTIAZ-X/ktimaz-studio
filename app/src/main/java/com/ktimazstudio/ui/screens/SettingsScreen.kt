@@ -24,6 +24,14 @@ import com.ktimazstudio.managers.SoundEffectManager
 import com.ktimazstudio.managers.SharedPreferencesManager
 import com.ktimazstudio.ui.components.SettingItem
 
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.sp
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Brush
+
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -115,6 +123,49 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
                 )
             }
         )
+        
+        // 🆕 OneUI 8.5 Style Volume SeekBar
+Spacer(modifier = Modifier.height(12.dp))
+
+var soundLevel by remember { mutableStateOf(sharedPrefsManager.getSoundLevel()) }
+
+val animatedTrackColor by animateColorAsState(
+    targetValue = if (soundLevel > 0.7f) Color(0xFF007AFF)
+    else if (soundLevel > 0.3f) Color(0xFF00BFA6)
+    else Color(0xFFB0BEC5),
+    animationSpec = tween(durationMillis = 300)
+)
+
+Column(
+    modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp)
+) {
+    Text(
+        text = "Sound Level: ${(soundLevel * 100).toInt()}%",
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center
+    )
+
+    Slider(
+        value = soundLevel,
+        onValueChange = { value ->
+            soundLevel = value
+            sharedPrefsManager.setSoundLevel(value)
+        },
+        valueRange = 0f..1f,
+        steps = 0,
+        colors = SliderDefaults.colors(
+            thumbColor = MaterialTheme.colorScheme.primary,
+            activeTrackColor = animatedTrackColor,
+            inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         var showAccountDialog by remember { mutableStateOf(false) }
