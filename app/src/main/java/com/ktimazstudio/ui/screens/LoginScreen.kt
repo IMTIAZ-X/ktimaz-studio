@@ -525,7 +525,7 @@ fun LoginScreen(
                                 isLoading = true
                                 errorMessage = null
                                 try {
-                                    delay(1500)
+                                    delay(2000)
                                     val isValid = when {
                                         usernameInput.isBlank() || passwordInput.isBlank() -> false
                                         usernameInput.length < 3 || passwordInput.length < 4 -> false
@@ -638,10 +638,10 @@ fun LoginScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
-                    Text(
+                    /*Text(
                         text = "🔒",
                         style = MaterialTheme.typography.bodyMedium
-                    )
+                    )*/
                     Text(
                         text = "Your data is protected with end-to-end encryption",
                         style = MaterialTheme.typography.bodySmall,
