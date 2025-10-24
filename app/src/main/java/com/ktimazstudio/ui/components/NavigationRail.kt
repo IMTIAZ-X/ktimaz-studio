@@ -17,7 +17,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.ktimazstudio.enums.Screen
 import com.ktimazstudio.managers.SoundEffectManager
+
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+
 
 @Composable
 fun AppNavigationRail(
@@ -26,7 +31,6 @@ fun AppNavigationRail(
     isExpanded: Boolean,
     onMenuClick: () -> Unit,
     soundEffectManager: SoundEffectManager, // Pass sound manager
-    shape = RoundedCornerShape(28.dp),
     modifier: Modifier = Modifier
 ) {
     val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
@@ -43,6 +47,11 @@ fun AppNavigationRail(
             .fillMaxHeight()
             .width(railWidth)
             .padding(vertical = 12.dp, horizontal = 4.dp),
+            // ✅ Rounded Corners + Soft Shadow
+            .clip(RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp))
+            .background(railContainerColor)
+            .shadow(elevation = 6.dp, shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)),
+        
         containerColor = railContainerColor,
         header = {
             val interactionSource = remember { MutableInteractionSource() }
