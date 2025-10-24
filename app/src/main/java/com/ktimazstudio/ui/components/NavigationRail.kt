@@ -40,10 +40,10 @@ fun AppNavigationRail(
     NavigationRail(
         modifier = modifier
             .statusBarsPadding()
+            .clip(RoundedCornerShape(50.dp))
             .fillMaxHeight()
             .width(railWidth)
-            .clip(RoundedCornerShape(10.dp))
-            .padding(vertical = 12.dp, horizontal = 4.dp),
+            .padding(vertical = 20.dp, horizontal = 10.dp),
         containerColor = railContainerColor,
         header = {
             val interactionSource = remember { MutableInteractionSource() }
