@@ -226,7 +226,7 @@ fun LoginScreen(
                             .size(96.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                            .padding(8.dp)
+                          //  .padding(8.dp)
                     )
                 }
 
