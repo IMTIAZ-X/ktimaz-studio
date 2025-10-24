@@ -17,7 +17,6 @@ fun isAppInDarkTheme(themeSetting: ThemeSetting, context: Context): Boolean {
     return when (themeSetting) {
         ThemeSetting.LIGHT -> false
         ThemeSetting.DARK -> true
-        ThemeSetting.SYSTEM -> systemInDarkTheme
         ThemeSetting.BATTERY_SAVER -> {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
