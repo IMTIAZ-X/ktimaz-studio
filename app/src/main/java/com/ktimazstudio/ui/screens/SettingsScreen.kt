@@ -32,6 +32,10 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Brush
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import android.media.AudioManager
+
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -135,7 +139,7 @@ val animatedTrackColor by animateColorAsState(
         soundLevel > 0.3f -> Color(0xFF00BFA6)
         else -> Color(0xFFB0BEC5)
     },
-    animationSpec = tween(300)
+    animationSpec = tween(durationMillis = 300)
 )
 
 Column(
@@ -158,7 +162,7 @@ Column(
             soundLevel = value
             sharedPrefsManager.setSoundLevel(value)
 
-            // --- Apply system or app volume ---
+            // ✅ Apply actual system music volume
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             val newVolume = (value * maxVolume).toInt().coerceIn(0, maxVolume)
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
