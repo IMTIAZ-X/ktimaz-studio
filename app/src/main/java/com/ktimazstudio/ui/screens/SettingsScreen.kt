@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
@@ -125,29 +124,31 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
             }
         )
         
-        // 🆕 OneUI 8.5 Style Volume SeekBar
+// --- OneUI 8.5 Style Volume SeekBar ---
 Spacer(modifier = Modifier.height(12.dp))
 
 var soundLevel by remember { mutableStateOf(sharedPrefsManager.getSoundLevel()) }
 
 val animatedTrackColor by animateColorAsState(
-    targetValue = if (soundLevel > 0.7f) Color(0xFF007AFF)
-    else if (soundLevel > 0.3f) Color(0xFF00BFA6)
-    else Color(0xFFB0BEC5),
-    animationSpec = tween(durationMillis = 300)
+    targetValue = when {
+        soundLevel > 0.7f -> Color(0xFF007AFF)
+        soundLevel > 0.3f -> Color(0xFF00BFA6)
+        else -> Color(0xFFB0BEC5)
+    },
+    animationSpec = tween(300)
 )
 
 Column(
     modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp)
+        .padding(horizontal = 16.dp),
+    horizontalAlignment = Alignment.CenterHorizontally
 ) {
     Text(
         text = "Sound Level: ${(soundLevel * 100).toInt()}%",
         fontSize = 14.sp,
         fontWeight = FontWeight.Medium,
         color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.fillMaxWidth(),
         textAlign = TextAlign.Center
     )
 
@@ -156,6 +157,11 @@ Column(
         onValueChange = { value ->
             soundLevel = value
             sharedPrefsManager.setSoundLevel(value)
+
+            // --- Apply system or app volume ---
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val newVolume = (value * maxVolume).toInt().coerceIn(0, maxVolume)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
         },
         valueRange = 0f..1f,
         steps = 0,
@@ -167,6 +173,7 @@ Column(
         modifier = Modifier.fillMaxWidth()
     )
 }
+
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
         var showAccountDialog by remember { mutableStateOf(false) }
