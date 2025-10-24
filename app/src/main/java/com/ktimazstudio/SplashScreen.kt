@@ -287,7 +287,7 @@ fun ModernLoadingBar() {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(5000, easing = FastOutSlowInEasing), // 1500
+            animation = tween(7000, easing = FastOutSlowInEasing), // 1500
             repeatMode = RepeatMode.Restart
         ),
         label = "progress"
@@ -296,9 +296,9 @@ fun ModernLoadingBar() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .width(200.dp) // 120
-                .height(10.dp) // 4
-                .clip(RoundedCornerShape(2.dp))
+                .width(150.dp) // 120
+                .height(5.dp) // 4
+                .clip(RoundedCornerShape(5.dp)) // 2
                 .background(Color.Black.copy(alpha = 0.1f))
         ) {
             Box(
