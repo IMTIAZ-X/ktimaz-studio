@@ -58,7 +58,8 @@ class SharedPreferencesManager(context: Context) {
      * Retrieves the current theme setting.
      * return The ThemeSetting enum value. Defaults to SYSTEM.
      */
-    fun getThemeSetting(): ThemeSetting {
+   /* 
+   fun getThemeSetting(): ThemeSetting {
         val themeString = prefs.getString(KEY_THEME_SETTING, ThemeSetting.SYSTEM.name)
         return try {
             ThemeSetting.valueOf(themeString ?: ThemeSetting.SYSTEM.name)
@@ -66,6 +67,7 @@ class SharedPreferencesManager(context: Context) {
             ThemeSetting.SYSTEM // Fallback to system if stored value is invalid
         }
     }
+    */
 
     /**
      * Sets the new theme setting.
