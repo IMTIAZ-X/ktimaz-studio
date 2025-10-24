@@ -18,6 +18,7 @@ class SharedPreferencesManager(context: Context) {
         private const val KEY_USERNAME = "username_key"
         const val KEY_THEME_SETTING = "theme_setting_key" // Made public
         const val KEY_SOUND_ENABLED = "sound_enabled_key" // Made public
+        const val KEY_SOUND_LEVEL = "sound_level_key" // Added for SeekBar level
     }
 
     /**
@@ -89,5 +90,14 @@ class SharedPreferencesManager(context: Context) {
      */
     fun setSoundEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SOUND_ENABLED, enabled).apply()
+    }
+    
+    // Sound Level Save/Get
+    fun getSoundLevel(): Float {
+        return prefs.getFloat(KEY_SOUND_LEVEL, 0.5f) // Default 50%
+    }
+
+    fun setSoundLevel(level: Float) {
+        prefs.edit().putFloat(KEY_SOUND_LEVEL, level).apply()
     }
 }
