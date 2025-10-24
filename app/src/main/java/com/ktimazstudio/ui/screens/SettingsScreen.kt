@@ -41,6 +41,10 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current
+    val audioManager = context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+
 
     // State for theme and sound settings
     val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
