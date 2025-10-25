@@ -327,10 +327,14 @@ fun SettingsScreen(
 }
 
 @Composable
-fun CustomSoundSeekBar(sharedPrefsManager: SharedPreferencesManager, audioManager: AudioManager) {
+fun CustomSoundSeekBar(
+    sharedPrefsManager: SharedPreferencesManager,
+    audioManager: AudioManager
+) {
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
 
+    // 🎚️ Load previous sound level or default 0.5
     var soundLevel by remember { mutableStateOf(sharedPrefsManager.getSoundLevel() ?: 0.5f) }
     val animatedLevel by animateFloatAsState(targetValue = soundLevel, animationSpec = tween(200))
 
@@ -348,11 +352,13 @@ fun CustomSoundSeekBar(sharedPrefsManager: SharedPreferencesManager, audioManage
             .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
+        // 🎨 Canvas for Samsung-style SeekBar
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
                 .pointerInput(Unit) {
+                    // Tap gesture to jump sound level
                     detectTapGestures { pos ->
                         val widthPx = size.width - with(density) { padding.toPx() * 2f }
                         val x = (pos.x - with(density) { padding.toPx() }).coerceIn(0f, widthPx)
@@ -367,6 +373,7 @@ fun CustomSoundSeekBar(sharedPrefsManager: SharedPreferencesManager, audioManage
                     }
                 }
                 .pointerInput(Unit) {
+                    // Drag gesture to slide volume
                     detectDragGestures { change, _ ->
                         val localX = change.position.x
                         val widthPx = size.width - with(density) { padding.toPx() * 2f }
@@ -392,12 +399,14 @@ fun CustomSoundSeekBar(sharedPrefsManager: SharedPreferencesManager, audioManage
             val thumbX = padPx + activeWidth
             val thumbY = centerY
 
+            // 🎨 Active gradient (Blue → Green like Samsung One UI 8.5)
             val activeBrush = Brush.horizontalGradient(
                 colors = listOf(Color(0xFF2D92FF), Color(0xFF04A915)),
                 startX = padPx,
                 endX = padPx + widthPx
             )
 
+            // Inactive track
             drawRoundRect(
                 color = Color(0xFFDDE3E9),
                 topLeft = Offset(padPx, centerY - trackHeightPx / 2f),
@@ -405,6 +414,7 @@ fun CustomSoundSeekBar(sharedPrefsManager: SharedPreferencesManager, audioManage
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeightPx / 2f)
             )
 
+            // Active track
             drawRoundRect(
                 brush = activeBrush,
                 topLeft = Offset(padPx, centerY - trackHeightPx / 2f),
@@ -412,11 +422,15 @@ fun CustomSoundSeekBar(sharedPrefsManager: SharedPreferencesManager, audioManage
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeightPx / 2f)
             )
 
+            // Glow effect
             drawCircle(Color(0x332D92FF), thumbPx * 1.6f, Offset(thumbX, thumbY))
+            // Thumb body
             drawCircle(Color.White, thumbPx, Offset(thumbX, thumbY))
+            // Thumb border
             drawCircle(Color(0xFFB8C3D6), thumbPx, Offset(thumbX, thumbY), style = Stroke(2f))
         }
 
+        // 🔢 Percentage display on right
         Box(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -426,7 +440,7 @@ fun CustomSoundSeekBar(sharedPrefsManager: SharedPreferencesManager, audioManage
         ) {
             Text(
                 text = "${(soundLevel * 100).toInt()}%",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
