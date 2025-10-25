@@ -1,20 +1,12 @@
 package com.ktimazstudio.ui.screens
 
-import android.media.AudioManager
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,42 +14,39 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ktimazstudio.BuildConfig
 import com.ktimazstudio.enums.ThemeSetting
-import com.ktimazstudio.managers.SharedPreferencesManager
 import com.ktimazstudio.managers.SoundEffectManager
+import com.ktimazstudio.managers.SharedPreferencesManager
 import com.ktimazstudio.ui.components.SettingItem
-import kotlinx.coroutines.launch
+
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.sp
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Brush
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import android.media.AudioManager
 
 @Composable
-fun SettingsScreen(
-    modifier: Modifier = Modifier,
-    soundEffectManager: SoundEffectManager,
-    sharedPrefsManager: SharedPreferencesManager
-) {
+fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
     var showAboutDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
-
+    
     val context = LocalContext.current
-    val audioManager = context.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+    val audioManager = context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
 
-    // 🔹 State for theme and sound settings
+
+    // State for theme and sound settings
     val currentThemeSetting = remember { mutableStateOf(sharedPrefsManager.getThemeSetting()) }
     val isSoundEnabled = remember { mutableStateOf(sharedPrefsManager.isSoundEnabled()) }
 
@@ -78,18 +67,12 @@ fun SettingsScreen(
         SettingItem(
             title = "Enable Notifications",
             description = "Receive updates and alerts.",
-            leadingIcon = {
-                Icon(
-                    Icons.Filled.Settings,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-            },
+            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = {
                 Switch(
                     checked = notificationsEnabled,
                     onCheckedChange = {
-                        soundEffectManager.playClickSound()
+                        soundEffectManager.playClickSound() // Play sound on switch toggle
                         notificationsEnabled = it
                     }
                 )
@@ -97,25 +80,20 @@ fun SettingsScreen(
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-        // 🌙 Theme Changer
+        // Theme Changer Setting
         SettingItem(
             title = "App Theme",
             description = "Change the visual theme of the application.",
-            leadingIcon = {
-                Icon(
-                    Icons.Filled.ColorLens,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-            },
+            leadingIcon = { Icon(Icons.Filled.ColorLens, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = {
+                // Dropdown menu for theme selection
                 var expanded by remember { mutableStateOf(false) }
                 TextButton(onClick = {
                     soundEffectManager.playClickSound()
                     expanded = true
                 }) {
-                    Text(currentThemeSetting.value.name.replace("_", " "))
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+                    Text(currentThemeSetting.value.name.replace("_", " "), style = MaterialTheme.typography.bodyMedium)
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Expand theme options")
                 }
                 DropdownMenu(
                     expanded = expanded,
@@ -127,7 +105,7 @@ fun SettingsScreen(
                             onClick = {
                                 soundEffectManager.playClickSound()
                                 sharedPrefsManager.setThemeSetting(theme)
-                                currentThemeSetting.value = theme
+                                currentThemeSetting.value = theme // Update local state
                                 expanded = false
                             }
                         )
@@ -137,312 +115,205 @@ fun SettingsScreen(
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-        // 🔊 Sound On/Off
+        // Sound On/Off Setting
         SettingItem(
             title = "Sound Effects",
-            description = "Enable or disable click sounds.",
-            leadingIcon = {
-                Icon(
-                    if (isSoundEnabled.value) Icons.Filled.VolumeUp else Icons.Filled.VolumeOff,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-            },
+            description = "Enable or disable click sounds and other effects.",
+            leadingIcon = { Icon(if (isSoundEnabled.value) Icons.Filled.VolumeUp else Icons.Filled.VolumeOff, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = {
                 Switch(
                     checked = isSoundEnabled.value,
                     onCheckedChange = {
                         sharedPrefsManager.setSoundEnabled(it)
-                        isSoundEnabled.value = it
-                        if (it) soundEffectManager.playClickSound()
+                        isSoundEnabled.value = it // Update local state
+                        if (it) soundEffectManager.playClickSound() // Play sound only if enabling
                     }
                 )
             }
         )
+        
+// --- OneUI 8.5 Style Volume SeekBar ---
+Spacer(modifier = Modifier.height(12.dp))
 
-        // 🎚️ Samsung One UI 8.5 Style Custom SeekBar
-        CustomSoundSeekBar(sharedPrefsManager = sharedPrefsManager, audioManager = audioManager)
+var soundLevel by remember { mutableStateOf(sharedPrefsManager.getSoundLevel()) }
+
+val animatedTrackColor by animateColorAsState(
+    targetValue = when {
+        soundLevel > 0.7f -> Color(0xFF2D92FF)
+        soundLevel > 0.3f -> Color(0xFF16C128)
+        else -> Color(0xFFD0BCFF)
+    },
+    animationSpec = tween(durationMillis = 300)
+)
+
+Column(
+    modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp),
+    horizontalAlignment = Alignment.CenterHorizontally
+) {
+    Text(
+        text = "Sound Level: ${(soundLevel * 100).toInt()}%",
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center
+    )
+
+    Slider(
+        value = soundLevel,
+        onValueChange = { value ->
+            soundLevel = value
+            sharedPrefsManager.setSoundLevel(value)
+
+            // ✅ Apply actual system music volume
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val newVolume = (value * maxVolume).toInt().coerceIn(0, maxVolume)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
+        },
+        valueRange = 0f..1f,
+        steps = 0,
+        colors = SliderDefaults.colors(
+            thumbColor = MaterialTheme.colorScheme.primary,
+            activeTrackColor = animatedTrackColor,
+            inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-        // 🧍 Account Preferences
         var showAccountDialog by remember { mutableStateOf(false) }
         SettingItem(
             title = "Account Preferences",
             description = "Manage your account details.",
-            leadingIcon = {
-                Icon(
-                    Icons.Filled.AccountBox,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-            },
-            control = {
-                Icon(
-                    Icons.Filled.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
+            leadingIcon = { Icon(Icons.Filled.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "Go to account preferences", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
             onClick = {
-                soundEffectManager.playClickSound()
+                soundEffectManager.playClickSound() // Play sound on item click
                 showAccountDialog = true
             }
         )
         if (showAccountDialog) {
             AlertDialog(
                 onDismissRequest = { showAccountDialog = false },
-                icon = { Icon(Icons.Filled.AccountBox, contentDescription = null) },
+                icon = { Icon(Icons.Filled.AccountBox, contentDescription = null)},
                 title = { Text("Account Preferences") },
-                text = { Text("Account settings details appear here.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        soundEffectManager.playClickSound()
-                        showAccountDialog = false
-                    }) { Text("OK") }
-                }
+                text = { Text("Account settings details would appear here or navigate to a dedicated screen. This is a placeholder.") },
+                confirmButton = { TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on dialog button click
+                    showAccountDialog = false
+                }) { Text("OK") } }
             )
         }
-
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-        // ℹ️ About Section
         SettingItem(
             title = "About",
             description = "Information about this application.",
-            leadingIcon = {
-                Icon(Icons.Filled.Info, null, tint = MaterialTheme.colorScheme.secondary)
-            },
-            control = {
-                Icon(
-                    Icons.Filled.ChevronRight,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
+            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View About", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
             onClick = {
-                soundEffectManager.playClickSound()
+                soundEffectManager.playClickSound() // Play sound on item click
                 showAboutDialog = true
             }
         )
-
         if (showAboutDialog) {
             AlertDialog(
                 onDismissRequest = { showAboutDialog = false },
-                icon = { Icon(Icons.Filled.Info, null) },
-                title = { Text("About App") },
-                text = { Text("Version: ${BuildConfig.VERSION_NAME}\nDeveloped by Ktimaz Studio.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        soundEffectManager.playClickSound()
-                        showAboutDialog = false
-                    }) { Text("Close") }
-                }
+                icon = { Icon(Icons.Filled.Info, contentDescription = "About App Icon")},
+                title = { Text("About " + "App Name") }, // TODO: Replace with actual app name
+                text = { Text("Version: ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})\n\nDeveloped by Ktimaz Studio.\n\nThis application is a demonstration of various Android and Jetpack Compose features. Thank you for using our app!") },
+                confirmButton = { TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on dialog button click
+                    showAboutDialog = false
+                }) { Text("Close") } }
             )
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-        // 🔒 Privacy Policy
         SettingItem(
             title = "Privacy Policy",
             description = "Read our privacy policy.",
-            leadingIcon = {
-                Icon(Icons.Filled.Policy, null, tint = MaterialTheme.colorScheme.secondary)
-            },
-            control = {
-                Icon(
-                    Icons.Filled.ChevronRight,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
+            leadingIcon = { Icon(Icons.Filled.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Privacy Policy", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
             onClick = {
-                soundEffectManager.playClickSound()
+                soundEffectManager.playClickSound() // Play sound on item click
                 showPrivacyDialog = true
             }
         )
-
         if (showPrivacyDialog) {
             AlertDialog(
                 onDismissRequest = { showPrivacyDialog = false },
-                icon = { Icon(Icons.Filled.Policy, null) },
+                icon = { Icon(Icons.Filled.Policy, contentDescription = "Privacy Policy Icon")},
                 title = { Text("Privacy Policy") },
-                text = { Text("We respect your privacy. Full policy details coming soon.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        soundEffectManager.playClickSound()
-                        showPrivacyDialog = false
-                    }) { Text("Close") }
-                }
+                text = { Text("Placeholder for Privacy Policy text. In a real application, this would contain the full policy details or link to a web page.\n\nWe are committed to protecting your privacy. Our policy outlines how we collect, use, and safeguard your information.") },
+                confirmButton = { TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on dialog button click
+                    showPrivacyDialog = false
+                }) { Text("Close") } }
             )
         }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
-        // 📝 Changelog
+        // Changelog Item
         SettingItem(
             title = "Changelog",
-            description = "See what's new.",
-            leadingIcon = {
-                Icon(Icons.Filled.HistoryEdu, null, tint = MaterialTheme.colorScheme.secondary)
-            },
-            control = {
-                Icon(
-                    Icons.Filled.ChevronRight,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
+            description = "See what's new in this version.",
+            leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
+            control = { Icon(Icons.Filled.ChevronRight, contentDescription = "View Changelog", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
             onClick = {
-                soundEffectManager.playClickSound()
+                soundEffectManager.playClickSound() // Play sound on item click
                 showChangelogDialog = true
             }
         )
-
         if (showChangelogDialog) {
             AlertDialog(
                 onDismissRequest = { showChangelogDialog = false },
-                icon = { Icon(Icons.Filled.HistoryEdu, null) },
-                title = { Text("What's New - v${BuildConfig.VERSION_NAME}") },
-                text = { Text("✨ Improved UI, performance, and added sound settings.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        soundEffectManager.playClickSound()
-                        showChangelogDialog = false
-                    }) { Text("Awesome!") }
-                }
+                icon = { Icon(Icons.Filled.HistoryEdu, contentDescription = "Changelog Icon", modifier = Modifier.size(28.dp))},
+                title = { Text("What's New - v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleLarge) },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Text("Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                        Text("✨ New Features:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                        Text(" • Added persistent login with auto-login.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Implemented Logout functionality.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Enhanced VPN detection with a Material 3 dialog.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added 'About', 'Privacy Policy', and 'Changelog' to Settings.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Implemented basic reverse engineering detection (debugger, emulator, root, APK tampering).", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added click sound effects and beautiful press animations.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Implemented search functionality in the Dashboard.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added tooltips for new users on Dashboard cards.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Added Theme Changer (Light, Dark, System, Battery Saver).", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Added Sound Effects On/Off setting.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Text(" • Improved UI sizing consistency across devices.", style = MaterialTheme.typography.bodyMedium) // New Changelog entry
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("🐛 Bug Fixes & Improvements:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+                        Text(" • Addressed various icon resolution and deprecation warnings.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Polished Login screen UX and Navigation Rail visuals.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • Profile screen now shows username and placeholder picture.", style = MaterialTheme.typography.bodyMedium)
+                        Text(" • General UI/UX tweaks for a more expressive Material 3 feel.", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Thank you for updating!", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    }
+                },
+                confirmButton = { TextButton(onClick = {
+                    soundEffectManager.playClickSound() // Play sound on dialog button click
+                    showChangelogDialog = false
+                }) { Text("Awesome!") } },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
             )
         }
-
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+
 
         SettingItem(
             title = "App Version",
             description = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
-            leadingIcon = {
-                Icon(Icons.Filled.Info, null, tint = MaterialTheme.colorScheme.secondary)
-            },
+            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)},
             control = {}
         )
-    }
-}
-
-@Composable
-fun CustomSoundSeekBar(
-    sharedPrefsManager: SharedPreferencesManager,
-    audioManager: AudioManager
-) {
-    val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
-
-    // 🎚️ Load previous sound level or default 0.5
-    var soundLevel by remember { mutableStateOf(sharedPrefsManager.getSoundLevel() ?: 0.5f) }
-    val animatedLevel by animateFloatAsState(targetValue = soundLevel, animationSpec = tween(200))
-
-    val trackHeight: Dp = 6.dp
-    val thumbRadius: Dp = 12.dp
-    val padding: Dp = 12.dp
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .shadow(6.dp, RoundedCornerShape(24.dp))
-            .fillMaxWidth()
-            .height(48.dp)
-            .padding(horizontal = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        // 🎨 Canvas for Samsung-style SeekBar
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .pointerInput(Unit) {
-                    // Tap gesture to jump sound level
-                    detectTapGestures { pos ->
-                        val widthPx = size.width - with(density) { padding.toPx() * 2f }
-                        val x = (pos.x - with(density) { padding.toPx() }).coerceIn(0f, widthPx)
-                        val newLevel = (x / widthPx).coerceIn(0f, 1f)
-                        scope.launch {
-                            soundLevel = newLevel
-                            sharedPrefsManager.setSoundLevel(newLevel)
-                            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                            val newVol = (newLevel * maxVol).toInt().coerceIn(0, maxVol)
-                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
-                        }
-                    }
-                }
-                .pointerInput(Unit) {
-                    // Drag gesture to slide volume
-                    detectDragGestures { change, _ ->
-                        val localX = change.position.x
-                        val widthPx = size.width - with(density) { padding.toPx() * 2f }
-                        val x = (localX - with(density) { padding.toPx() }).coerceIn(0f, widthPx)
-                        val newLevel = (x / widthPx).coerceIn(0f, 1f)
-                        scope.launch {
-                            soundLevel = newLevel
-                            sharedPrefsManager.setSoundLevel(newLevel)
-                            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                            val newVol = (newLevel * maxVol).toInt().coerceIn(0, maxVol)
-                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
-                        }
-                    }
-                }
-        ) {
-            val trackHeightPx = with(density) { trackHeight.toPx() }
-            val thumbPx = with(density) { thumbRadius.toPx() }
-            val padPx = with(density) { padding.toPx() }
-            val widthPx = size.width - padPx * 2f
-            val centerY = size.height / 2f
-
-            val activeWidth = animatedLevel * widthPx
-            val thumbX = padPx + activeWidth
-            val thumbY = centerY
-
-            // 🎨 Active gradient (Blue → Green like Samsung One UI 8.5)
-            val activeBrush = Brush.horizontalGradient(
-                colors = listOf(Color(0xFF2D92FF), Color(0xFF04A915)),
-                startX = padPx,
-                endX = padPx + widthPx
-            )
-
-            // Inactive track
-            drawRoundRect(
-                color = Color(0xFFDDE3E9),
-                topLeft = Offset(padPx, centerY - trackHeightPx / 2f),
-                size = Size(widthPx, trackHeightPx),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeightPx / 2f)
-            )
-
-            // Active track
-            drawRoundRect(
-                brush = activeBrush,
-                topLeft = Offset(padPx, centerY - trackHeightPx / 2f),
-                size = Size(activeWidth, trackHeightPx),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeightPx / 2f)
-            )
-
-            // Glow effect
-            drawCircle(Color(0x332D92FF), thumbPx * 1.6f, Offset(thumbX, thumbY))
-            // Thumb body
-            drawCircle(Color.White, thumbPx, Offset(thumbX, thumbY))
-            // Thumb border
-            drawCircle(Color(0xFFB8C3D6), thumbPx, Offset(thumbX, thumbY), style = Stroke(2f))
-        }
-
-        // 🔢 Percentage display on right
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 8.dp)
-                .background(Color(0x12000000), RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = "${(soundLevel * 100).toInt()}%",
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
     }
 }
