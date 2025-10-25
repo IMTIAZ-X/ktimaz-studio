@@ -154,8 +154,15 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
         )
         
 // ---------- Samsung One UI 8.5 style custom SeekBar ----------
+
+// ⚙️ Fix: missing definitions
 val scope = rememberCoroutineScope()
 val density = LocalDensity.current
+val audioManager = LocalContext.current.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+val sharedPrefsManager = remember { SharedPreferencesManager(LocalContext.current) }
+
+// ⚙️ State for sound level (0f - 1f)
+var soundLevel by remember { mutableStateOf(sharedPrefsManager.getSoundLevel() ?: 0.5f) }
 
 // visual sizes
 val trackHeightDp: Dp = 6.dp
@@ -165,14 +172,18 @@ val horizontalPaddingDp: Dp = 12.dp
 // animated value for smooth thumb movement
 val animatedLevel by animateFloatAsState(targetValue = soundLevel, animationSpec = tween(200))
 
+// ✅ Rounded Corners + Soft Shadow
 Box(
     modifier = Modifier
+        .clip(RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp))
+        .background(MaterialTheme.colorScheme.surfaceVariant)
+        .shadow(elevation = 6.dp, shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp))
         .fillMaxWidth()
         .height(48.dp)
         .padding(horizontal = 8.dp),
     contentAlignment = Alignment.Center
 ) {
-    // Draw the track and thumb with Canvas and handle gestures
+    // 🎨 Draw custom SeekBar
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -183,13 +194,12 @@ Box(
                     val widthPx = size.width - with(density) { horizontalPaddingDp.toPx() * 2f }
                     val x = (pos.x - with(density) { horizontalPaddingDp.toPx() }).coerceIn(0f, widthPx)
                     val newLevel = (x / widthPx).coerceIn(0f, 1f)
-                    // update state and save + apply volume
                     scope.launch {
                         soundLevel = newLevel
                         sharedPrefsManager.setSoundLevel(newLevel)
-                        val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                         val newVol = (newLevel * maxVol).toInt().coerceIn(0, maxVol)
-                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVol, 0)
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
                     }
                 }
             }
@@ -203,9 +213,9 @@ Box(
                     scope.launch {
                         soundLevel = newLevel
                         sharedPrefsManager.setSoundLevel(newLevel)
-                        val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                         val newVol = (newLevel * maxVol).toInt().coerceIn(0, maxVol)
-                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVol, 0)
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
                     }
                 }
             }
@@ -217,30 +227,27 @@ Box(
         val widthPx = size.width - hp * 2f
         val centerY = size.height / 2f
 
-        // compute positions
+        // positions
         val activeWidth = animatedLevel * widthPx
         val thumbCx = hp + activeWidth
         val thumbCy = centerY
 
-        // OneUI-style gradient for active track
+        // 🎨 Active gradient
         val activeBrush = Brush.horizontalGradient(
-            colors = listOf(
-                Color(0xFF2D92FF), // blue
-                Color(0xFF04A915)  // green-ish
-            ),
+            colors = listOf(Color(0xFF2D92FF), Color(0xFF04A915)),
             startX = hp,
             endX = hp + widthPx
         )
 
-        // inactive track
+        // Inactive track
         drawRoundRect(
-            color = Color(0xFFDDE3E9), // subtle track background (light gray)
+            color = Color(0xFFDDE3E9),
             topLeft = Offset(hp, centerY - trackHeightPx / 2f),
             size = Size(widthPx, trackHeightPx),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeightPx / 2f, trackHeightPx / 2f)
         )
 
-        // active track (gradient)
+        // Active track
         drawRoundRect(
             brush = activeBrush,
             topLeft = Offset(hp, centerY - trackHeightPx / 2f),
@@ -248,42 +255,45 @@ Box(
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeightPx / 2f, trackHeightPx / 2f)
         )
 
-        // subtle glow/halo under thumb (one ui feel)
+        // Glow under thumb
         drawCircle(
-            color = Color(0x332D92FF), // translucent blue halo
+            color = Color(0x332D92FF),
             radius = thumbRadiusPx * 1.6f,
             center = Offset(thumbCx, thumbCy)
         )
 
-        // thumb (solid)
+        // Thumb body
         drawCircle(
             color = Color.White,
             radius = thumbRadiusPx,
-            center = Offset(thumbCx, thumbCy),
-            style = androidx.compose.ui.graphics.drawscope.Fill
+            center = Offset(thumbCx, thumbCy)
         )
 
-        // thumb border
+        // Thumb border
         drawCircle(
-            color = Color(0xFFB8C3D6), // light border
+            color = Color(0xFFB8C3D6),
             radius = thumbRadiusPx,
             center = Offset(thumbCx, thumbCy),
             style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
         )
     }
 
-    // Optional: show numeric percentage on right side (small chip)
-    Box(modifier = Modifier
-        .align(Alignment.CenterEnd)
-        .padding(end = 8.dp)
-        .background(color = Color(0x12000000), shape = RoundedCornerShape(8.dp))
-        .padding(horizontal = 8.dp, vertical = 4.dp)
+    // 🔢 Show numeric percentage on right
+    Box(
+        modifier = Modifier
+            .align(Alignment.CenterEnd)
+            .padding(end = 8.dp)
+            .background(color = Color(0x12000000), shape = RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text = "${(soundLevel * 100).toInt()}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+        Text(
+            text = "${(soundLevel * 100).toInt()}%",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
-// ---------- end custom seekbar ----------
-
+// ---------- End Custom SeekBar ----------
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
