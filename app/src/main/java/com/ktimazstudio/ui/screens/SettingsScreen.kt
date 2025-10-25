@@ -36,6 +36,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import android.media.AudioManager
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.animation.core.animateFloatAsState
+import kotlinx.coroutines.launch
+
+
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffectManager, sharedPrefsManager: SharedPreferencesManager) {
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -132,55 +153,137 @@ fun SettingsScreen(modifier: Modifier = Modifier, soundEffectManager: SoundEffec
             }
         )
         
-// --- OneUI 8.5 Style Volume SeekBar ---
-Spacer(modifier = Modifier.height(12.dp))
+// ---------- Samsung One UI 8.5 style custom SeekBar ----------
+val scope = rememberCoroutineScope()
+val density = LocalDensity.current
 
-var soundLevel by remember { mutableStateOf(sharedPrefsManager.getSoundLevel()) }
+// visual sizes
+val trackHeightDp: Dp = 6.dp
+val thumbRadiusDp: Dp = 12.dp
+val horizontalPaddingDp: Dp = 12.dp
 
-val animatedTrackColor by animateColorAsState(
-    targetValue = when {
-        soundLevel > 0.7f -> Color(0xFF2D92FF)
-        soundLevel > 0.3f -> Color(0xFF4CF65D)
-        else -> Color(0xFFD0BCFF)
-    },
-    animationSpec = tween(durationMillis = 300)
-)
+// animated value for smooth thumb movement
+val animatedLevel by animateFloatAsState(targetValue = soundLevel, animationSpec = tween(200))
 
-Column(
+Box(
     modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp),
-    horizontalAlignment = Alignment.CenterHorizontally
+        .height(48.dp)
+        .padding(horizontal = 8.dp),
+    contentAlignment = Alignment.Center
 ) {
-    Text(
-        text = "Sound Level: ${(soundLevel * 100).toInt()}%",
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Medium,
-        color = MaterialTheme.colorScheme.onSurface,
-        textAlign = TextAlign.Center
-    )
+    // Draw the track and thumb with Canvas and handle gestures
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .pointerInput(Unit) {
+                // tap to set
+                detectTapGestures { pos ->
+                    val widthPx = size.width - with(density) { horizontalPaddingDp.toPx() * 2f }
+                    val x = (pos.x - with(density) { horizontalPaddingDp.toPx() }).coerceIn(0f, widthPx)
+                    val newLevel = (x / widthPx).coerceIn(0f, 1f)
+                    // update state and save + apply volume
+                    scope.launch {
+                        soundLevel = newLevel
+                        sharedPrefsManager.setSoundLevel(newLevel)
+                        val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                        val newVol = (newLevel * maxVol).toInt().coerceIn(0, maxVol)
+                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVol, 0)
+                    }
+                }
+            }
+            .pointerInput(Unit) {
+                // drag to change
+                detectDragGestures { change, _ ->
+                    val localX = change.position.x
+                    val widthPx = size.width - with(density) { horizontalPaddingDp.toPx() * 2f }
+                    val x = (localX - with(density) { horizontalPaddingDp.toPx() }).coerceIn(0f, widthPx)
+                    val newLevel = (x / widthPx).coerceIn(0f, 1f)
+                    scope.launch {
+                        soundLevel = newLevel
+                        sharedPrefsManager.setSoundLevel(newLevel)
+                        val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                        val newVol = (newLevel * maxVol).toInt().coerceIn(0, maxVol)
+                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVol, 0)
+                    }
+                }
+            }
+    ) {
+        val trackHeightPx = with(density) { trackHeightDp.toPx() }
+        val thumbRadiusPx = with(density) { thumbRadiusDp.toPx() }
+        val hp = with(density) { horizontalPaddingDp.toPx() }
 
-    Slider(
-        value = soundLevel,
-        onValueChange = { value ->
-            soundLevel = value
-            sharedPrefsManager.setSoundLevel(value)
+        val widthPx = size.width - hp * 2f
+        val centerY = size.height / 2f
 
-            // ✅ Apply actual system music volume
-            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            val newVolume = (value * maxVolume).toInt().coerceIn(0, maxVolume)
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
-        },
-        valueRange = 0f..1f,
-        steps = 0,
-        colors = SliderDefaults.colors(
-            thumbColor = MaterialTheme.colorScheme.primary,
-            activeTrackColor = animatedTrackColor,
-            inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-        ),
-        modifier = Modifier.fillMaxWidth()
-    )
+        // compute positions
+        val activeWidth = animatedLevel * widthPx
+        val thumbCx = hp + activeWidth
+        val thumbCy = centerY
+
+        // OneUI-style gradient for active track
+        val activeBrush = Brush.horizontalGradient(
+            colors = listOf(
+                Color(0xFF2D92FF), // blue
+                Color(0xFF04A915)  // green-ish
+            ),
+            startX = hp,
+            endX = hp + widthPx
+        )
+
+        // inactive track
+        drawRoundRect(
+            color = Color(0xFFDDE3E9), // subtle track background (light gray)
+            topLeft = Offset(hp, centerY - trackHeightPx / 2f),
+            size = Size(widthPx, trackHeightPx),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeightPx / 2f, trackHeightPx / 2f)
+        )
+
+        // active track (gradient)
+        drawRoundRect(
+            brush = activeBrush,
+            topLeft = Offset(hp, centerY - trackHeightPx / 2f),
+            size = Size(activeWidth, trackHeightPx),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(trackHeightPx / 2f, trackHeightPx / 2f)
+        )
+
+        // subtle glow/halo under thumb (one ui feel)
+        drawCircle(
+            color = Color(0x332D92FF), // translucent blue halo
+            radius = thumbRadiusPx * 1.6f,
+            center = Offset(thumbCx, thumbCy)
+        )
+
+        // thumb (solid)
+        drawCircle(
+            color = Color.White,
+            radius = thumbRadiusPx,
+            center = Offset(thumbCx, thumbCy),
+            style = androidx.compose.ui.graphics.drawscope.Fill
+        )
+
+        // thumb border
+        drawCircle(
+            color = Color(0xFFB8C3D6), // light border
+            radius = thumbRadiusPx,
+            center = Offset(thumbCx, thumbCy),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+        )
+    }
+
+    // Optional: show numeric percentage on right side (small chip)
+    Box(modifier = Modifier
+        .align(Alignment.CenterEnd)
+        .padding(end = 8.dp)
+        .background(color = Color(0x12000000), shape = RoundedCornerShape(8.dp))
+        .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(text = "${(soundLevel * 100).toInt()}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+    }
 }
+// ---------- end custom seekbar ----------
+
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
 
