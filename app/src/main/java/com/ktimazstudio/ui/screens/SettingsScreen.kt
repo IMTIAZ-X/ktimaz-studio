@@ -139,9 +139,9 @@ var soundLevel by remember { mutableStateOf(sharedPrefsManager.getSoundLevel()) 
 
 val animatedTrackColor by animateColorAsState(
     targetValue = when {
-        soundLevel > 0.7f -> Color(0xFF007AFF)
-        soundLevel > 0.3f -> Color(0xFF00BFA6)
-        else -> Color(0xFFB0BEC5)
+        soundLevel > 0.7f -> Color(0x2D92FF)
+        soundLevel > 0.3f -> Color(0x4CF65D)
+        else -> Color(0xFFD0BCFF)
     },
     animationSpec = tween(durationMillis = 300)
 )
