@@ -7,7 +7,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallTopAppBar
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,9 +30,7 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
-                title = { Text("Agent") }
-            )
+            SmallTopAppBar(title = { Text("Agent") })
         },
         content = { padding ->
             Column(
@@ -57,7 +62,8 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
                         onValueChange = { input = it },
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("Say something to Agent...") },
-                        maxLines = 4
+                        maxLines = 4,
+                        colors = TextFieldDefaults.outlinedTextFieldColors()
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = {
@@ -76,7 +82,6 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
 
 @Composable
 private fun MessageRow(text: String, isUser: Boolean) {
-    val alignment = if (isUser) Alignment.End else Alignment.Start
     val bgColor = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
     val textColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
 
