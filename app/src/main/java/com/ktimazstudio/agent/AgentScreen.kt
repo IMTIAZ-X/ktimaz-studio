@@ -592,13 +592,8 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
         } else {
             // Message List
             LazyColumn(
-                // FIX APPLIED HERE:
-                // We use fillMaxWidth() as the initial Modifier object, 
-                // ensuring the subsequent .weight(1f) is called on an instance, 
-                // which often resolves this specific compilation error.
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f) 
+                    .weight(1f)
                     .padding(horizontal = 16.dp),
                 reverseLayout = true
             ) {
