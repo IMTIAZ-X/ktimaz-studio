@@ -581,24 +581,22 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
     val attachedFiles = remember { mutableStateListOf<Attachment>() }
 
     Column(
-        // FIX APPLIED HERE: Starting the chain with fillMaxWidth() 
-        // to appease the strict compiler's interpretation of Modifier.weight(1f)
+        // FIX APPLIED HERE: Using Modifier.then(Modifier.weight()) as a final attempt 
+        // to bypass the compiler's misinterpretation of the chain start.
         modifier = Modifier
-            .fillMaxWidth() // <-- NEW: Start the chain with a standard modifier
-            .weight(1f)     // <-- Now follows the base modifier
+            .fillMaxWidth() // Already added this for safety
+            .then(Modifier.weight(1f)) // <-- Syntactic Trick for the compiler
             .fillMaxHeight()
     ) {
         if (messages.isEmpty()) {
             // Empty State
             EmptyChatState()
         } else {
-            // Message List
+            // Message List (also needs the fix)
             LazyColumn(
-                // This inner LazyColumn was the previous problem spot, 
-                // but its chain is correct now, too.
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f) 
+                    .then(Modifier.weight(1f)) // <-- Syntactic Trick for the compiler on inner composable
                     .padding(horizontal = 16.dp),
                 reverseLayout = true
             ) {
@@ -607,15 +605,18 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
                 }
             }
         }
-
+        
         // Input Bar
         InputBar(
             input = input,
             onInputChange = { input = it },
             onSend = {
+                // Extract Mode from the attached files (which stores the mode tag)
                 val mode = attachedFiles.find { it.name.startsWith("[") }?.let { tag ->
                     AiMode.values().find { it.promptTag == tag.name }
                 } ?: AiMode.STANDARD
+
+                // Send the message, filtering out the mode tag from actual attachments
                 viewModel.sendUserMessage(input, attachedFiles.toList().filter { !it.name.startsWith("[") }, mode)
                 input = ""
                 attachedFiles.clear()
