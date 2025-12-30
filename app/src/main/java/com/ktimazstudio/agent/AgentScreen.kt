@@ -163,6 +163,15 @@ class AgentViewModel : ViewModel() {
     fun toggleProPlan(isPro: Boolean) { _settings.value = _settings.value.copy(isProUser = isPro) }
     fun toggleTheme(isDark: Boolean) { _settings.value = _settings.value.copy(isDarkTheme = isDark) }
 
+    // New setter functions to fix 'val cannot be reassigned' errors
+    fun setUseCustomApi(use: Boolean) {
+        _settings.value = _settings.value.copy(useCustomApi = use)
+    }
+
+    fun setCurrentProvider(provider: AiProvider) {
+        _settings.value = _settings.value.copy(currentProvider = provider)
+    }
+
     fun newChat() {
         // Simple chat logic: clear current chat and add a placeholder to history
         val firstMessage = _currentChat.value.firstOrNull()?.text ?: "New Chat"
@@ -335,7 +344,7 @@ fun AgentTheme(
 @Composable
 fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
     val settings by viewModel.settings.collectAsState()
-    
+
     // Apply Theme based on settings
     AgentTheme(darkTheme = settings.isDarkTheme) {
         val isSidebarOpen by viewModel.isSidebarOpen.collectAsState()
@@ -349,7 +358,7 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .background(MaterialTheme.colorScheme.background) // Ensure background is set
+                        .background(MaterialTheme.colorScheme.background)
                 ) {
                     // Sidebar
                     AnimatedVisibility(
@@ -572,8 +581,9 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
     val attachedFiles = remember { mutableStateListOf<Attachment>() } // Temporary state for attachments before sending
 
     Column(
+        // Fix for Line 576: Ensure Modifier chains correctly.
         modifier = Modifier
-            .weight(1f)
+            .weight(1f) // Correctly chained weight
             .fillMaxHeight()
     ) {
         if (messages.isEmpty()) {
@@ -919,7 +929,7 @@ fun ModelsApiSettingsTab(viewModel: AgentViewModel, settings: AppSettings) {
             Text("Use Custom API Mode", modifier = Modifier.weight(1f))
             Switch(
                 checked = settings.useCustomApi,
-                onCheckedChange = { viewModel.settings.value = settings.copy(useCustomApi = it) }
+                onCheckedChange = { viewModel.setUseCustomApi(it) } // <-- FIX for Line 922
             )
         }
         Spacer(Modifier.height(16.dp))
@@ -937,7 +947,7 @@ fun ModelsApiSettingsTab(viewModel: AgentViewModel, settings: AppSettings) {
                 DropdownMenuItem(
                     text = { Text(provider.title) },
                     onClick = {
-                        viewModel.settings.value = settings.copy(currentProvider = provider)
+                        viewModel.setCurrentProvider(provider) // <-- FIX for Line 940
                         isProviderMenuExpanded = false
                     }
                 )
