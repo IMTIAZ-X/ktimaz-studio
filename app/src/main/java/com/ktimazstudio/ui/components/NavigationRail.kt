@@ -31,7 +31,7 @@ fun AppNavigationRail(
     soundEffectManager: SoundEffectManager, // Pass sound manager
     modifier: Modifier = Modifier
 ) {
-    val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile)
+    val destinations = listOf(Screen.Dashboard, Screen.AppSettings, Screen.Profile, Screen.Agent)
 
     val railWidth by animateDpAsState(
         targetValue = if (isExpanded) 180.dp else 80.dp,
