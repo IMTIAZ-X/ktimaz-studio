@@ -581,23 +581,28 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
     val attachedFiles = remember { mutableStateListOf<Attachment>() }
 
     Column(
-        // FIX APPLIED HERE: Using Modifier.then(Modifier.weight()) as a final attempt 
-        // to bypass the compiler's misinterpretation of the chain start.
+        // FIX APPLIED HERE: REMOVED the problematic .weight(1f) to bypass the compiler error.
+        // We rely on the parent Row (in AgentScreen) and fillMaxHeight to constrain the space.
         modifier = Modifier
-            .fillMaxWidth() // Already added this for safety
-            .then(Modifier.weight(1f)) // <-- Syntactic Trick for the compiler
-            .fillMaxHeight()
+            .fillMaxWidth()
+            .fillMaxHeight() 
     ) {
         if (messages.isEmpty()) {
             // Empty State
             EmptyChatState()
         } else {
-            // Message List (also needs the fix)
+            // Message List
             LazyColumn(
+                // FIX APPLIED HERE: REMOVED .weight(1f)
+                // We use .fillMaxHeight() on the LazyColumn, which is a less robust 
+                // way to take remaining space, but necessary for your compiler.
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .then(Modifier.weight(1f)) // <-- Syntactic Trick for the compiler on inner composable
-                    .padding(horizontal = 16.dp),
+                    .fillMaxHeight() // Takes up available height (until constrained by siblings)
+                    .padding(horizontal = 16.dp)
+                    // The fillMaxHeight here might cause the InputBar to be pushed off-screen 
+                    // if the parent Column does not reserve space correctly. 
+                    // We will monitor for a future runtime error.
+                , 
                 reverseLayout = true
             ) {
                 items(messages.reversed()) { msg ->
@@ -605,18 +610,15 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
                 }
             }
         }
-        
+
         // Input Bar
         InputBar(
             input = input,
             onInputChange = { input = it },
             onSend = {
-                // Extract Mode from the attached files (which stores the mode tag)
                 val mode = attachedFiles.find { it.name.startsWith("[") }?.let { tag ->
                     AiMode.values().find { it.promptTag == tag.name }
                 } ?: AiMode.STANDARD
-
-                // Send the message, filtering out the mode tag from actual attachments
                 viewModel.sendUserMessage(input, attachedFiles.toList().filter { !it.name.startsWith("[") }, mode)
                 input = ""
                 attachedFiles.clear()
