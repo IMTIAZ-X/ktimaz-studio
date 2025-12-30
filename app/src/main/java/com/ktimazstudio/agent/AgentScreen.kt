@@ -581,6 +581,7 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
     val attachedFiles = remember { mutableStateListOf<Attachment>() } // Temporary state for attachments before sending
 
     Column(
+        // The parent Column uses weight(1f) to take up the remaining space
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
@@ -591,10 +592,13 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
         } else {
             // Message List
             LazyColumn(
-                // FIX APPLIED HERE: Ensure 'Modifier' is explicitly the receiver for 'weight'.
-                // If the compiler is extremely strict, we ensure the chain starts cleanly.
+                // FIX APPLIED HERE:
+                // We use fillMaxWidth() as the initial Modifier object, 
+                // ensuring the subsequent .weight(1f) is called on an instance, 
+                // which often resolves this specific compilation error.
                 modifier = Modifier
-                    .weight(1f) // <-- Line 586 FIX (Ensure it's chained off Modifier and not treated as Companion invoke)
+                    .fillMaxWidth()
+                    .weight(1f) 
                     .padding(horizontal = 16.dp),
                 reverseLayout = true
             ) {
@@ -603,7 +607,7 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
                 }
             }
         }
-        
+
         // Input Bar
         InputBar(
             input = input,
