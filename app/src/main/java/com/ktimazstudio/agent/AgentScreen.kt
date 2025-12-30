@@ -7,14 +7,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallTopAppBar
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +29,7 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(title = { Text("Agent") })
+            CenterAlignedTopAppBar(title = { Text("Agent") })
         },
         content = { padding ->
             Column(
@@ -42,8 +41,7 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 12.dp),
-                    reverseLayout = false
+                        .padding(horizontal = 12.dp)
                 ) {
                     items(messages) { msg ->
                         MessageRow(msg.text, msg.isUser)
@@ -62,8 +60,7 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
                         onValueChange = { input = it },
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("Say something to Agent...") },
-                        maxLines = 4,
-                        colors = TextFieldDefaults.outlinedTextFieldColors()
+                        maxLines = 4
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = {
@@ -72,7 +69,7 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
                             input = ""
                         }
                     }) {
-                        Icon(Icons.Default.Send, contentDescription = "Send")
+                        Icon(Icons.Filled.Send, contentDescription = "Send")
                     }
                 }
             }
