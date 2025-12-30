@@ -578,12 +578,14 @@ fun AvatarWithBadge(isPro: Boolean) {
 fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
     val messages by viewModel.currentChat.collectAsState()
     var input by remember { mutableStateOf("") }
-    val attachedFiles = remember { mutableStateListOf<Attachment>() } // Temporary state for attachments before sending
+    val attachedFiles = remember { mutableStateListOf<Attachment>() }
 
     Column(
-        // The parent Column uses weight(1f) to take up the remaining space
+        // FIX APPLIED HERE: Starting the chain with fillMaxWidth() 
+        // to appease the strict compiler's interpretation of Modifier.weight(1f)
         modifier = Modifier
-            .weight(1f)
+            .fillMaxWidth() // <-- NEW: Start the chain with a standard modifier
+            .weight(1f)     // <-- Now follows the base modifier
             .fillMaxHeight()
     ) {
         if (messages.isEmpty()) {
@@ -592,8 +594,11 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
         } else {
             // Message List
             LazyColumn(
+                // This inner LazyColumn was the previous problem spot, 
+                // but its chain is correct now, too.
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
+                    .weight(1f) 
                     .padding(horizontal = 16.dp),
                 reverseLayout = true
             ) {
@@ -608,12 +613,9 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
             input = input,
             onInputChange = { input = it },
             onSend = {
-                // Extract Mode from the attached files (which stores the mode tag)
                 val mode = attachedFiles.find { it.name.startsWith("[") }?.let { tag ->
                     AiMode.values().find { it.promptTag == tag.name }
                 } ?: AiMode.STANDARD
-
-                // Send the message, filtering out the mode tag from actual attachments
                 viewModel.sendUserMessage(input, attachedFiles.toList().filter { !it.name.startsWith("[") }, mode)
                 input = ""
                 attachedFiles.clear()
