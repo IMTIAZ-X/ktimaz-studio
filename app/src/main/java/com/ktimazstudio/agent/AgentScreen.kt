@@ -581,9 +581,8 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
     val attachedFiles = remember { mutableStateListOf<Attachment>() } // Temporary state for attachments before sending
 
     Column(
-        // Fix for Line 576: Ensure Modifier chains correctly.
         modifier = Modifier
-            .weight(1f) // Correctly chained weight
+            .weight(1f)
             .fillMaxHeight()
     ) {
         if (messages.isEmpty()) {
@@ -592,7 +591,11 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
         } else {
             // Message List
             LazyColumn(
-                modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+                // FIX APPLIED HERE: Ensure 'Modifier' is explicitly the receiver for 'weight'.
+                // If the compiler is extremely strict, we ensure the chain starts cleanly.
+                modifier = Modifier
+                    .weight(1f) // <-- Line 586 FIX (Ensure it's chained off Modifier and not treated as Companion invoke)
+                    .padding(horizontal = 16.dp),
                 reverseLayout = true
             ) {
                 items(messages.reversed()) { msg ->
@@ -600,7 +603,7 @@ fun ChatInterface(viewModel: AgentViewModel, isDarkTheme: Boolean) {
                 }
             }
         }
-
+        
         // Input Bar
         InputBar(
             input = input,
