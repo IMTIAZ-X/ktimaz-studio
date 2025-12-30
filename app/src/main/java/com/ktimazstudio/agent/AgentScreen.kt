@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api // <-- Required Import
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+// FIX: Add the OptIn annotation to suppress the warning for using CenterAlignedTopAppBar
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
     val messages by viewModel.messages.collectAsState()
