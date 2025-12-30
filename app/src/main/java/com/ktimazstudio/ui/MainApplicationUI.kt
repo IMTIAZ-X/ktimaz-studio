@@ -203,9 +203,7 @@ fun MainApplicationUI(
                         )
                         Screen.Profile -> ProfileScreen(username = username, onLogout = onLogout, soundEffectManager = soundEffectManager)
                         
-                        Screen.Agent -> AgentScreen(
-                        soundEffectManager = soundEffectManager // Pass sound manager
-                        ) 
+                        Screen.Agent -> AgentScreen()
                     }
                 }
             }
