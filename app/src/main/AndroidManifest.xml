@@ -45,17 +45,14 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true"/>
+            android:exported="false"/>
         <activity
             android:name=".ComingActivity"
-            android:exported="true"/>
+            android:exported="false"/>
         <activity
             android:name=".SettingsActivity"
-            android:exported="true"/>
-        <activity
-            android:name=".agent.AgentActivity"
-            android:exported="false" />
-        
+            android:exported="false"/>
+            
         <activity
             android:name=".SplashScreen"
             android:exported="true">
