@@ -27,7 +27,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -849,7 +848,7 @@ fun ModernEmptyState(viewModel: AgentViewModel) {
     val infiniteTransition = rememberInfiniteTransition(label = "float")
     val offsetY by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = -20f,
+        targetValue = 20f,
         animationSpec = infiniteRepeatable(
             animation = tween(2000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -863,7 +862,10 @@ fun ModernEmptyState(viewModel: AgentViewModel) {
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.graphicsLayer { translationY = offsetY }
+            modifier = Modifier
+                .graphicsLayer {
+                    translationY = offsetY
+                }
         ) {
             Box(
                 modifier = Modifier
