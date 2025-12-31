@@ -5,7 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,13 +20,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,10 +39,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODERN DATA MODELS & CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// DATA MODELS
 data class Attachment(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
@@ -67,9 +60,7 @@ data class ChatMessage(
     val attachments: List<Attachment> = emptyList(),
     val mode: AiMode = AiMode.STANDARD,
     val isStreaming: Boolean = false,
-    val timestamp: Long = System.currentTimeMillis(),
-    val reactions: List<String> = emptyList(),
-    val isEdited: Boolean = false
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 data class ChatHistory(
@@ -78,8 +69,7 @@ data class ChatHistory(
     val lastMessage: String,
     val timestamp: Long,
     val messageCount: Int = 0,
-    val isPinned: Boolean = false,
-    val tags: List<String> = emptyList()
+    val isPinned: Boolean = false
 )
 
 data class AppSettings(
@@ -88,20 +78,15 @@ data class AppSettings(
     val currentProvider: AiProvider = AiProvider.GEMINI,
     val tokenUsage: Int = 0,
     val estimatedCost: Double = 0.0,
-    val isDarkTheme: Boolean = true,
-    val enableAnimations: Boolean = true,
-    val enableSoundEffects: Boolean = false,
-    val autoSaveChats: Boolean = true,
-    val compactMode: Boolean = false
+    val isDarkTheme: Boolean = true
 )
 
 enum class AiMode(val title: String, val promptTag: String, val icon: String, val isPro: Boolean = false) {
-    STANDARD("Standard Chat", "", "💬"),
-    THINKING("Thinking Mode", "[THINKING_MODE]", "🧠", true),
-    RESEARCH("Deep Research", "[RESEARCH_MODE]", "🔬", true),
-    STUDY("Study Mode", "[STUDY_MODE]", "📚", true),
-    CODE("Code Assistant", "[CODE_MODE]", "💻", true),
-    CREATIVE("Creative Writing", "[CREATIVE_MODE]", "✨", true)
+    STANDARD("Standard", "", "💬"),
+    THINKING("Thinking", "[THINKING]", "🧠", true),
+    RESEARCH("Research", "[RESEARCH]", "🔬", true),
+    STUDY("Study", "[STUDY]", "📚", true),
+    CODE("Code", "[CODE]", "💻", true)
 }
 
 enum class AiProvider(val title: String, val color: Color) {
@@ -113,33 +98,17 @@ enum class AiProvider(val title: String, val color: Color) {
     LOCAL_LLM("Local LLM", Color(0xFF8B5CF6))
 }
 
-object ModernTheme {
+object AppTheme {
     const val APP_NAME = "AI Agent zzz"
-    const val CREATOR_NAME = "zzz"
-
-    // Glassmorphism colors
-    val GlassBackground = Color(0x33FFFFFF)
-    val GlassBorder = Color(0x44FFFFFF)
-    
-    // Gradient colors
-    val PrimaryGradientStart = Color(0xFF667EEA)
-    val PrimaryGradientEnd = Color(0xFF764BA2)
-    val SecondaryGradientStart = Color(0xFFF093FB)
-    val SecondaryGradientEnd = Color(0xFFF5576C)
-    val ProGradientStart = Color(0xFFFFD89B)
-    val ProGradientEnd = Color(0xFFFF6B6B)
-    
-    // Surface colors
+    val PrimaryStart = Color(0xFF667EEA)
+    val PrimaryEnd = Color(0xFF764BA2)
+    val ProStart = Color(0xFFFFD89B)
+    val ProEnd = Color(0xFFFF6B6B)
     val SurfaceDark = Color(0xFF0F0F1E)
-    val SurfaceLight = Color(0xFFF8F9FE)
     val CardDark = Color(0xFF1A1A2E)
-    val CardLight = Color(0xFFFFFFFF)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ADVANCED VIEWMODEL WITH ENHANCED STATE MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// VIEWMODEL
 class AgentViewModel : ViewModel() {
     private val _settings = MutableStateFlow(AppSettings())
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
@@ -151,18 +120,16 @@ class AgentViewModel : ViewModel() {
         listOf(
             ChatHistory(
                 title = "Advanced Kotlin Patterns",
-                lastMessage = "Let me explain sealed classes...",
+                lastMessage = "Let me explain...",
                 timestamp = System.currentTimeMillis(),
                 messageCount = 12,
-                isPinned = true,
-                tags = listOf("Kotlin", "Programming")
+                isPinned = true
             ),
             ChatHistory(
-                title = "UI/UX Design Principles",
-                lastMessage = "Glassmorphism is trending...",
+                title = "UI/UX Design",
+                lastMessage = "Great question!",
                 timestamp = System.currentTimeMillis() - 3600000,
-                messageCount = 8,
-                tags = listOf("Design", "UI")
+                messageCount = 8
             )
         )
     )
@@ -174,9 +141,6 @@ class AgentViewModel : ViewModel() {
     private val _isSettingsModalOpen = MutableStateFlow(false)
     val isSettingsModalOpen: StateFlow<Boolean> = _isSettingsModalOpen.asStateFlow()
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-
     private val _selectedMode = MutableStateFlow(AiMode.STANDARD)
     val selectedMode: StateFlow<AiMode> = _selectedMode.asStateFlow()
 
@@ -187,7 +151,6 @@ class AgentViewModel : ViewModel() {
     fun toggleTheme(isDark: Boolean) { _settings.value = _settings.value.copy(isDarkTheme = isDark) }
     fun setUseCustomApi(use: Boolean) { _settings.value = _settings.value.copy(useCustomApi = use) }
     fun setCurrentProvider(provider: AiProvider) { _settings.value = _settings.value.copy(currentProvider = provider) }
-    fun setSearchQuery(query: String) { _searchQuery.value = query }
     fun setSelectedMode(mode: AiMode) { _selectedMode.value = mode }
 
     fun newChat() {
@@ -195,7 +158,7 @@ class AgentViewModel : ViewModel() {
             val firstMessage = _currentChat.value.firstOrNull()?.text ?: "New Chat"
             _chatHistory.value = listOf(
                 ChatHistory(
-                    title = firstMessage.take(40) + if (firstMessage.length > 40) "..." else "",
+                    title = firstMessage.take(40),
                     lastMessage = _currentChat.value.last().text,
                     timestamp = System.currentTimeMillis(),
                     messageCount = _currentChat.value.size
@@ -211,12 +174,12 @@ class AgentViewModel : ViewModel() {
         val isPro = settings.isProUser
 
         if (!isPro && attachments.size > 2) {
-            appendAiMessage("⚠️ Free plan limited to 2 attachments. Upgrade to Pro for unlimited uploads.", isError = true)
+            appendAiMessage("⚠️ Free plan limited to 2 attachments. Upgrade to Pro!")
             return
         }
 
         if (!isPro && mode.isPro) {
-            appendAiMessage("🔒 ${mode.title} requires Pro. Upgrade to unlock all AI modes!", isError = true)
+            appendAiMessage("🔒 ${mode.title} requires Pro. Upgrade to unlock!")
             return
         }
 
@@ -253,100 +216,50 @@ class AgentViewModel : ViewModel() {
 
     private fun generateAiReply(userMessage: ChatMessage, settings: AppSettings): String {
         if (!settings.useCustomApi) {
-            return "✨ **Simulated Meta AI Response**\n\nYou asked: \"${userMessage.text.take(100)}\"\n\nThis is a demo response. Enable Custom API in Settings to use real AI providers."
+            return "✨ **Simulated Response**\n\nYou asked: \"${userMessage.text.take(100)}\"\n\nEnable Custom API in Settings to use real providers."
         }
 
         return when (userMessage.mode) {
-            AiMode.THINKING -> """
-                🧠 **Thinking Mode Activated**
-                
-                **Analysis Process:**
-                1. Understanding the query context
-                2. Breaking down key components
-                3. Formulating structured response
-                
-                **Final Answer:** Based on deep reasoning, here's my comprehensive response to your question about: "${userMessage.text.take(50)}..."
-            """.trimIndent()
-            
-            AiMode.RESEARCH -> """
-                🔬 **Deep Research Mode**
-                
-                **Research Summary:**
-                Topic: ${userMessage.text.take(50)}
-                
-                **Key Findings:**
-                • Comprehensive analysis completed
-                • Multiple sources consulted (simulated)
-                • Evidence-based conclusions drawn
-                
-                **Conclusion:** This research indicates significant implications for your query.
-            """.trimIndent()
-            
-            AiMode.STUDY -> """
-                📚 **Study Mode - Expert Tutor**
-                
-                **Lesson Plan:**
-                Let me break this down simply...
-                
-                **Key Concepts:**
-                ✓ Core principle explained
-                ✓ Practical applications shown
-                ✓ Common misconceptions clarified
-                
-                **Quiz Question:** Can you summarize the main point in your own words?
-            """.trimIndent()
-            
-            else -> "Hello! I'm **${ModernTheme.APP_NAME}**, ready to assist you. You're using the ${settings.currentProvider.title} provider on ${if (settings.isProUser) "Pro" else "Free"} plan."
+            AiMode.THINKING -> "🧠 **Thinking Mode**\n\nAnalyzing your query...\n\n**Answer:** Here's my detailed response."
+            AiMode.RESEARCH -> "🔬 **Research Mode**\n\nConducting deep research...\n\n**Findings:** Comprehensive analysis complete."
+            AiMode.STUDY -> "📚 **Study Mode**\n\nLet me explain this simply...\n\n**Quiz:** Can you summarize the key points?"
+            else -> "Hello! I'm **${AppTheme.APP_NAME}**. Using ${settings.currentProvider.title} on ${if (settings.isProUser) "Pro" else "Free"} plan."
         }
     }
 
-    private fun appendAiMessage(text: String, isError: Boolean = false) {
-        _currentChat.value = _currentChat.value + ChatMessage(
-            text = text,
-            isUser = false
-        )
+    private fun appendAiMessage(text: String) {
+        _currentChat.value = _currentChat.value + ChatMessage(text = text, isUser = false)
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODERN THEME SYSTEM
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// THEME
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF667EEA),
-    secondary = Color(0xFFF093FB),
-    background = ModernTheme.SurfaceDark,
-    surface = ModernTheme.CardDark,
+    primary = AppTheme.PrimaryStart,
+    background = AppTheme.SurfaceDark,
+    surface = AppTheme.CardDark,
     onPrimary = Color.White,
     onBackground = Color.White,
     onSurface = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF667EEA),
-    secondary = Color(0xFFF093FB),
-    background = ModernTheme.SurfaceLight,
-    surface = ModernTheme.CardLight,
+    primary = AppTheme.PrimaryStart,
+    background = Color(0xFFF8F9FE),
+    surface = Color.White,
     onPrimary = Color.White,
     onBackground = Color.Black,
     onSurface = Color.Black
 )
 
 @Composable
-fun ModernAgentTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
+fun ModernAgentTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         content = content
     )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN SCREEN WITH GLASSMORPHISM & ANIMATIONS
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// MAIN SCREEN
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
@@ -362,9 +275,9 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
                 .background(
                     Brush.verticalGradient(
                         colors = if (settings.isDarkTheme) {
-                            listOf(Color(0xFF0A0A1E), Color(0xFF1A1A2E), Color(0xFF0F0F1E))
+                            listOf(Color(0xFF0A0A1E), Color(0xFF1A1A2E))
                         } else {
-                            listOf(Color(0xFFF8F9FE), Color(0xFFEEF2FF), Color(0xFFE0E7FF))
+                            listOf(Color(0xFFF8F9FE), Color(0xFFE0E7FF))
                         }
                     )
                 )
@@ -398,34 +311,20 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// GLASSMORPHIC TOP BAR
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// TOP BAR
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernTopBar(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
 
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp),
+        modifier = Modifier.fillMaxWidth(),
         color = if (settings.isDarkTheme) {
-            ModernTheme.CardDark.copy(alpha = 0.8f)
+            AppTheme.CardDark.copy(alpha = 0.8f)
         } else {
-            ModernTheme.CardLight.copy(alpha = 0.9f)
-        }
+            Color.White.copy(alpha = 0.9f)
+        },
+        shadowElevation = 4.dp
     ) {
         Row(
             modifier = Modifier
@@ -434,124 +333,69 @@ fun ModernTopBar(viewModel: AgentViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { viewModel.toggleSidebar() }) {
-                Icon(
-                    Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.primary)
             }
 
             Spacer(Modifier.width(12.dp))
 
             Column(Modifier.weight(1f)) {
                 Text(
-                    ModernTheme.APP_NAME,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Black,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                ModernTheme.PrimaryGradientStart,
-                                ModernTheme.PrimaryGradientEnd
-                            )
-                        )
-                    )
+                    AppTheme.APP_NAME,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF10B981))
-                            .scale(pulseAlpha)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "Active • ${settings.tokenUsage} tokens • \$${String.format("%.4f", settings.estimatedCost)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
+                Text(
+                    "Tokens: ${settings.tokenUsage} • \$${String.format("%.4f", settings.estimatedCost)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
             }
 
             if (settings.isProUser) {
-                ProBadge()
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(AppTheme.ProStart, AppTheme.ProEnd)
+                            )
+                        )
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text("PRO", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                }
             }
 
             Spacer(Modifier.width(8.dp))
 
             IconButton(onClick = { viewModel.openSettings() }) {
-                Icon(
-                    Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
             }
         }
     }
 }
 
-@Composable
-fun ProBadge() {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        ModernTheme.ProGradientStart,
-                        ModernTheme.ProGradientEnd
-                    )
-                )
-            )
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Default.Star,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                "PRO",
-                color = Color.White,
-                fontWeight = FontWeight.Black,
-                fontSize = 11.sp
-            )
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODERN SIDEBAR WITH SEARCH & GROUPING
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// SIDEBAR
 @Composable
 fun ModernSidebar(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
     val chatHistory by viewModel.chatHistory.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
 
     Surface(
         modifier = Modifier
             .width(320.dp)
             .fillMaxHeight(),
         color = if (settings.isDarkTheme) {
-            ModernTheme.CardDark.copy(alpha = 0.6f)
+            AppTheme.CardDark.copy(alpha = 0.6f)
         } else {
-            ModernTheme.CardLight.copy(alpha = 0.9f)
+            Color.White.copy(alpha = 0.9f)
         }
     ) {
         Column(Modifier.padding(16.dp)) {
             Button(
                 onClick = { viewModel.newChat() },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                shape = RoundedCornerShape(16.dp),
-                contentPadding = PaddingValues(16.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -560,56 +404,27 @@ fun ModernSidebar(viewModel: AgentViewModel) {
 
             Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.setSearchQuery(it) },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search chats...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-                )
-            )
-
-            Spacer(Modifier.height(16.dp))
-
             LazyColumn(Modifier.weight(1f)) {
                 item {
                     Text(
-                        "Pinned",
+                        "Recent Chats",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
-                items(chatHistory.filter { it.isPinned }) { chat ->
-                    ModernChatHistoryCard(chat)
-                }
-                
-                item {
-                    Text(
-                        "Recent",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 8.dp, top = 16.dp)
-                    )
-                }
-                items(chatHistory.filter { !it.isPinned }) { chat ->
-                    ModernChatHistoryCard(chat)
+                items(chatHistory) { chat ->
+                    ChatHistoryCard(chat)
                 }
             }
 
-            ModernUserFooter(viewModel)
+            UserFooter(viewModel)
         }
     }
 }
 
 @Composable
-fun ModernChatHistoryCard(chat: ChatHistory) {
+fun ChatHistoryCard(chat: ChatHistory) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -630,10 +445,7 @@ fun ModernChatHistoryCard(chat: ChatHistory) {
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(
-                                ModernTheme.PrimaryGradientStart,
-                                ModernTheme.PrimaryGradientEnd
-                            )
+                            colors = listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd)
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -649,27 +461,12 @@ fun ModernChatHistoryCard(chat: ChatHistory) {
             Spacer(Modifier.width(12.dp))
 
             Column(Modifier.weight(1f)) {
+                Text(chat.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
                 Text(
-                    chat.title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.SemiBold
+                    "${chat.messageCount} messages",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "${chat.messageCount} messages",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    if (chat.tags.isNotEmpty()) {
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            "• ${chat.tags.first()}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
             }
 
             if (chat.isPinned) {
@@ -685,7 +482,7 @@ fun ModernChatHistoryCard(chat: ChatHistory) {
 }
 
 @Composable
-fun ModernUserFooter(viewModel: AgentViewModel) {
+fun UserFooter(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
 
     Column {
@@ -703,36 +500,18 @@ fun ModernUserFooter(viewModel: AgentViewModel) {
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    ModernTheme.SecondaryGradientStart.copy(alpha = 0.3f),
-                                    ModernTheme.SecondaryGradientEnd.copy(alpha = 0.3f)
+                                    Color(0xFFF093FB).copy(alpha = 0.3f),
+                                    Color(0xFFF5576C).copy(alpha = 0.3f)
                                 )
                             )
                         )
-                        .border(
-                            1.dp,
-                            ModernTheme.GlassBorder,
-                            RoundedCornerShape(16.dp)
-                        )
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
                         .padding(16.dp)
                 ) {
                     Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Rocket,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Upgrade to Pro",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        }
-                        Spacer(Modifier.height(4.dp))
+                        Text("Upgrade to Pro", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Text(
-                            "Unlock all AI modes, unlimited uploads & priority support",
+                            "Unlock all AI modes & unlimited uploads",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -752,47 +531,29 @@ fun ModernUserFooter(viewModel: AgentViewModel) {
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(
-                                ModernTheme.PrimaryGradientStart,
-                                ModernTheme.PrimaryGradientEnd
-                            )
+                            colors = listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd)
                         )
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "A",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 20.sp
-                )
+                Text("A", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
             }
 
             Spacer(Modifier.width(12.dp))
 
             Column(Modifier.weight(1f)) {
-                Text(
-                    "Agent User",
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("Agent User", fontWeight = FontWeight.SemiBold)
                 Text(
                     if (settings.isProUser) "Pro Account" else "Free Account",
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (settings.isProUser) {
-                        ModernTheme.ProGradientStart
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    }
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODERN CHAT INTERFACE WITH ENHANCED UX
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// CHAT INTERFACE
 @Composable
 fun ModernChatInterface(viewModel: AgentViewModel) {
     val messages by viewModel.currentChat.collectAsState()
@@ -808,12 +569,12 @@ fun ModernChatInterface(viewModel: AgentViewModel) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         if (messages.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -825,13 +586,13 @@ fun ModernChatInterface(viewModel: AgentViewModel) {
                     )
                     Spacer(Modifier.height(24.dp))
                     Text(
-                        "Welcome to ${ModernTheme.APP_NAME}",
+                        "Welcome to ${AppTheme.APP_NAME}",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Black
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Your intelligent AI workspace awaits",
+                        "Your intelligent AI workspace",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -846,7 +607,7 @@ fun ModernChatInterface(viewModel: AgentViewModel) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(messages.reversed(), key = { it.id }) { msg ->
-                    ModernMessageBubble(msg, settings.isDarkTheme)
+                    MessageBubble(msg, settings.isDarkTheme)
                 }
             }
         }
@@ -867,107 +628,12 @@ fun ModernChatInterface(viewModel: AgentViewModel) {
 }
 
 @Composable
-fun ModernEmptyState(viewModel: AgentViewModel) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                ModernTheme.PrimaryGradientStart.copy(alpha = 0.3f),
-                                Color.Transparent
-                            )
-                        )
-                    ),,
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    modifier = Modifier.size(60.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Text(
-                "Welcome to ${ModernTheme.APP_NAME}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                "Your intelligent AI workspace awaits",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-
-            Spacer(Modifier.height(32.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                AiMode.values().take(3).forEach { mode ->
-                    ModernModeChip(mode, onClick = { viewModel.setSelectedMode(mode) })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ModernModeChip(mode: AiMode, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.width(100.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(mode.icon, fontSize = 32.sp)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                mode.title.split(" ").first(),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-@Composable
-fun ModernMessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
+fun MessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
     val alignment = if (msg.isUser) Alignment.End else Alignment.Start
     val bubbleColor = if (msg.isUser) {
-        Brush.linearGradient(
-            colors = listOf(
-                ModernTheme.PrimaryGradientStart,
-                ModernTheme.PrimaryGradientEnd
-            )
-        )
+        Brush.linearGradient(colors = listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))
     } else {
-        Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.surface,
-                MaterialTheme.colorScheme.surface
-            )
-        )
+        Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface))
     }
 
     Column(
@@ -983,22 +649,10 @@ fun ModernMessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    ModernTheme.SecondaryGradientStart,
-                                    ModernTheme.SecondaryGradientEnd
-                                )
-                            )
-                        ),
+                        .background(Brush.linearGradient(colors = listOf(Color(0xFFF093FB), Color(0xFFF5576C)))),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.Psychology,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Icon(Icons.Default.Psychology, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
                 }
                 Spacer(Modifier.width(12.dp))
             }
@@ -1011,17 +665,6 @@ fun ModernMessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
                     .background(bubbleColor)
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    if (msg.attachments.isNotEmpty()) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        ) {
-                            items(msg.attachments) { attachment ->
-                                ModernAttachmentPreview(attachment)
-                            }
-                        }
-                    }
-
                     if (msg.isStreaming) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(
@@ -1032,8 +675,7 @@ fun ModernMessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 "Thinking...",
-                                color = if (msg.isUser) Color.White else MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.bodyMedium
+                                color = if (msg.isUser) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     } else {
@@ -1052,21 +694,10 @@ fun ModernMessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    ModernTheme.PrimaryGradientStart,
-                                    ModernTheme.PrimaryGradientEnd
-                                )
-                            )
-                        ),
+                        .background(Brush.linearGradient(colors = listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "A",
-                        color = Color.White,
-                        fontWeight = FontWeight.Black
-                    )
+                    Text("A", color = Color.White, fontWeight = FontWeight.Black)
                 }
             }
         }
@@ -1077,41 +708,13 @@ fun ModernMessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
                 SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(msg.timestamp)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.padding(horizontal = if (msg.isUser) 52.dp else 52.dp)
+                modifier = Modifier.padding(horizontal = 52.dp)
             )
         }
     }
 }
 
-@Composable
-fun ModernAttachmentPreview(attachment: Attachment) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                if (attachment.isImage) Icons.Default.Image else Icons.Default.Description,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                attachment.name,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 100.dp)
-            )
-        }
-    }
-}
-
+// INPUT BAR
 @Composable
 fun ModernInputBar(
     input: String,
@@ -1136,7 +739,7 @@ fun ModernInputBar(
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
                 items(attachedFiles.toList(), key = { it.id }) { attachment ->
-                    ModernAttachmentChip(attachment, onRemove = { attachedFiles.remove(attachment) })
+                    AttachmentChip(attachment, onRemove = { attachedFiles.remove(attachment) })
                 }
             }
         }
@@ -1157,16 +760,12 @@ fun ModernInputBar(
                 ) {
                     Text(selectedMode.icon, fontSize = 20.sp)
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        "${selectedMode.title} Active",
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Text("${selectedMode.title} Active", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     IconButton(
                         onClick = { viewModel.setSelectedMode(AiMode.STANDARD) },
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Remove mode", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -1186,25 +785,18 @@ fun ModernInputBar(
             ) {
                 Box {
                     IconButton(onClick = { isMenuOpen = !isMenuOpen }) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Add",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Default.Add, contentDescription = "Add", tint = MaterialTheme.colorScheme.primary)
                     }
 
-                    DropdownMenu(
-                        expanded = isMenuOpen,
-                        onDismissRequest = { isMenuOpen = false }
-                    ) {
+                    DropdownMenu(expanded = isMenuOpen, onDismissRequest = { isMenuOpen = false }) {
                         DropdownMenuItem(
                             text = { Text("Add Image") },
                             onClick = {
                                 attachedFiles.add(
                                     Attachment(
-                                        name = "image_${System.currentTimeMillis()}.jpg",
+                                        name = "image.jpg",
                                         type = AttachmentType.IMAGE,
-                                        content = "base64_sim"
+                                        content = "base64"
                                     )
                                 )
                                 isMenuOpen = false
@@ -1218,7 +810,7 @@ fun ModernInputBar(
                                     Attachment(
                                         name = "document.pdf",
                                         type = AttachmentType.PDF,
-                                        content = "content_sim"
+                                        content = "content"
                                     )
                                 )
                                 isMenuOpen = false
@@ -1230,21 +822,14 @@ fun ModernInputBar(
 
                 Box {
                     IconButton(onClick = { isModeMenuOpen = !isModeMenuOpen }) {
-                        Icon(
-                            Icons.Default.Psychology,
-                            contentDescription = "AI Modes",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Default.Psychology, contentDescription = "Modes", tint = MaterialTheme.colorScheme.primary)
                     }
 
-                    DropdownMenu(
-                        expanded = isModeMenuOpen,
-                        onDismissRequest = { isModeMenuOpen = false }
-                    ) {
+                    DropdownMenu(expanded = isModeMenuOpen, onDismissRequest = { isModeMenuOpen = false }) {
                         AiMode.values().forEach { mode ->
                             val isLocked = mode.isPro && !settings.isProUser
                             DropdownMenuItem(
-                                text = { 
+                                text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(mode.icon)
                                         Spacer(Modifier.width(8.dp))
@@ -1263,10 +848,7 @@ fun ModernInputBar(
                                         null,
                                         tint = if (isLocked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                                     )
-                                },
-                                trailingIcon = if (isLocked) {
-                                    { ProBadge() }
-                                } else null
+                                }
                             )
                         }
                     }
@@ -1276,14 +858,12 @@ fun ModernInputBar(
                     value = input,
                     onValueChange = onInputChange,
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Message ${ModernTheme.APP_NAME}...") },
+                    placeholder = { Text("Message ${AppTheme.APP_NAME}...") },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent
                     ),
                     minLines = 1,
                     maxLines = 5
@@ -1297,24 +877,13 @@ fun ModernInputBar(
                         .clip(CircleShape)
                         .background(
                             if (input.isNotBlank() || attachedFiles.isNotEmpty()) {
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        ModernTheme.PrimaryGradientStart,
-                                        ModernTheme.PrimaryGradientEnd
-                                    )
-                                )
+                                Brush.linearGradient(colors = listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))
                             } else {
-                                Brush.linearGradient(
-                                    colors = listOf(Color.Gray.copy(alpha = 0.3f), Color.Gray.copy(alpha = 0.3f))
-                                )
+                                Brush.linearGradient(colors = listOf(Color.Gray.copy(alpha = 0.3f), Color.Gray.copy(alpha = 0.3f)))
                             }
                         )
                 ) {
-                    Icon(
-                        Icons.Default.Send,
-                        contentDescription = "Send",
-                        tint = Color.White
-                    )
+                    Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
                 }
             }
         }
@@ -1322,7 +891,7 @@ fun ModernInputBar(
 }
 
 @Composable
-fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
+fun AttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
@@ -1348,24 +917,14 @@ fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
                 modifier = Modifier.widthIn(max = 120.dp)
             )
             Spacer(Modifier.width(4.dp))
-            IconButton(
-                onClick = onRemove,
-                modifier = Modifier.size(20.dp)
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Remove",
-                    modifier = Modifier.size(14.dp)
-                )
+            IconButton(onClick = onRemove, modifier = Modifier.size(20.dp)) {
+                Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
             }
         }
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODERN SETTINGS MODAL
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// SETTINGS MODAL
 @Composable
 fun ModernSettingsModal(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
@@ -1374,19 +933,10 @@ fun ModernSettingsModal(viewModel: AgentViewModel) {
     AlertDialog(
         onDismissRequest = { viewModel.closeSettings() },
         modifier = Modifier.widthIn(max = 700.dp),
-        title = {
-            Text(
-                "Settings",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black
-            )
-        },
+        title = { Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black) },
         text = {
             Column {
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.Transparent
-                ) {
+                TabRow(selectedTabIndex = selectedTab, containerColor = Color.Transparent) {
                     listOf("General", "AI Models", "Plan").forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTab == index,
@@ -1399,9 +949,9 @@ fun ModernSettingsModal(viewModel: AgentViewModel) {
                 Spacer(Modifier.height(24.dp))
 
                 when (selectedTab) {
-                    0 -> ModernGeneralSettings(viewModel, settings)
-                    1 -> ModernAISettings(viewModel, settings)
-                    2 -> ModernPlanSettings(viewModel, settings)
+                    0 -> GeneralSettings(viewModel, settings)
+                    1 -> AISettings(viewModel, settings)
+                    2 -> PlanSettings(viewModel, settings)
                 }
             }
         },
@@ -1414,62 +964,30 @@ fun ModernSettingsModal(viewModel: AgentViewModel) {
 }
 
 @Composable
-fun ModernGeneralSettings(viewModel: AgentViewModel, settings: AppSettings) {
+fun GeneralSettings(viewModel: AgentViewModel, settings: AppSettings) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingRow(
-            title = "Dark Mode",
-            subtitle = "Use dark color scheme",
-            trailing = {
-                Switch(
-                    checked = settings.isDarkTheme,
-                    onCheckedChange = { viewModel.toggleTheme(it) }
-                )
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Dark Mode", fontWeight = FontWeight.SemiBold)
+                Text("Use dark color scheme", style = MaterialTheme.typography.bodySmall)
             }
-        )
-
-        SettingRow(
-            title = "Animations",
-            subtitle = "Enable UI animations",
-            trailing = {
-                Switch(
-                    checked = settings.enableAnimations,
-                    onCheckedChange = { }
-                )
-            }
-        )
-
-        SettingRow(
-            title = "Auto-Save",
-            subtitle = "Automatically save chat history",
-            trailing = {
-                Switch(
-                    checked = settings.autoSaveChats,
-                    onCheckedChange = { }
-                )
-            }
-        )
+            Switch(checked = settings.isDarkTheme, onCheckedChange = { viewModel.toggleTheme(it) })
+        }
     }
 }
 
 @Composable
-fun ModernAISettings(viewModel: AgentViewModel, settings: AppSettings) {
+fun AISettings(viewModel: AgentViewModel, settings: AppSettings) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingRow(
-            title = "Custom API Mode",
-            subtitle = "Use your own API keys",
-            trailing = {
-                Switch(
-                    checked = settings.useCustomApi,
-                    onCheckedChange = { viewModel.setUseCustomApi(it) }
-                )
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Custom API Mode", fontWeight = FontWeight.SemiBold)
+                Text("Use your own API keys", style = MaterialTheme.typography.bodySmall)
             }
-        )
+            Switch(checked = settings.useCustomApi, onCheckedChange = { viewModel.setUseCustomApi(it) })
+        }
 
-        Text(
-            "AI Provider",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Text("AI Provider", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
         AiProvider.values().forEach { provider ->
             Card(
@@ -1504,7 +1022,7 @@ fun ModernAISettings(viewModel: AgentViewModel, settings: AppSettings) {
 }
 
 @Composable
-fun ModernPlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
+fun PlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(
             colors = CardDefaults.cardColors(
@@ -1513,23 +1031,17 @@ fun ModernPlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(Modifier.padding(20.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        if (settings.isProUser) "Pro Plan" else "Free Plan",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Black
-                    )
-                    if (settings.isProUser) {
-                        Spacer(Modifier.width(8.dp))
-                        ProBadge()
-                    }
-                }
+                Text(
+                    if (settings.isProUser) "Pro Plan" else "Free Plan",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black
+                )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    if (settings.isProUser) 
-                        "You have access to all premium features" 
-                    else 
-                        "Upgrade to unlock all AI modes and unlimited uploads",
+                    if (settings.isProUser)
+                        "Access to all premium features"
+                    else
+                        "Upgrade to unlock all AI modes",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
@@ -1538,31 +1050,23 @@ fun ModernPlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
         Button(
             onClick = { viewModel.toggleProPlan(!settings.isProUser) },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
             shape = RoundedCornerShape(12.dp),
             contentPadding = PaddingValues(16.dp)
         ) {
             Text(
-                if (settings.isProUser) "Downgrade to Free (Demo)" else "Upgrade to Pro",
+                if (settings.isProUser) "Downgrade (Demo)" else "Upgrade to Pro",
                 fontWeight = FontWeight.Bold
             )
         }
 
-        Text(
-            "Pro Features",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Text("Pro Features", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
         listOf(
-            "Unlimited chat conversations",
+            "Unlimited conversations",
             "Unlimited file uploads",
-            "All AI modes (Thinking, Research, Study, Code)",
-            "Priority response times",
-            "Advanced analytics",
-            "Custom AI personalities"
+            "All AI modes unlocked",
+            "Priority support",
+            "Advanced analytics"
         ).forEach { feature ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -1575,27 +1079,5 @@ fun ModernPlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
                 Text(feature)
             }
         }
-    }
-}
-
-@Composable
-fun SettingRow(
-    title: String,
-    subtitle: String,
-    trailing: @Composable () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.SemiBold)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        }
-        trailing()
     }
 }
