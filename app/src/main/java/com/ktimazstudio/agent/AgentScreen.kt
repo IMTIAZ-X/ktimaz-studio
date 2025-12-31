@@ -812,7 +812,31 @@ fun ModernChatInterface(viewModel: AgentViewModel) {
         modifier = Modifier.fillMaxSize()
     ) {
         if (messages.isEmpty()) {
-            ModernEmptyState(viewModel)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(60.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        "Welcome to ${ModernTheme.APP_NAME}",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Your intelligent AI workspace awaits",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
@@ -862,7 +886,7 @@ fun ModernEmptyState(viewModel: AgentViewModel) {
                                 Color.Transparent
                             )
                         )
-                    ),
+                    ),,
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
