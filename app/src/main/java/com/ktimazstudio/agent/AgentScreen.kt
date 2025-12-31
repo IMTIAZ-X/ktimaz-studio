@@ -507,7 +507,7 @@ fun ProBadge() {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.Build,
+                Icons.Default.Workspace,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(14.dp)
@@ -570,11 +570,8 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = Color.Transparent,
-                  //  focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                  //  unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-                  
-                  focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                  unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+                    focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
                 )
             )
 
