@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -507,7 +508,7 @@ fun ProBadge() {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.Workspace,
+                Icons.Default.Star,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(14.dp)
@@ -862,7 +863,7 @@ fun ModernEmptyState(viewModel: AgentViewModel) {
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.offset(y = offsetY.dp)
+            modifier = Modifier.graphicsLayer { translationY = offsetY }
         ) {
             Box(
                 modifier = Modifier
