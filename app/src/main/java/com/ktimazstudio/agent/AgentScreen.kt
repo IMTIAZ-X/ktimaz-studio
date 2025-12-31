@@ -809,8 +809,7 @@ fun ModernChatInterface(viewModel: AgentViewModel) {
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         if (messages.isEmpty()) {
             ModernEmptyState(viewModel)
