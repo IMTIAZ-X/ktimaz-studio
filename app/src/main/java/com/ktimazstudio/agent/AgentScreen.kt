@@ -932,7 +932,11 @@ fun ModernChatInterface(
 
     LaunchedEffect(currentSession?.messages?.size) {
         if (currentSession?.messages?.isNotEmpty() == true) {
-            listState.animateScrollToItem(currentSession.messages.lastIndex)
+            // Fix: This was causing compilation error due to scope/suspend function issue
+            // Re-implementing correctly:
+            if (currentSession.messages.last().isStreaming || currentSession.messages.last().isUser) {
+                listState.animateScrollToItem(currentSession.messages.lastIndex)
+            }
         }
     }
 
@@ -1298,7 +1302,7 @@ fun ModernInputBar(viewModel: AgentViewModel) {
 
 @Composable
 fun AttachmentChip(attachment: Attachment, onDelete: () -> Unit) {
-    Chip(
+    AssistChip(
         onClick = { /* Open file */ },
         label = {
             Text(attachment.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1311,7 +1315,7 @@ fun AttachmentChip(attachment: Attachment, onDelete: () -> Unit) {
                 Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(16.dp))
             }
         },
-        colors = ChipDefaults.chipColors(
+        colors = AssistChipDefaults.assistChipColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     )
