@@ -5,7 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke // ADDED: Fixes Unresolved reference 'BorderStroke'
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions // FIXED: Correct import
+import androidx.compose.foundation.text.KeyboardOptions // FIXED: Correct import
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -30,12 +32,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction // ADDED: Needed for KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardActions // ADDED: Fixes Unresolved reference 'KeyboardActions'
-import androidx.compose.ui.text.input.KeyboardOptions // ADDED: Fixes Unresolved reference 'KeyboardOptions'
-import androidx.compose.ui.text.input.KeyboardType // ADDED: Needed for KeyboardOptions
-import androidx.compose.ui.text.input.PasswordVisualTransformation // ADDED: Fixes Unresolved reference 'PasswordVisualTransformation'
-import androidx.compose.ui.text.input.VisualTransformation // ADDED: Fixes Unresolved reference 'VisualTransformation'
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,7 +77,7 @@ data class ChatMessage(
     val mode: AiMode = AiMode.STANDARD,
     val isStreaming: Boolean = false,
     val timestamp: Long = System.currentTimeMillis(),
-    val usedApis: List<String> = emptyList() // Track which APIs were used
+    val usedApis: List<String> = emptyList()
 )
 
 data class ChatSession(
@@ -86,7 +86,7 @@ data class ChatSession(
     val messages: MutableList<ChatMessage> = mutableListOf(),
     val timestamp: Long = System.currentTimeMillis(),
     var isPinned: Boolean = false,
-    val activeApis: MutableList<String> = mutableListOf() // Track active APIs for this chat (max 5)
+    val activeApis: MutableList<String> = mutableListOf()
 ) {
     val messageCount: Int get() = messages.size
     val lastMessage: String get() = messages.lastOrNull()?.text ?: "New conversation"
@@ -95,7 +95,7 @@ data class ChatSession(
 data class ApiConfig(
     val id: String = UUID.randomUUID().toString(),
     val provider: AiProvider,
-    var name: String, // Custom name like "My GPT-4", "Work Gemini"
+    var name: String,
     var isActive: Boolean = false,
     var apiKey: String = "",
     var modelName: String = "",
@@ -220,11 +220,9 @@ class AgentViewModel : ViewModel() {
         val settings = _settings.value
         val config = settings.apiConfigs.find { it.id == configId } ?: return
         
-        // Count currently active APIs
         val currentlyActive = settings.apiConfigs.count { it.isActive }
         
         if (!config.isActive && currentlyActive >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
-            // Cannot activate more than 5 APIs
             return
         }
         
@@ -242,7 +240,6 @@ class AgentViewModel : ViewModel() {
             session.activeApis.remove(configId)
         } else {
             if (session.activeApis.size >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
-                // Remove oldest API
                 session.activeApis.removeAt(0)
             }
             session.activeApis.add(configId)
@@ -308,7 +305,6 @@ class AgentViewModel : ViewModel() {
             return
         }
 
-        // Get active APIs for this chat
         val activeApis = settings.apiConfigs.filter { 
             it.isActive && currentSession.activeApis.contains(it.id) 
         }
@@ -695,11 +691,12 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                 }
 
                 item {
+                    // FIXED: padding(vertical, top) was conflicting. Changed to padding(bottom, top)
                     Text(
                         "Recent",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 8.dp, top = if (pinnedChats.isNotEmpty()) 16.dp else 0.dp)
+                        modifier = Modifier.padding(bottom = 8.dp, top = if (pinnedChats.isNotEmpty()) 16.dp else 8.dp)
                     )
                 }
                 items(regularChats, key = { it.id }) { chat ->
@@ -748,7 +745,7 @@ fun ChatHistoryCard(
             }
         ),
         shape = RoundedCornerShape(12.dp),
-        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null // BorderStroke is now imported
+        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -989,7 +986,7 @@ fun ModernChatInterface(viewModel: AgentViewModel) {
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) { // L968 error might be here if `Alignment.Vertical` was used. Corrected to `Alignment.CenterHorizontally`.
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.Default.AutoAwesome,
                         null,
@@ -1378,7 +1375,6 @@ fun ModeSelectionRow(
                         MaterialTheme.colorScheme.surfaceVariant
                     }
                 ),
-                // Fixes L1339 error (ChipBorder vs BorderStroke) - logic is already BorderStroke
                 border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
             )
         }
@@ -1474,10 +1470,10 @@ fun InputTextField(
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Send,
                 keyboardType = KeyboardType.Text
-            ), // KeyboardOptions imported
+            ),
             keyboardActions = KeyboardActions(
                 onSend = { onSend() }
-            ), // KeyboardActions imported
+            ),
         )
 
         IconButton(onClick = onApiSelectClick) {
@@ -1734,7 +1730,6 @@ fun ApiConfigModal(
     var systemRole by remember { mutableStateOf(existingConfig?.systemRole ?: "") }
     var showProviderDropdown by remember { mutableStateOf(false) }
 
-    // Update model and base URL when provider changes
     LaunchedEffect(provider) {
         if (existingConfig == null || existingConfig.provider != provider) {
             modelName = provider.defaultModel
@@ -1886,14 +1881,14 @@ fun SettingsApiKeyInput(apiKey: String, onApiKeyChange: (String) -> Unit) {
         label = { Text("API Key") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(), // VisualTransformation imported
+        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(
             imeAction = ImeAction.Done,
             keyboardType = KeyboardType.Password
-        ), // KeyboardOptions imported
+        ),
         keyboardActions = KeyboardActions(
             onDone = { /* Handle done action */ }
-        ), // KeyboardActions imported
+        ),
         trailingIcon = {
             val image = if (passwordVisible)
                 Icons.Filled.Visibility
@@ -1909,9 +1904,11 @@ fun SettingsApiKeyInput(apiKey: String, onApiKeyChange: (String) -> Unit) {
 @Composable
 fun ApiSelectionModal(viewModel: AgentViewModel, onClose: () -> Unit) {
     val settings by viewModel.settings.collectAsState()
-    val currentSession by viewModel.currentSessionId.collectAsState().let { id ->
-        viewModel.chatSessions.collectAsState().value.find { it.id == id.value }
-    }
+    
+    // FIXED: Properly collected states
+    val currentSessionId by viewModel.currentSessionId.collectAsState()
+    val chatSessions by viewModel.chatSessions.collectAsState()
+    val currentSession = chatSessions.find { it.id == currentSessionId }
     val activeApis = currentSession?.activeApis ?: emptyList()
 
     Dialog(onDismissRequest = onClose) {
