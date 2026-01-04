@@ -5,7 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke // <--- FIX 1: ADDED MISSING IMPORT
+import androidx.compose.foundation.BorderStroke 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -542,7 +542,7 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 @Composable
-fun ModernSettingsModal(viewModel: AgentViewModel) { // <--- FIX 2: ADDED MISSING DEFINITION
+fun ModernSettingsModal(viewModel: AgentViewModel) { 
     val settings by viewModel.settings.collectAsState()
     Dialog(onDismissRequest = { viewModel.closeSettings() }) {
         Card(
@@ -782,13 +782,13 @@ fun ChatHistoryCard(
             }
         ),
         shape = RoundedCornerShape(12.dp),
-        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null // <-- FIX 1: BorderStroke resolved
+        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null 
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box( // <-- FIX 3: Removed corrupted/duplicate Box block
+            Box( 
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(10.dp))
@@ -992,16 +992,16 @@ fun ModernChatInterface(viewModel: AgentViewModel) {
                 tonalElevation = 2.dp
             ) {
                 LazyRow(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), // <-- FIX 2: Removed trailing comma
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically // Added vertical alignment to LazyRow itself
+                    verticalAlignment = Alignment.CenterVertically 
                 ) {
                     item {
                         Text(
                             "Active APIs:",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier // <-- FIX 4: Removed Modifier.align(Alignment.CenterVertically)
+                            modifier = Modifier 
                         )
                     }
                     items(currentSession.activeApis) { apiId ->
@@ -1278,7 +1278,7 @@ fun AttachmentPreview(attachment: Attachment, isInMessage: Boolean = false) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 @Composable
-fun AttachmentChip(attachment: Attachment, onRemove: () -> Unit) { // <--- ADDED MISSING DEFINITION
+fun AttachmentChip(attachment: Attachment, onRemove: () -> Unit) { 
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -1503,3 +1503,4 @@ fun ModernInputBar(
             }
         }
     }
+}
