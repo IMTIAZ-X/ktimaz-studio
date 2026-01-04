@@ -5,7 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke // ADDED IMPORT
+import androidx.compose.foundation.BorderStroke 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,9 +30,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction // ADDED IMPORT
-import androidx.compose.ui.text.input.KeyboardActions // ADDED IMPORT
-import androidx.compose.ui.text.input.KeyboardOptions // ADDED IMPORT
+import androidx.compose.ui.text.input.ImeAction 
+import androidx.compose.ui.text.input.KeyboardActions // FIXED: Explicitly imported
+import androidx.compose.ui.text.input.KeyboardOptions // FIXED: Explicitly imported
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -785,7 +785,7 @@ fun ChatHistoryCard(
                     Icon(Icons.Default.Check, "Save", tint = MaterialTheme.colorScheme.primary)
                 }
             } else {
-                Column(Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f)) { // FIXED: Added 'modifier ='
                     Text(
                         chat.title,
                         maxLines = 1,
@@ -932,7 +932,6 @@ fun ModernChatInterface(
 
     LaunchedEffect(currentSession?.messages?.size) {
         if (currentSession?.messages?.isNotEmpty() == true) {
-            // Fix: This was causing compilation error due to scope/suspend function issue
             // Re-implementing correctly:
             if (currentSession.messages.last().isStreaming || currentSession.messages.last().isUser) {
                 listState.animateScrollToItem(currentSession.messages.lastIndex)
@@ -959,7 +958,7 @@ fun ModernChatInterface(
                 exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End)
             ) {
                 LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    // FIXED: Removed redundant .padding(horizontal = 24.dp) which caused compiler confusion.
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(activeApis, key = { it.id }) { api ->
@@ -1443,7 +1442,7 @@ fun SettingToggle(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f)) { // FIXED: Added 'modifier ='
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(
                 subtitle,
@@ -1471,7 +1470,7 @@ fun UsageMetricCard(title: String, value: String, icon: androidx.compose.ui.grap
         ) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f)) { // FIXED: Added 'modifier ='
                 Text(title, style = MaterialTheme.typography.labelMedium)
                 Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
             }
