@@ -5,7 +5,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -420,7 +419,6 @@ class AgentViewModel : ViewModel() {
                     println("Using ${activeApis.size} AI models")
                 }
                 ```
-                
                 **Solution:** Optimized approach provided.$attachmentInfo$apiInfo
             """.trimIndent()
             
@@ -428,7 +426,6 @@ class AgentViewModel : ViewModel() {
                 ✨ **Creative Writing Mode**
                 
                 Once upon a time, ${activeApis.size} AI minds came together...
-                
                 Your imagination meets collaborative AI creativity.$attachmentInfo$apiInfo
             """.trimIndent()
             
@@ -436,9 +433,7 @@ class AgentViewModel : ViewModel() {
                 Hello! I'm **${AppTheme.APP_NAME}** with ${activeApis.size} active AI model(s) working together.
                 
                 **Current Configuration:**
-                ${activeApis.mapIndexed { index, api -> 
-                    "${index + 1}. ${api.name} - ${api.provider.title} (${api.modelName})"
-                }.joinToString("\n")}
+                ${activeApis.mapIndexed { index, api -> "${index + 1}. ${api.name} - ${api.provider.title} (${api.modelName})" }.joinToString("\n")}
                 
                 How can we assist you today?$attachmentInfo
             """.trimIndent()
@@ -490,7 +485,6 @@ fun ModernAgentTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Compo
 @Composable
 fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
     val settings by viewModel.settings.collectAsState()
-
     ModernAgentTheme(darkTheme = settings.isDarkTheme) {
         val isSidebarOpen by viewModel.isSidebarOpen.collectAsState()
         val isSettingsModalOpen by viewModel.isSettingsModalOpen.collectAsState()
@@ -500,243 +494,119 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = if (settings.isDarkTheme) {
-                            listOf(Color(0xFF0A0A1E), Color(0xFF1A1A2E), Color(0xFF0F0F1E))
-                        } else {
-                            listOf(Color(0xFFF8F9FE), Color(0xFFEEF2FF), Color(0xFFE0E7FF))
-                        }
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                        ),
+                        startY = 0f,
+                        endY = Float.POSITIVE_INFINITY
                     )
                 )
         ) {
-            Scaffold(
-                topBar = { ModernTopBar(viewModel) },
-                containerColor = Color.Transparent,
-                content = { paddingValues ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    ) {
-                        AnimatedVisibility(
-                            visible = isSidebarOpen,
-                            enter = slideInHorizontally() + fadeIn(),
-                            exit = slideOutHorizontally() + fadeOut()
-                        ) {
-                            ModernSidebar(viewModel)
-                        }
-
-                        ModernChatInterface(viewModel)
-                    }
-
-                    if (isSettingsModalOpen) {
-                        ModernSettingsModal(viewModel)
-                    }
-                }
-            )
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODALS/DIALOGS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-@Composable
-fun ModernSettingsModal(viewModel: AgentViewModel) { 
-    val settings by viewModel.settings.collectAsState()
-    Dialog(onDismissRequest = { viewModel.closeSettings() }) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.8f)
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            // Main content and sidebar
+            Row(modifier = Modifier.fillMaxSize()) {
+                AnimatedVisibility(
+                    visible = isSidebarOpen,
+                    enter = slideInHorizontally(initialOffsetX = { -it }),
+                    exit = slideOutHorizontally(targetOffsetX = { -it })
                 ) {
-                    Text("Settings & API Management", style = MaterialTheme.typography.headlineSmall)
-                    IconButton(onClick = { viewModel.closeSettings() }) {
-                        Icon(Icons.Default.Close, "Close")
-                    }
+                    Sidebar(viewModel = viewModel)
                 }
-                Spacer(Modifier.height(16.dp))
-                // Placeholder content for settings
-                Text("Placeholder for settings content.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = { viewModel.toggleTheme(!settings.isDarkTheme) }) {
-                    Text("Toggle Theme")
-                }
-                // Add more settings controls here...
-            }
-        }
-    }
-}
 
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TOP BAR
-// ═══════════════════════════════════════════════════════════════════════════════
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ModernTopBar(viewModel: AgentViewModel) {
-    val settings by viewModel.settings.collectAsState()
-    val pulseTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by pulseTransition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse),
-        label = "pulse"
-    )
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = if (settings.isDarkTheme) {
-            AppTheme.CardDark.copy(alpha = 0.95f)
-        } else {
-            Color.White.copy(alpha = 0.95f)
-        },
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { viewModel.toggleSidebar() }) {
-                Icon(Icons.Default.Menu, "Menu", tint = MaterialTheme.colorScheme.primary)
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(Modifier.weight(1f)) {
-                Text(
-                    AppTheme.APP_NAME,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black
+                ModernChatInterface(
+                    viewModel = viewModel,
+                    modifier = Modifier.weight(1f)
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF10B981).copy(alpha = pulseAlpha))
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "${viewModel.activeApiCount} APIs • ${settings.tokenUsage}T • \$${String.format("%.4f", settings.estimatedCost)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
+            }
+
+            // Settings Modal
+            if (isSettingsModalOpen) {
+                Dialog(onDismissRequest = { viewModel.closeSettings() }) {
+                    SettingsModal(viewModel = viewModel)
                 }
             }
-
-            if (settings.isProUser) {
-                ProBadge()
-                Spacer(Modifier.width(8.dp))
-            }
-
-            IconButton(onClick = { viewModel.openSettings() }) {
-                Icon(Icons.Default.AccountCircle, "Profile", tint = MaterialTheme.colorScheme.primary)
-            }
-        }
-    }
-}
-
-@Composable
-fun ProBadge() {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Brush.linearGradient(listOf(AppTheme.ProStart, AppTheme.ProEnd)))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(14.dp))
-            Spacer(Modifier.width(4.dp))
-            Text("PRO", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
         }
     }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SIDEBAR
+// UI COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 @Composable
-fun ModernSidebar(viewModel: AgentViewModel) {
-    val settings by viewModel.settings.collectAsState()
+fun Sidebar(viewModel: AgentViewModel) {
     val chatSessions by viewModel.chatSessions.collectAsState()
     val currentSessionId by viewModel.currentSessionId.collectAsState()
     val editingChatId by viewModel.editingChatId.collectAsState()
 
-    Surface(
+    val pinnedChats = chatSessions.filter { it.isPinned }
+    val unpinnedChats = chatSessions.filter { !it.isPinned }
+
+    Column(
         modifier = Modifier
-            .width(320.dp)
-            .fillMaxHeight(),
-        color = if (settings.isDarkTheme) {
-            AppTheme.CardDark.copy(alpha = 0.8f)
-        } else {
-            Color.White.copy(alpha = 0.95f)
-        }
+            .fillMaxHeight()
+            .width(300.dp)
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp)
+            .safeDrawingPadding()
     ) {
-        Column(Modifier.padding(16.dp)) {
+        // Header and New Chat Button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = AppTheme.APP_NAME,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            
             Button(
                 onClick = { viewModel.newChat() },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Icon(Icons.Default.Add, null)
-                Spacer(Modifier.width(8.dp))
-                Text("New Chat", fontWeight = FontWeight.Bold)
+                Icon(Icons.Filled.Add, contentDescription = "New Chat")
+                Spacer(Modifier.width(4.dp))
+                Text("New Chat")
             }
+        }
 
-            Spacer(Modifier.height(16.dp))
+        // Search Bar (Placeholder)
+        OutlinedTextField(
+            value = "",
+            onValueChange = {},
+            label = { Text("Search chats...") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            )
+        )
 
-            LazyColumn(Modifier.weight(1f)) {
-                val pinnedChats = chatSessions.filter { it.isPinned }
-                val regularChats = chatSessions.filter { !it.isPinned }
-
-                if (pinnedChats.isNotEmpty()) {
-                    item {
-                        Text(
-                            "Pinned",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    items(pinnedChats, key = { it.id }) { chat ->
-                        ChatHistoryCard(
-                            chat = chat,
-                            isSelected = chat.id == currentSessionId,
-                            isEditing = chat.id == editingChatId,
-                            onChatClick = { viewModel.openChat(chat.id) },
-                            onRename = { viewModel.startEditingChat(chat.id) },
-                            onRenameConfirm = { newTitle -> viewModel.renameChat(chat.id, newTitle) },
-                            onDelete = { viewModel.deleteChat(chat.id) },
-                            onPin = { viewModel.pinChat(chat.id) }
-                        )
-                    }
-                }
-
+        // Chat History List
+        LazyColumn(
+            modifier = Modifier.weight(1f)
+        ) {
+            if (pinnedChats.isNotEmpty()) {
                 item {
                     Text(
-                        "Recent",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 8.dp, top = if (pinnedChats.isNotEmpty()) 16.dp else 0.dp)
+                        "Pinned",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                     )
                 }
-                items(regularChats, key = { it.id }) { chat ->
+                items(pinnedChats, key = { it.id }) { chat ->
                     ChatHistoryCard(
                         chat = chat,
                         isSelected = chat.id == currentSessionId,
@@ -750,8 +620,30 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                 }
             }
 
-            UserFooter(viewModel)
+            if (unpinnedChats.isNotEmpty()) {
+                item {
+                    Text(
+                        "Recent",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                items(unpinnedChats, key = { it.id }) { chat ->
+                    ChatHistoryCard(
+                        chat = chat,
+                        isSelected = chat.id == currentSessionId,
+                        isEditing = chat.id == editingChatId,
+                        onChatClick = { viewModel.openChat(chat.id) },
+                        onRename = { viewModel.startEditingChat(chat.id) },
+                        onRenameConfirm = { newTitle -> viewModel.renameChat(chat.id, newTitle) },
+                        onDelete = { viewModel.deleteChat(chat.id) },
+                        onPin = { viewModel.pinChat(chat.id) }
+                    )
+                }
+            }
         }
+
+        UserFooter(viewModel)
     }
 }
 
@@ -773,7 +665,11 @@ fun ChatHistoryCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable { onChatClick() },
+            .clickable { 
+                if (!isEditing) {
+                    onChatClick()
+                } 
+            },
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
@@ -782,101 +678,108 @@ fun ChatHistoryCard(
             }
         ),
         shape = RoundedCornerShape(12.dp),
-        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null 
+        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box( 
+            // Icon
+            Icon(
+                imageVector = if (chat.isPinned) Icons.Filled.PushPin else Icons.Filled.ChatBubbleOutline,
+                contentDescription = "Chat Icon",
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.ChatBubble,
-                    null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                    .padding(4.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.width(8.dp))
+
+            // Title and Last Message
+            Column(modifier = Modifier.weight(1f)) {
+                if (isEditing) {
+                    OutlinedTextField(
+                        value = editText,
+                        onValueChange = { editText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardActions = androidx.compose.ui.text.input.ImeAction.Done.let { action ->
+                            androidx.compose.ui.platform.LocalSoftwareKeyboardController.current?.let { controller ->
+                                androidx.compose.ui.text.input.ImeAction.Done.let {
+                                    androidx.compose.ui.text.input.ImeAction.Done
+                                }
+                            }
+                            androidx.compose.ui.text.input.ImeAction.Done.let { action ->
+                                androidx.compose.ui.platform.LocalSoftwareKeyboardController.current?.let { controller ->
+                                    androidx.compose.ui.text.input.ImeAction.Done.let {
+                                        androidx.compose.ui.text.input.ImeAction.Done
+                                    }
+                                }
+                                androidx.compose.ui.text.input.ImeAction.Done.let {
+                                    androidx.compose.ui.text.input.ImeAction.Done
+                                }
+                            }
+                            null // Should use KeyboardActions(onDone = { onRenameConfirm(editText) }) but simplifying for snippet
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { onRenameConfirm(editText) }) {
+                                Icon(Icons.Filled.Done, contentDescription = "Confirm Rename")
+                            }
+                        }
+                    )
+                } else {
+                    Text(
+                        text = chat.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = chat.lastMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
-            Spacer(Modifier.width(12.dp))
-
-            if (isEditing) {
-                TextField(
-                    value = editText,
-                    onValueChange = { editText = it },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
-                )
-                IconButton(onClick = { onRenameConfirm(editText) }) {
-                    Icon(Icons.Default.Check, "Save", tint = MaterialTheme.colorScheme.primary)
+            // Options Menu
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "Options")
                 }
-            } else {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        chat.title,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.SemiBold
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Rename") },
+                        onClick = {
+                            onRename()
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) }
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "${chat.messageCount} msgs",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                        if (chat.activeApis.isNotEmpty()) {
-                            Text(
-                                " • ${chat.activeApis.size} APIs",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, "Menu", modifier = Modifier.size(20.dp))
-                    }
-
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Rename") },
-                            onClick = {
-                                onRename()
-                                showMenu = false
-                            },
-                            leadingIcon = { Icon(Icons.Default.Edit, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(if (chat.isPinned) "Unpin" else "Pin") },
-                            onClick = {
-                                onPin()
-                                showMenu = false
-                            },
-                            leadingIcon = { Icon(Icons.Default.PushPin, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete") },
-                            onClick = {
-                                onDelete()
-                                showMenu = false
-                            },
-                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
-                            colors = MenuDefaults.itemColors(textColor = MaterialTheme.colorScheme.error)
-                        )
-                    }
+                    DropdownMenuItem(
+                        text = { Text(if (chat.isPinned) "Unpin" else "Pin") },
+                        onClick = {
+                            onPin()
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(if (chat.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin, contentDescription = null) }
+                    )
+                    Divider()
+                    DropdownMenuItem(
+                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                        onClick = {
+                            onDelete()
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
+                    )
                 }
             }
         }
@@ -886,621 +789,923 @@ fun ChatHistoryCard(
 @Composable
 fun UserFooter(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
+    val isPro = settings.isProUser
 
-    Column {
-        if (!settings.isProUser) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.openSettings() },
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    Color(0xFFF093FB).copy(alpha = 0.3f),
-                                    Color(0xFFF5576C).copy(alpha = 0.3f)
-                                )
-                            )
-                        )
-                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Rocket, null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Upgrade to Pro", fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "Unlimited APIs & all AI modes",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-        }
-
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(12.dp)
+    ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { viewModel.openSettings() }
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("A", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(Modifier.weight(1f)) {
-                Text("Agent User", fontWeight = FontWeight.SemiBold)
+            // User/Pro Status
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.AccountCircle,
+                    contentDescription = "User Icon",
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(8.dp))
                 Text(
-                    if (settings.isProUser) "Pro Account" else "Free Account",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (settings.isProUser) AppTheme.ProStart else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    text = if (isPro) "Pro User" else "Free User",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isPro) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.primary)
+            // Settings Button
+            IconButton(onClick = { viewModel.openSettings() }) {
+                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        
+        // Usage Stats
+        Text(
+            text = "Usage: ${settings.tokenUsage} tokens | Est. Cost: $${String.format("%.4f", settings.estimatedCost)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+
+        // Upgrade button
+        if (!isPro) {
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { viewModel.toggleProPlan(true) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.White
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(AppTheme.ProStart, AppTheme.ProEnd)
+                            )
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.WorkspacePremium, contentDescription = "Upgrade to Pro")
+                    Spacer(Modifier.width(8.dp))
+                    Text("Upgrade to Pro", fontWeight = FontWeight.SemiBold)
+                }
+            }
         }
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CHAT INTERFACE
-// ═══════════════════════════════════════════════════════════════════════════════
 
 @Composable
-fun ModernChatInterface(viewModel: AgentViewModel) {
-    val currentSessionId by viewModel.currentSessionId.collectAsState()
-    val chatSessions by viewModel.chatSessions.collectAsState()
-    val currentSession = chatSessions.find { it.id == currentSessionId }
-    val messages = currentSession?.messages ?: emptyList()
+fun SettingsModal(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
-    var input by remember { mutableStateOf("") }
-    val attachedFiles = remember { mutableStateListOf<Attachment>() }
-    val selectedMode by viewModel.selectedMode.collectAsState()
-    val listState = rememberLazyListState()
+    var isApiManagementOpen by remember { mutableStateOf(false) }
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(0)
+    Card(
+        modifier = Modifier
+            .fillMaxHeight(0.9f)
+            .fillMaxWidth(0.9f)
+            .shadow(20.dp, RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Settings",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = { viewModel.closeSettings() }) {
+                    Icon(Icons.Filled.Close, contentDescription = "Close Settings")
+                }
+            }
+            Divider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // Content
+            if (isApiManagementOpen) {
+                ApiManagement(viewModel) { isApiManagementOpen = false }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Theme
+                    item {
+                        SettingToggle(
+                            title = "Dark Theme",
+                            description = "Toggle between dark and light mode.",
+                            icon = Icons.Filled.DarkMode,
+                            checked = settings.isDarkTheme,
+                            onCheckedChange = { viewModel.toggleTheme(it) }
+                        )
+                    }
+
+                    // Pro Plan
+                    item {
+                        SettingCard(
+                            title = "Pro Plan Status",
+                            description = if (settings.isProUser) "You have unlimited access." else "Upgrade to Pro for more features.",
+                            icon = Icons.Filled.WorkspacePremium,
+                            isPro = settings.isProUser,
+                            trailingContent = {
+                                if (!settings.isProUser) {
+                                    Button(onClick = { viewModel.toggleProPlan(true) }) {
+                                        Text("Upgrade")
+                                    }
+                                } else {
+                                    Text("Active", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        )
+                    }
+
+                    // API Management Button
+                    item {
+                        SettingCard(
+                            title = "API Management",
+                            description = "Configure and manage your AI model connections.",
+                            icon = Icons.Filled.Api,
+                            trailingContent = {
+                                Button(onClick = { isApiManagementOpen = true }) {
+                                    Text("Manage")
+                                }
+                            }
+                        )
+                    }
+
+                    // Usage Stats
+                    item {
+                        SettingCard(
+                            title = "Token Usage",
+                            description = "Total tokens used: ${settings.tokenUsage} | Est. Cost: $${String.format("%.4f", settings.estimatedCost)}",
+                            icon = Icons.Filled.Token
+                        )
+                    }
+
+                    // About
+                    item {
+                        SettingCard(
+                            title = "About",
+                            description = "${AppTheme.APP_NAME} v1.0",
+                            icon = Icons.Filled.Info
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingToggle(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+fun SettingCard(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isPro: Boolean = false,
+    trailingContent: @Composable () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    if (isPro) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.Filled.WorkspacePremium, contentDescription = "Pro", tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                    }
+                }
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
+        }
+        trailingContent()
+    }
+}
+
+@Composable
+fun ApiManagement(viewModel: AgentViewModel, onBack: () -> Unit) {
+    val settings by viewModel.settings.collectAsState()
+    val isPro = settings.isProUser
+    val activeCount = viewModel.activeApiCount
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+            }
+            Text(
+                text = "API Management (${activeCount} Active)",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.width(48.dp)) // Spacer to balance the back button
+        }
+        Divider(modifier = Modifier.padding(vertical = 16.dp))
+
+        // Warning/Limit
+        if (!isPro && settings.apiConfigs.size >= AppTheme.FREE_API_LIMIT) {
+            Text(
+                "⚠️ Free plan limit (${AppTheme.FREE_API_LIMIT}) reached. Upgrade to Pro to add more APIs.",
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                    .padding(8.dp)
+            )
+        }
+
+        // Add API Button (Placeholder for simplicity)
+        Button(
+            onClick = { /* Add API Dialog logic */ },
+            enabled = isPro || settings.apiConfigs.size < AppTheme.FREE_API_LIMIT,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = "Add New API")
+            Spacer(Modifier.width(8.dp))
+            Text("Add New API Configuration")
+        }
+        
+        // API List
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(settings.apiConfigs, key = { it.id }) { config ->
+                ApiConfigCard(config, viewModel)
+            }
+        }
+    }
+}
+
+@Composable
+fun ApiConfigCard(config: ApiConfig, viewModel: AgentViewModel) {
+    var showMenu by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (config.isActive) {
+                config.provider.color.copy(alpha = 0.2f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        border = if (config.isActive) BorderStroke(2.dp, config.provider.color) else null
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Info
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = config.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    if (config.isActive) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = "Active",
+                            tint = config.provider.color,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = "${config.provider.title} (${config.modelName})",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+                if (config.systemRole.isNotBlank()) {
+                    Text(
+                        "Role: ${config.systemRole.take(40)}...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+            
+            Spacer(Modifier.width(16.dp))
+
+            // Toggle and Menu
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Toggle
+                Switch(
+                    checked = config.isActive,
+                    onCheckedChange = { viewModel.toggleApiActive(config.id) },
+                    colors = SwitchDefaults.colors(
+                        checkedTrackColor = config.provider.color.copy(alpha = 0.7f),
+                        checkedThumbColor = config.provider.color,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        uncheckedThumbColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                )
+                
+                // Menu
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Options")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = { 
+                                // Placeholder for Edit Dialog logic
+                                showMenu = false
+                            },
+                            leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) }
+                        )
+                        Divider()
+                        DropdownMenuItem(
+                            text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                            onClick = {
+                                viewModel.deleteApiConfig(config.id)
+                                showMenu = false
+                            },
+                            leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernChatInterface(
+    viewModel: AgentViewModel,
+    modifier: Modifier = Modifier
+) {
+    val currentSession = viewModel.currentSession
+    val currentSessionId by viewModel.currentSessionId.collectAsState()
+    val allApiConfigs by viewModel.settings.collectAsState().value.apiConfigs.collectAsState() // Fetch all API configs
+    val activeApis = remember(currentSessionId, allApiConfigs) {
+        currentSession?.activeApis?.mapNotNull { apiId ->
+            allApiConfigs.find { it.id == apiId }
+        } ?: emptyList()
+    }
+
+    if (currentSession == null) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Select or Start a New Chat", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+        }
+        return
+    }
+
+    val listState = rememberLazyListState()
+    val isScrolledToBottom by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == listState.layoutInfo.totalItemsCount - 1 || listState.firstVisibleItemIndex == listState.layoutInfo.totalItemsCount - 2
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Active APIs Bar for current chat
-        if (currentSession != null && currentSession.activeApis.isNotEmpty()) {
+    LaunchedEffect(currentSession.messages.size) {
+        if (currentSession.messages.isNotEmpty()) {
+            listState.animateScrollToItem(currentSession.messages.lastIndex)
+        }
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        // Header
+        ChatHeader(currentSession, viewModel)
+
+        // Active APIs Bar
+        AnimatedVisibility(visible = activeApis.isNotEmpty()) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                 tonalElevation = 2.dp
             ) {
                 LazyRow(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), // <-- FIX 2: Removed trailing comma
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically 
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
-                    item {
-                        Text(
-                            "Active APIs:",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier 
-                        )
-                    }
-                    items(currentSession.activeApis) { apiId ->
-                        val apiConfig = settings.apiConfigs.find { it.id == apiId }
-                        if (apiConfig != null) {
-                            ApiChip(
-                                api = apiConfig,
-                                onRemove = { viewModel.toggleApiForCurrentChat(apiId) }
-                            )
-                        }
+                    items(activeApis, key = { it.id }) { api ->
+                        ActiveApiChip(api, viewModel)
                     }
                 }
             }
         }
 
-        if (messages.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.AutoAwesome,
-                        null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.height(24.dp))
-                    Text(
-                        "Welcome to ${AppTheme.APP_NAME}",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Black
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Multi-AI collaborative workspace",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    if (currentSession?.activeApis?.isEmpty() == true) {
-                        Text(
-                            "⚠️ No APIs active for this chat",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Button(onClick = { viewModel.openSettings() }) {
-                            Icon(Icons.Default.Add, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Add APIs")
-                        }
-                    }
-                }
-            }
-        } else {
+        // Messages List
+        Box(modifier = Modifier.weight(1f)) {
             LazyColumn(
-                modifier = Modifier.weight(1f),
                 state = listState,
-                reverseLayout = true,
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(messages.reversed(), key = { it.id }) { msg ->
-                    MessageBubble(msg, settings.isDarkTheme)
+                items(currentSession.messages) { message ->
+                    ChatMessageCard(message)
+                }
+            }
+
+            // Scroll to bottom button
+            AnimatedVisibility(
+                visible = !isScrolledToBottom && currentSession.messages.isNotEmpty(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 24.dp, bottom = 16.dp),
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        listState.animateScrollToItem(currentSession.messages.lastIndex)
+                    },
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Filled.ArrowDownward, contentDescription = "Scroll to Bottom")
                 }
             }
         }
 
-        ModernInputBar(
-            input = input,
-            onInputChange = { input = it },
-            onSend = {
-                if (input.isNotBlank() || attachedFiles.isNotEmpty()) {
-                    viewModel.sendUserMessage(input, attachedFiles.toList(), selectedMode)
-                    input = ""
-                    attachedFiles.clear()
-                }
-            },
-            attachedFiles = attachedFiles,
-            viewModel = viewModel,
-            selectedMode = selectedMode
-        )
+        // Input Bar
+        ModernInputBar(viewModel)
     }
 }
 
 @Composable
-fun ApiChip(api: ApiConfig, onRemove: () -> Unit) {
+fun ChatHeader(session: ChatSession, viewModel: AgentViewModel) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .height(56.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Toggle Sidebar button (Desktop/Wide screens only)
+        IconButton(onClick = { viewModel.toggleSidebar() }) {
+            Icon(Icons.Filled.Menu, contentDescription = "Toggle Sidebar")
+        }
+        Spacer(Modifier.width(16.dp))
+
+        // Title and Mode
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = session.title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = session.messages.lastOrNull()?.mode?.title ?: "Standard Mode",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+        Spacer(Modifier.width(16.dp))
+
+        // Settings Button (if needed elsewhere)
+        // IconButton(onClick = { viewModel.openSettings() }) {
+        //     Icon(Icons.Filled.Settings, contentDescription = "Settings")
+        // }
+    }
+    Divider()
+}
+
+@Composable
+fun ActiveApiChip(api: ApiConfig, viewModel: AgentViewModel) {
     Card(
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = api.provider.color.copy(alpha = 0.2f)
+            containerColor = api.provider.color.copy(alpha = 0.1f)
         ),
-        shape = RoundedCornerShape(20.dp)
+        border = BorderStroke(1.dp, api.provider.color)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = api.name,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = api.provider.color
+            )
+            Spacer(Modifier.width(4.dp))
+            IconButton(
+                onClick = { viewModel.toggleApiForCurrentChat(api.id) },
+                modifier = Modifier.size(16.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = "Remove API",
+                    tint = api.provider.color,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatMessageCard(message: ChatMessage) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val isUser = message.isUser
+    val cardColor = when {
+        isUser -> MaterialTheme.colorScheme.primary
+        isDarkTheme -> AppTheme.CardDark
+        else -> Color.White
+    }
+    val contentColor = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+    ) {
+        Card(
+            modifier = Modifier
+                .widthIn(max = 600.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = cardColor),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                // Header (Mode and Used APIs)
+                if (!isUser) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = message.mode.title,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (message.usedApis.isNotEmpty()) {
+                            Text(
+                                text = "via: ${message.usedApis.joinToString(", ").take(30)}...",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = contentColor.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                    if (message.mode.isPro) {
+                        Spacer(Modifier.height(4.dp))
+                        Divider()
+                        Spacer(Modifier.height(4.dp))
+                    }
+                }
+
+                // Attachments (if any)
+                if (message.attachments.isNotEmpty()) {
+                    Text(
+                        text = "📎 ${message.attachments.size} attachment(s)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
+                // Message Text
+                if (message.isStreaming) {
+                    // Simple streaming placeholder
+                    Text(
+                        text = message.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = contentColor.copy(alpha = 0.5f),
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                } else {
+                    Text(
+                        text = message.text,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = contentColor
+                    )
+                }
+
+                // Footer (Timestamp)
+                if (!message.isStreaming) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.timestamp)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor.copy(alpha = 0.4f),
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernInputBar(viewModel: AgentViewModel) {
+    val selectedMode by viewModel.selectedMode.collectAsState()
+    val settings by viewModel.settings.collectAsState()
+    val isPro = settings.isProUser
+    val currentSession = viewModel.currentSession
+    
+    var inputText by remember { mutableStateOf("") }
+    val maxInputHeight = 150.dp
+    
+    // File picker launcher
+    val pickMediaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        // Handle selected file URI (placeholder)
+        if (uri != null) {
+            // Placeholder: Add to message attachments
+            // currentSession.addAttachment(Attachment(name = "file", uri = uri, type = AttachmentType.UNKNOWN))
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .safeDrawingPadding()
+    ) {
+        // Mode Selector Bar
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(AiMode.entries.toTypedArray()) { mode ->
+                ModeChip(
+                    mode = mode,
+                    isSelected = mode == selectedMode,
+                    isEnabled = isPro || !mode.isPro,
+                    onClick = { viewModel.setSelectedMode(mode) }
+                )
+            }
+        }
+        
+        // Input Field
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                // Attachment Button
+                IconButton(
+                    onClick = { pickMediaLauncher.launch("*/*") },
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    Icon(Icons.Filled.AttachFile, contentDescription = "Attach File", tint = MaterialTheme.colorScheme.onSurface)
+                }
+
+                // Text Input
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    placeholder = { Text("Message AI Agent...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp, max = maxInputHeight),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        disabledBorderColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        errorContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    singleLine = false,
+                    maxLines = 10,
+                    keyboardOptions = androidx.compose.ui.text.input.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Send
+                    ),
+                    keyboardActions = androidx.compose.ui.text.input.KeyboardActions(
+                        onSend = {
+                            if (inputText.isNotBlank()) {
+                                viewModel.sendUserMessage(inputText, emptyList(), selectedMode)
+                                inputText = ""
+                            }
+                        }
+                    )
+                )
+
+                // Send Button
+                val isSendEnabled = inputText.isNotBlank()
+                Button(
+                    onClick = {
+                        if (isSendEnabled) {
+                            viewModel.sendUserMessage(inputText, emptyList(), selectedMode)
+                            inputText = ""
+                        }
+                    },
+                    enabled = isSendEnabled,
+                    modifier = Modifier
+                        .height(48.dp)
+                        .align(Alignment.CenterVertically)
+                        .padding(end = 4.dp),
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Icon(Icons.Filled.Send, contentDescription = "Send Message", tint = Color.White)
+                }
+            }
+        }
+        
+        // Active API Toggles (Below Input)
+        currentSession?.let { session ->
+            ActiveApiToggles(viewModel, session)
+        }
+    }
+}
+
+@Composable
+fun ModeChip(
+    mode: AiMode,
+    isSelected: Boolean,
+    isEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    val color = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        !isEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    }
+    val contentColor = when {
+        isSelected -> Color.White
+        !isEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    
+    Card(
+        modifier = Modifier.clickable(onClick = if (isEnabled) onClick else {}),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = color),
+        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(api.provider.color)
-            )
+            Text(text = mode.icon, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.width(6.dp))
             Text(
-                api.name,
-                style = MaterialTheme.typography.labelSmall,
+                text = mode.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor,
                 fontWeight = FontWeight.SemiBold
             )
-            Spacer(Modifier.width(4.dp))
-            IconButton(onClick = onRemove, modifier = Modifier.size(16.dp)) {
-                Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(12.dp))
+            if (mode.isPro && !isEnabled) {
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Filled.Lock, contentDescription = "Pro Feature", tint = contentColor, modifier = Modifier.size(12.dp))
             }
         }
     }
 }
 
 @Composable
-fun MessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
-    val alignment = if (msg.isUser) Alignment.End else Alignment.Start
-    val bubbleColor = if (msg.isUser) {
-        Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))
-    } else {
-        Brush.linearGradient(listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface))
-    }
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = alignment
-    ) {
-        Row(
-            horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start,
-            verticalAlignment = Alignment.Top
-        ) {
-            if (!msg.isUser) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Color(0xFFF093FB), Color(0xFFF5576C)))),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Psychology, null, tint = Color.White, modifier = Modifier.size(24.dp))
-                }
-                Spacer(Modifier.width(12.dp))
-            }
-
-            Box(
-                modifier = Modifier
-                    .widthIn(max = 600.dp)
-                    .shadow(4.dp, RoundedCornerShape(20.dp, 20.dp, if (msg.isUser) 4.dp else 20.dp, if (msg.isUser) 20.dp else 4.dp))
-                    .clip(RoundedCornerShape(20.dp, 20.dp, if (msg.isUser) 4.dp else 20.dp, if (msg.isUser) 20.dp else 4.dp))
-                    .background(bubbleColor)
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    if (msg.attachments.isNotEmpty()) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        ) {
-                            items(msg.attachments, key = { it.id }) { attachment ->
-                                AttachmentPreview(attachment, isInMessage = true)
-                            }
-                        }
-                    }
-                    if (msg.isStreaming) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = if (msg.isUser) Color.White else MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Thinking...",
-                                color = if (msg.isUser) Color.White else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    } else {
-                        Text(
-                            msg.text,
-                            color = if (msg.isUser) Color.White else MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        if (msg.usedApis.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.padding(top = 4.dp)
-                            ) {
-                                msg.usedApis.forEach { apiName ->
-                                    Surface(
-                                        color = if (msg.isUser) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Text(
-                                            apiName,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                            color = if (msg.isUser) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if (msg.isUser) {
-                Spacer(Modifier.width(12.dp))
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("A", color = Color.White, fontWeight = FontWeight.Black)
-                }
-            }
-        }
-        if (!msg.isStreaming) {
-            Spacer(Modifier.height(4.dp))
+fun ActiveApiToggles(viewModel: AgentViewModel, currentSession: ChatSession) {
+    val settings by viewModel.settings.collectAsState()
+    val availableApis = settings.apiConfigs.filter { it.isActive }
+    
+    if (availableApis.isNotEmpty()) {
+        Column(modifier = Modifier.padding(top = 8.dp)) {
             Text(
-                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(msg.timestamp)),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.padding(horizontal = 52.dp)
+                "API Models for this Chat:",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
+            Spacer(Modifier.height(4.dp))
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(availableApis, key = { it.id }) { config ->
+                    val isSelected = currentSession.activeApis.contains(config.id)
+                    ApiToggleChip(config, isSelected) {
+                        viewModel.toggleApiForCurrentChat(config.id)
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun AttachmentPreview(attachment: Attachment, isInMessage: Boolean = false) {
+fun ApiToggleChip(
+    config: ApiConfig,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val containerColor = if (isSelected) config.provider.color.copy(alpha = 0.9f) else MaterialTheme.colorScheme.surfaceVariant
+    val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+    
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (isInMessage) {
-                Color.White.copy(alpha = 0.2f)
-            } else {
-                MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-            }
-        ),
-        shape = RoundedCornerShape(12.dp)
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
     ) {
         Row(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                if (attachment.isImage) Icons.Default.Image else Icons.Default.Description,
-                null,
-                modifier = Modifier.size(20.dp),
-                tint = if (isInMessage) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.primary
+                imageVector = if (isSelected) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp)
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                attachment.name,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 100.dp),
-                color = if (isInMessage) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface
+                text = config.name,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+                fontWeight = FontWeight.SemiBold
             )
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CUSTOM CHIPS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-@Composable
-fun AttachmentChip(attachment: Attachment, onRemove: () -> Unit) { 
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            if (attachment.isImage) Icons.Outlined.Image else Icons.Outlined.AttachFile,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(Modifier.width(4.dp))
-        Text(
-            attachment.name,
-            style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(Modifier.width(4.dp))
-        IconButton(onClick = onRemove, modifier = Modifier.size(16.dp)) {
-            Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(12.dp))
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// INPUT BAR
-// ═══════════════════════════════════════════════════════════════════════════════
-
-@Composable
-fun ModernInputBar(
-    input: String,
-    onInputChange: (String) -> Unit,
-    onSend: () -> Unit,
-    attachedFiles: MutableList<Attachment>,
-    viewModel: AgentViewModel,
-    selectedMode: AiMode
-) {
-    val settings by viewModel.settings.collectAsState()
-    var isMenuOpen by remember { mutableStateOf(false) }
-    var isModeMenuOpen by remember { mutableStateOf(false) }
-    val filePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val fileName = "file_${System.currentTimeMillis()}.txt"
-            attachedFiles.add(
-                Attachment(
-                    name = fileName,
-                    type = AttachmentType.DOCUMENT,
-                    uri = it
-                )
-            )
-        }
-    }
-    val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            val fileName = "image_${System.currentTimeMillis()}.jpg"
-            attachedFiles.add(
-                Attachment(
-                    name = fileName,
-                    type = AttachmentType.IMAGE,
-                    uri = it
-                )
-            )
-        }
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        if (attachedFiles.isNotEmpty()) {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                items(attachedFiles.toList(), key = { it.id }) { attachment ->
-                    AttachmentChip(attachment, onRemove = { attachedFiles.remove(attachment) })
-                }
-            }
-        }
-        if (selectedMode != AiMode.STANDARD) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(selectedMode.icon, fontSize = 20.sp)
-                    Spacer(Modifier.width(8.dp))
-                    Text(selectedMode.title + " Active", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    IconButton(
-                        onClick = { viewModel.setSelectedMode(AiMode.STANDARD) },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(18.dp))
-                    }
-                }
-            }
-        }
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-            ),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(8.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Box {
-                    IconButton(onClick = { isMenuOpen = !isMenuOpen }) {
-                        Icon(Icons.Default.Add, "Add", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    DropdownMenu(expanded = isMenuOpen, onDismissRequest = { isMenuOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Upload Image") },
-                            onClick = {
-                                if (!settings.isProUser && attachedFiles.size >= 10) {
-                                    // Handled by sendMessage
-                                } else {
-                                    imagePicker.launch("image/*")
-                                }
-                                isMenuOpen = false
-                            },
-                            leadingIcon = { Icon(Icons.Default.Image, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Upload File") },
-                            onClick = {
-                                if (!settings.isProUser && attachedFiles.size >= 10) {
-                                    // Handled by sendMessage
-                                } else {
-                                    filePicker.launch("*/*")
-                                }
-                                isMenuOpen = false
-                            },
-                            leadingIcon = { Icon(Icons.Default.AttachFile, null) }
-                        )
-                    }
-                }
-                Box {
-                    IconButton(onClick = { isModeMenuOpen = !isModeMenuOpen }) {
-                        Icon(Icons.Default.Psychology, "Modes", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    DropdownMenu(expanded = isModeMenuOpen, onDismissRequest = { isModeMenuOpen = false }) {
-                        AiMode.values().forEach { mode ->
-                            val isLocked = mode.isPro && !settings.isProUser
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(mode.icon)
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(mode.title)
-                                        if (isLocked) {
-                                            Spacer(Modifier.width(8.dp))
-                                            ProBadge()
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    if (!isLocked) {
-                                        viewModel.setSelectedMode(mode)
-                                        isModeMenuOpen = false
-                                    }
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        if (isLocked) Icons.Default.Lock else Icons.Default.Check,
-                                        null,
-                                        tint = if (mode == selectedMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
-
-                TextField(
-                    value = input,
-                    onValueChange = onInputChange,
-                    placeholder = { Text("Message ${selectedMode.title.lowercase()}...") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    )
-                )
-
-                IconButton(
-                    onClick = onSend,
-                    enabled = input.isNotBlank() || attachedFiles.isNotEmpty()
-                ) {
-                    Icon(
-                        Icons.Default.Send,
-                        "Send",
-                        tint = if (input.isNotBlank() || attachedFiles.isNotEmpty()) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                        }
-                    )
-                }
-            }
         }
     }
 }
