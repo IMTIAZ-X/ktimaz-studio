@@ -5,7 +5,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,9 +29,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction 
-import androidx.compose.ui.text.input.KeyboardActions // FIXED: Explicitly imported
-import androidx.compose.ui.text.input.KeyboardOptions // FIXED: Explicitly imported
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +43,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.text.input.KeyboardActions // FIX 1: Missing import
+import androidx.compose.ui.text.input.KeyboardOptions // FIX 1: Missing import
+import androidx.compose.ui.text.input.ImeAction 
+import androidx.compose.ui.text.input.KeyboardType 
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DATA MODELS
@@ -712,6 +712,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                     )
                 }
             }
+
             UserFooter(viewModel)
         }
     }
@@ -764,28 +765,29 @@ fun ChatHistoryCard(
                     modifier = Modifier.size(20.dp)
                 )
             }
+
             Spacer(Modifier.width(12.dp))
+
             if (isEditing) {
                 TextField(
                     value = editText,
                     onValueChange = { editText = it },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    // ADDED keyboard options and actions to confirm on 'Done' press
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { onRenameConfirm(editText) }),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                         unfocusedIndicatorColor = Color.Transparent
-                    )
+                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { onRenameConfirm(editText) })
                 )
                 IconButton(onClick = { onRenameConfirm(editText) }) {
                     Icon(Icons.Default.Check, "Save", tint = MaterialTheme.colorScheme.primary)
                 }
             } else {
-                Column(modifier = Modifier.weight(1f)) { // FIXED: Added 'modifier ='
+                Column(Modifier.weight(1f)) {
                     Text(
                         chat.title,
                         maxLines = 1,
@@ -807,28 +809,33 @@ fun ChatHistoryCard(
                         }
                     }
                 }
+
                 Box {
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, "Menu", modifier = Modifier.size(20.dp))
                     }
+
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                         DropdownMenuItem(
                             text = { Text("Rename") },
-                            onClick = { onRename() 
+                            onClick = {
+                                onRename()
                                 showMenu = false
                             },
                             leadingIcon = { Icon(Icons.Default.Edit, null) }
                         )
                         DropdownMenuItem(
                             text = { Text(if (chat.isPinned) "Unpin" else "Pin") },
-                            onClick = { onPin() 
+                            onClick = {
+                                onPin()
                                 showMenu = false
                             },
                             leadingIcon = { Icon(Icons.Default.PushPin, null) }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete") },
-                            onClick = { onDelete() 
+                            onClick = {
+                                onDelete()
                                 showMenu = false
                             },
                             leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
@@ -876,32 +883,45 @@ fun UserFooter(viewModel: AgentViewModel) {
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Unlimited APIs & all AI modes...",
-                            style = MaterialTheme.typography.labelMedium
+                            "Unlimited APIs & all AI modes",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { viewModel.openSettings() }
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "v1.0.0 (Agent App)",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-            IconButton(onClick = { viewModel.toggleTheme(!settings.isDarkTheme) }) {
-                Icon(
-                    if (settings.isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                    "Toggle Theme",
-                    modifier = Modifier.size(20.dp)
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("A", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(Modifier.weight(1f)) {
+                Text("Agent User", fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (settings.isProUser) "Pro Account" else "Free Account",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (settings.isProUser) AppTheme.ProStart else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
+
+            Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -910,420 +930,479 @@ fun UserFooter(viewModel: AgentViewModel) {
 // CHAT INTERFACE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ModernChatInterface(
-    viewModel: AgentViewModel,
-    modifier: Modifier = Modifier
-) {
-    val currentSession = viewModel.currentSession
+fun ModernChatInterface(viewModel: AgentViewModel) {
     val currentSessionId by viewModel.currentSessionId.collectAsState()
-    // FIXED: Collect settings cleanly, removing the nested collectAsState calls.
+    val chatSessions by viewModel.chatSessions.collectAsState()
+    val currentSession = chatSessions.find { it.id == currentSessionId }
+    val messages = currentSession?.messages ?: emptyList()
     val settings by viewModel.settings.collectAsState()
-
-    val activeApis = remember(currentSessionId, settings.apiConfigs) {
-        currentSession?.activeApis?.mapNotNull { apiId ->
-            settings.apiConfigs.find { it.id == apiId }
-        } ?: emptyList()
-    }
-
+    var input by remember { mutableStateOf("") }
+    val attachedFiles = remember { mutableStateListOf<Attachment>() }
     val selectedMode by viewModel.selectedMode.collectAsState()
     val listState = rememberLazyListState()
 
-    LaunchedEffect(currentSession?.messages?.size) {
-        if (currentSession?.messages?.isNotEmpty() == true) {
-            // Re-implementing correctly:
-            if (currentSession.messages.last().isStreaming || currentSession.messages.last().isUser) {
-                listState.animateScrollToItem(currentSession.messages.lastIndex)
-            }
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(0)
         }
     }
 
-    Column(
-        modifier = modifier.weight(1f).fillMaxHeight()
-    ) {
-        // Mode & Active APIs Display
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            ModeChip(selectedMode, settings.isProUser) { viewModel.setSelectedMode(it) }
-
-            AnimatedVisibility(
-                visible = activeApis.isNotEmpty(),
-                enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
-                exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End)
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Active APIs Bar for current chat
+        if (currentSession != null && currentSession.activeApis.isNotEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                tonalElevation = 2.dp
             ) {
                 LazyRow(
-                    // FIXED: Removed redundant .padding(horizontal = 24.dp) which caused compiler confusion.
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), // FIX 2: Changed modifier to contentPadding (Error 699)
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(activeApis, key = { it.id }) { api ->
-                        ActiveApiChip(api, viewModel)
+                    item {
+                        Text(
+                            "Active APIs:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                    }
+                    items(currentSession.activeApis) { apiId ->
+                        val apiConfig = settings.apiConfigs.find { it.id == apiId }
+                        if (apiConfig != null) {
+                            ApiChip(
+                                api = apiConfig,
+                                onRemove = { viewModel.toggleApiForCurrentChat(apiId) }
+                            )
+                        }
                     }
                 }
             }
         }
-        
-        // Chat History
-        if (currentSession == null) {
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("Select or start a new chat.", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+
+        if (messages.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        "Welcome to ${AppTheme.APP_NAME}",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Multi-AI collaborative workspace",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    if (currentSession?.activeApis?.isEmpty() == true) {
+                        Text(
+                            "⚠️ No APIs active for this chat",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = { viewModel.openSettings() }) {
+                            Icon(Icons.Default.Add, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Add APIs")
+                        }
+                    }
+                }
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                modifier = Modifier.weight(1f),
                 state = listState,
-                contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
+                reverseLayout = true,
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(currentSession.messages, key = { it.id }) { message ->
-                    ChatMessageCard(message, settings.isDarkTheme)
+                items(messages.reversed(), key = { it.id }) { msg ->
+                    MessageBubble(msg, settings.isDarkTheme)
                 }
             }
         }
-        
-        // Input Bar
-        ModernInputBar(viewModel)
-    }
-}
 
-@Composable
-fun ModeChip(
-    mode: AiMode, 
-    isProUser: Boolean, 
-    onModeSelected: (AiMode) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    
-    val chipColor = when (mode) {
-        AiMode.STANDARD -> MaterialTheme.colorScheme.primary
-        AiMode.THINKING -> Color(0xFFEAB308)
-        AiMode.RESEARCH -> Color(0xFF3B82F6)
-        AiMode.STUDY -> Color(0xFF6366F1)
-        AiMode.CODE -> Color(0xFF10B981)
-        AiMode.CREATIVE -> Color(0xFFF472B6)
-    }
-
-    Box {
-        AssistChip(
-            onClick = { expanded = true },
-            label = {
-                Text(
-                    text = "${mode.icon} ${mode.title}", 
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            },
-            leadingIcon = {
-                if (mode.isPro && !isProUser) {
-                    Icon(
-                        Icons.Default.Lock,
-                        null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
+        ModernInputBar(
+            input = input,
+            onInputChange = { input = it },
+            onSend = {
+                if (input.isNotBlank() || attachedFiles.isNotEmpty()) {
+                    viewModel.sendUserMessage(input, attachedFiles.toList(), selectedMode)
+                    input = ""
+                    attachedFiles.clear()
                 }
             },
-            colors = AssistChipDefaults.assistChipColors(
-                containerColor = chipColor
-            ),
-            border = null
+            attachedFiles = attachedFiles,
+            viewModel = viewModel,
+            selectedMode = selectedMode
         )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            AiMode.entries.forEach { modeItem ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(modeItem.title)
-                            if (modeItem.isPro) {
-                                Spacer(Modifier.width(8.dp))
-                                ProBadge()
-                            }
-                        }
-                    },
-                    onClick = {
-                        if (isProUser || !modeItem.isPro) {
-                            onModeSelected(modeItem)
-                        }
-                        expanded = false
-                    },
-                    leadingIcon = { Text(modeItem.icon) }
-                )
-            }
-        }
     }
 }
 
 @Composable
-fun ActiveApiChip(
-    api: ApiConfig,
-    viewModel: AgentViewModel
-) {
-    val settings by viewModel.settings.collectAsState()
-    val isApiActive = remember(settings.apiConfigs) {
-        settings.apiConfigs.any { it.id == api.id && it.isActive }
-    }
-    val isUsedInChat = remember(viewModel.currentSession) {
-        viewModel.currentSession?.activeApis?.contains(api.id) ?: false
-    }
-
-    AssistChip(
-        onClick = { viewModel.toggleApiForCurrentChat(api.id) },
-        label = {
-            Text(
-                text = api.name,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isUsedInChat) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        },
-        leadingIcon = {
-            Icon(
-                if (isUsedInChat) Icons.Default.CheckCircle else Icons.Outlined.AddCircle,
-                null,
-                tint = if (isUsedInChat) Color.White else api.provider.color.copy(alpha = 0.7f),
-                modifier = Modifier.size(18.dp)
-            )
-        },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = if (isUsedInChat) api.provider.color.copy(alpha = 0.9f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+fun ApiChip(api: ApiConfig, onRemove: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = api.provider.color.copy(alpha = 0.2f)
         ),
-        border = if (isUsedInChat) null else BorderStroke(1.dp, api.provider.color.copy(alpha = 0.3f))
-    )
-}
-
-@Composable
-fun ChatMessageCard(
-    message: ChatMessage,
-    isDarkTheme: Boolean
-) {
-    val bubbleColor = if (message.isUser) {
-        MaterialTheme.colorScheme.primary
-    } else if (isDarkTheme) {
-        AppTheme.CardDark.copy(alpha = 0.8f)
-    } else {
-        Color.White
-    }
-
-    val textColor = if (message.isUser) Color.White else MaterialTheme.colorScheme.onBackground
-
-    Column(
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(20.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Card(
-                modifier = Modifier.widthIn(max = 600.dp).shadow(2.dp, RoundedCornerShape(12.dp)),
-                colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                shape = RoundedCornerShape(
-                    topStart = 12.dp,
-                    topEnd = 12.dp,
-                    bottomStart = if (message.isUser) 12.dp else 0.dp,
-                    bottomEnd = if (message.isUser) 0.dp else 12.dp
-                )
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(api.provider.color)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                api.name,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.width(4.dp))
+            IconButton(onClick = onRemove, modifier = Modifier.size(16.dp)) {
+                Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(12.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageBubble(msg: ChatMessage, isDarkTheme: Boolean) {
+    val alignment = if (msg.isUser) Alignment.End else Alignment.Start
+    val bubbleColor = if (msg.isUser) {
+        Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))
+    } else {
+        Brush.linearGradient(listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface))
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = alignment
+    ) {
+        Row(
+            horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.Top
+        ) {
+            if (!msg.isUser) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFFF093FB), Color(0xFFF5576C)))),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Psychology, null, tint = Color.White, modifier = Modifier.size(24.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+            }
+
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 600.dp)
+                    .shadow(4.dp, RoundedCornerShape(20.dp, 20.dp, if (msg.isUser) 4.dp else 20.dp, if (msg.isUser) 20.dp else 4.dp))
+                    .clip(RoundedCornerShape(20.dp, 20.dp, if (msg.isUser) 4.dp else 20.dp, if (msg.isUser) 20.dp else 4.dp))
+                    .background(bubbleColor)
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    if (!message.isUser && message.mode != AiMode.STANDARD) {
+                Column(Modifier.padding(16.dp)) {
+                    if (msg.attachments.isNotEmpty()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        ) {
+                            items(msg.attachments, key = { it.id }) { attachment ->
+                                AttachmentPreview(attachment, isInMessage = true)
+                            }
+                        }
+                    }
+
+                    if (msg.isStreaming) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Placeholder for streaming text animation
+                            Text("AI is typing...", color = if (msg.isUser) Color.White else MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.width(8.dp))
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = if (msg.isUser) Color.White else MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    } else {
+                        // Display actual message text
                         Text(
-                            text = message.mode.promptTag,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = textColor.copy(alpha = 0.7f),
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            text = msg.text,
+                            color = if (msg.isUser) Color.White else MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    Text(
-                        text = message.text,
-                        color = textColor,
-                        fontWeight = if (message.isStreaming) FontWeight.Light else FontWeight.Normal
-                    )
-                    
-                    if (message.attachments.isNotEmpty()) {
+
+                    if (msg.usedApis.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "📎 Attachments (${message.attachments.size})",
+                            "via: ${msg.usedApis.joinToString()}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = textColor.copy(alpha = 0.7f)
+                            color = (if (msg.isUser) Color.White else MaterialTheme.colorScheme.onSurface).copy(alpha = 0.6f)
                         )
                     }
-                    
-                    if (message.usedApis.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
                         Text(
-                            "Via: ${message.usedApis.joinToString()}",
+                            text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(msg.timestamp)),
                             style = MaterialTheme.typography.labelSmall,
-                            color = textColor.copy(alpha = 0.7f)
+                            color = (if (msg.isUser) Color.White else MaterialTheme.colorScheme.onSurface).copy(alpha = 0.5f)
                         )
                     }
                 }
             }
+
+            if (msg.isUser) {
+                Spacer(Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("U", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                }
+            }
         }
-        
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(message.timestamp)),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-            modifier = Modifier.align(if (message.isUser) Alignment.End else Alignment.Start)
-        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ModernInputBar(viewModel: AgentViewModel) {
-    val settings by viewModel.settings.collectAsState()
-    var input by remember { mutableStateOf("") }
-    var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
-    val selectedMode by viewModel.selectedMode.collectAsState()
-    
-    // File picker launcher
-    val fileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments(),
-        onResult = { uris ->
-            attachments = uris.mapIndexed { index, uri ->
-                Attachment(
-                    name = uri.lastPathSegment ?: "File $index",
-                    type = AttachmentType.UNKNOWN,
-                    uri = uri
+fun AttachmentPreview(attachment: Attachment, isInMessage: Boolean = false, onRemove: (() -> Unit)? = null) {
+    Card(
+        modifier = Modifier
+            .widthIn(max = 120.dp)
+            .height(if (isInMessage) 100.dp else 60.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (isInMessage) 0.8f else 1f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    when (attachment.type) {
+                        AttachmentType.IMAGE -> Icons.Default.Image
+                        AttachmentType.CODE -> Icons.Default.Code
+                        AttachmentType.PDF -> Icons.Default.PictureAsPdf
+                        AttachmentType.TEXT, AttachmentType.DOCUMENT -> Icons.Default.Description
+                        else -> Icons.Default.AttachFile
+                    },
+                    contentDescription = attachment.type.name,
+                    modifier = Modifier.size(if (isInMessage) 32.dp else 24.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
+                if (!isInMessage) {
+                    Spacer(Modifier.width(8.dp))
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        attachment.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = if (isInMessage) 2 else 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (!isInMessage) {
+                        Text(
+                            "${attachment.size / 1024} KB",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+
+            onRemove?.let { remove ->
+                IconButton(
+                    onClick = remove,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 8.dp, y = (-8).dp)
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        "Remove attachment",
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
             }
         }
-    )
+    }
+}
+
+@Composable
+fun ModernInputBar(
+    input: String,
+    onInputChange: (String) -> Unit,
+    onSend: () -> Unit,
+    attachedFiles: MutableList<Attachment>,
+    viewModel: AgentViewModel,
+    selectedMode: AiMode
+) {
+    val context = LocalContext.current
+    val pickMediaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris: List<Uri> ->
+        uris.forEach { uri ->
+            // In a real app, you'd read metadata to determine file size and type accurately
+            val type = when (context.contentResolver.getType(uri)?.substringBefore("/")) {
+                "image" -> AttachmentType.IMAGE
+                "text" -> AttachmentType.TEXT
+                "application" -> AttachmentType.DOCUMENT
+                else -> AttachmentType.UNKNOWN
+            }
+            val fileName = uri.lastPathSegment ?: "file_${System.currentTimeMillis()}"
+            attachedFiles.add(Attachment(name = fileName, type = type, uri = uri, size = 100 * 1024)) // Placeholder size
+        }
+    }
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        shadowElevation = 16.dp,
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+            .shadow(8.dp),
+        color = MaterialTheme.colorScheme.surface
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Attachments Preview (if any)
-            if (attachments.isNotEmpty()) {
+        Column(Modifier.padding(16.dp)) {
+            // Attached Files Preview
+            if (attachedFiles.isNotEmpty()) {
                 LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(bottom = 8.dp)
                 ) {
-                    items(attachments, key = { it.id }) { attachment ->
-                        AttachmentChip(attachment) {
-                            attachments = attachments.filter { it.id != attachment.id }
-                        }
+                    items(attachedFiles, key = { it.id }) { attachment ->
+                        AttachmentPreview(attachment, onRemove = { attachedFiles.remove(attachment) })
                     }
                 }
+                Divider(Modifier.padding(vertical = 8.dp))
             }
-            
+
+            // AI Mode Selector
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                items(AiMode.entries) { mode ->
+                    val isSelected = mode == selectedMode
+                    AssistChip(
+                        onClick = { viewModel.setSelectedMode(mode) },
+                        label = {
+                            Text(
+                                "${mode.icon} ${mode.title}",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (isSelected) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerLow
+                            },
+                            labelColor = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        ),
+                        border = AssistChipDefaults.assistChipBorder(
+                            borderColor = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.Transparent
+                            },
+                            borderWidth = if (isSelected) 2.dp else 0.dp
+                        )
+                    )
+                }
+            }
+
             // Input Field
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Text Input
+                IconButton(onClick = { pickMediaLauncher.launch(arrayOf("*/*")) }) {
+                    Icon(
+                        Icons.Default.AttachFile,
+                        "Attach File",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
                 TextField(
                     value = input,
-                    onValueChange = { input = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Message ${AppTheme.APP_NAME}...") },
+                    onValueChange = onInputChange,
+                    modifier = Modifier
+                        .weight(1f) // FIX 3: Correctly chained modifier
+                        .heightIn(min = 56.dp, max = 150.dp),
+                    placeholder = { Text("Ask your AI Agent...") },
                     maxLines = 5,
+                    shape = RoundedCornerShape(28.dp),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
                     ),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            if (input.isNotBlank() || attachments.isNotEmpty()) {
-                                viewModel.sendUserMessage(input, attachments, selectedMode)
-                                input = ""
-                                attachments = emptyList()
-                            }
-                        }
-                    )
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), // FIX 1: KeyboardOptions resolved
+                    keyboardActions = KeyboardActions(onSend = { onSend() }) // FIX 1: KeyboardActions resolved
                 )
 
-                // Send Button
                 Spacer(Modifier.width(8.dp))
+
                 FloatingActionButton(
-                    onClick = {
-                        if (input.isNotBlank() || attachments.isNotEmpty()) {
-                            viewModel.sendUserMessage(input, attachments, selectedMode)
-                            input = ""
-                            attachments = emptyList()
-                        }
-                    },
-                    shape = CircleShape,
+                    onClick = onSend,
+                    modifier = Modifier.size(56.dp),
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White,
-                    modifier = Modifier.size(56.dp)
+                    elevation = FloatingActionButtonDefaults.elevation(0.dp)
                 ) {
                     Icon(Icons.Default.Send, "Send")
                 }
             }
-
-            // Action Row (File Picker)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { fileLauncher.launch(arrayOf("*/*")) }) {
-                    Icon(Icons.Default.AttachFile, "Attach File", tint = MaterialTheme.colorScheme.primary)
-                }
-                
-                // Active API Count Indicator
-                Text(
-                    text = "APIs: ${viewModel.currentSession?.activeApis?.size ?: 0}/${AppTheme.MAX_ACTIVE_APIS_PER_CHAT}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
         }
     }
-}
-
-@Composable
-fun AttachmentChip(attachment: Attachment, onDelete: () -> Unit) {
-    AssistChip(
-        onClick = { /* Open file */ },
-        label = {
-            Text(attachment.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        leadingIcon = {
-            Icon(Icons.Default.FileCopy, null, modifier = Modifier.size(18.dp))
-        },
-        trailingIcon = {
-            IconButton(onClick = onDelete, modifier = Modifier.size(20.dp)) {
-                Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(16.dp))
-            }
-        },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    )
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SETTINGS MODAL
 // ═══════════════════════════════════════════════════════════════════════════════
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernSettingsModal(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
@@ -1332,82 +1411,82 @@ fun ModernSettingsModal(viewModel: AgentViewModel) {
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.9f),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                .fillMaxHeight(0.9f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp)
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
+            Column(Modifier.fillMaxSize()) {
+                // Header
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Settings & Configuration",
+                        "App Settings & API Management",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { viewModel.closeSettings() }) {
                         Icon(Icons.Default.Close, "Close")
                     }
                 }
-                
-                Spacer(Modifier.height(16.dp))
 
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    // --- General Settings ---
-                    item { SettingSectionHeader("General") }
-                    
+                // Scrollable Content
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     item {
-                        SettingToggle(
-                            title = "Dark Theme",
-                            subtitle = "Toggle between light and dark mode",
-                            isChecked = settings.isDarkTheme,
-                            onCheckedChange = { viewModel.toggleTheme(it) }
-                        )
+                        // General Settings
+                        SettingCard(title = "General Settings") {
+                            SettingToggle(
+                                title = "Dark Mode",
+                                description = "Toggle between light and dark themes.",
+                                isChecked = settings.isDarkTheme,
+                                onCheckedChange = { viewModel.toggleTheme(it) }
+                            )
+                            SettingToggle(
+                                title = "Pro Plan Status",
+                                description = "Unlock unlimited APIs and all AI modes.",
+                                isChecked = settings.isProUser,
+                                onCheckedChange = { viewModel.toggleProPlan(it) },
+                                showProBadge = true
+                            )
+                        }
                     }
 
-                    // --- API Management ---
-                    item { SettingSectionHeader("API Management") }
+                    item {
+                        // Usage Metrics
+                        SettingCard(title = "Usage Metrics") {
+                            UsageMetricCard(
+                                title = "Total Tokens Used",
+                                value = "${settings.tokenUsage} T",
+                                icon = Icons.Outlined.Token,
+                                color = Color(0xFF4285F4)
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            UsageMetricCard(
+                                title = "Estimated Cost",
+                                value = String.format("\$%.4f", settings.estimatedCost),
+                                icon = Icons.Outlined.AttachMoney,
+                                color = Color(0xFF0F9D58)
+                            )
+                        }
+                    }
 
                     item {
+                        // API Management Section
                         Text(
-                            "Configure and manage your AI models.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            "API Management (${settings.apiConfigs.size} Configs)",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
-                    }
-                    
-                    items(settings.apiConfigs, key = { it.id }) { api ->
-                        ApiConfigCard(api, viewModel)
-                    }
-                    
-                    item {
-                        AddApiButton(viewModel)
-                        Spacer(Modifier.height(16.dp))
-                    }
-
-                    // --- Billing & Pro Plan ---
-                    item { SettingSectionHeader("Billing & Usage") }
-
-                    item {
-                        UsageMetricCard(
-                            title = "Token Usage (Total)",
-                            value = "${settings.tokenUsage}T",
-                            icon = Icons.Default.CloudQueue
-                        )
-                    }
-                    item {
-                        UsageMetricCard(
-                            title = "Estimated Cost (Total)",
-                            value = "\$${String.format("%.4f", settings.estimatedCost)}",
-                            icon = Icons.Default.AttachMoney
-                        )
-                    }
-                    
-                    item {
-                        ProStatusCard(settings.isProUser) { viewModel.toggleProPlan(!settings.isProUser) }
+                        ApiManagementSection(viewModel)
                     }
                 }
             }
@@ -1416,36 +1495,42 @@ fun ModernSettingsModal(viewModel: AgentViewModel) {
 }
 
 @Composable
-fun SettingSectionHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(vertical = 12.dp, top = 24.dp)
-    )
-    Divider()
+fun SettingCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(Modifier.padding(16.dp), content = content)
+    }
 }
 
 @Composable
 fun SettingToggle(
     title: String,
-    subtitle: String,
+    description: String,
     isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    showProBadge: Boolean = false
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCheckedChange(!isChecked) }
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) { // FIXED: Added 'modifier ='
-            Text(title, style = MaterialTheme.typography.titleSmall)
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, fontWeight = FontWeight.SemiBold)
+                if (showProBadge) {
+                    Spacer(Modifier.width(8.dp))
+                    ProBadge()
+                }
+            }
             Text(
-                subtitle,
+                description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
@@ -1456,172 +1541,282 @@ fun SettingToggle(
 }
 
 @Composable
-fun UsageMetricCard(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Card(
+fun UsageMetricCard(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        shape = RoundedCornerShape(12.dp)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(color.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) { // FIXED: Added 'modifier ='
-                Text(title, style = MaterialTheme.typography.labelMedium)
-                Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-            }
+            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.labelLarge)
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// API MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @Composable
-fun ProStatusCard(isPro: Boolean, onUpgradeClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .clickable { onUpgradeClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = if (isPro) Color(0xFF10B981).copy(alpha = 0.2f) else MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-        ),
-        border = BorderStroke(2.dp, if (isPro) Color(0xFF10B981) else MaterialTheme.colorScheme.error),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    if (isPro) Icons.Default.CheckCircle else Icons.Default.RocketLaunch,
-                    null,
-                    tint = if (isPro) Color(0xFF10B981) else MaterialTheme.colorScheme.error
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (isPro) "PRO Account Activated" else "Upgrade to Pro",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isPro) Color(0xFF10B981) else MaterialTheme.colorScheme.error
-                )
-            }
-            Spacer(Modifier.height(8.dp))
+fun ApiManagementSection(viewModel: AgentViewModel) {
+    val settings by viewModel.settings.collectAsState()
+    var isApiModalOpen by remember { mutableStateOf(false) }
+    var selectedApiToEdit by remember { mutableStateOf<ApiConfig?>(null) }
+    val isPro = settings.isProUser
+    val maxApisReached = settings.apiConfigs.size >= AppTheme.FREE_API_LIMIT && !isPro
+
+    Column(Modifier.fillMaxWidth()) {
+        if (settings.apiConfigs.isEmpty()) {
             Text(
-                if (isPro) "Enjoy unlimited API configurations and all AI modes!" 
-                else "Unlock unlimited APIs, advanced AI modes, and priority support.",
-                style = MaterialTheme.typography.bodyMedium
+                "No API configurations yet. Click below to add your first one.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            settings.apiConfigs.forEach { api ->
+                ApiConfigItem(
+                    api = api,
+                    onToggleActive = { viewModel.toggleApiActive(api.id) },
+                    onEdit = { selectedApiToEdit = api; isApiModalOpen = true },
+                    onDelete = { viewModel.deleteApiConfig(api.id) }
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                if (maxApisReached) {
+                    // Show a message or navigate to upgrade
+                } else {
+                    selectedApiToEdit = null
+                    isApiModalOpen = true
+                }
+            },
+            enabled = !maxApisReached,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+        ) {
+            Icon(Icons.Default.Add, null)
+            Spacer(Modifier.width(8.dp))
+            Text(if (maxApisReached) "Upgrade to Add More APIs" else "Add New API Config")
+        }
+
+        if (isApiModalOpen) {
+            ApiConfigModal(
+                config = selectedApiToEdit,
+                onDismiss = { isApiModalOpen = false },
+                onSave = { updatedConfig ->
+                    if (selectedApiToEdit == null) {
+                        viewModel.addApiConfig(updatedConfig)
+                    } else {
+                        viewModel.updateApiConfig(updatedConfig.id, updatedConfig)
+                    }
+                    isApiModalOpen = false
+                }
             )
         }
     }
 }
 
 @Composable
-fun ApiConfigCard(
-    api: ApiConfig, 
-    viewModel: AgentViewModel
+fun ApiConfigItem(
+    api: ApiConfig,
+    onToggleActive: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
-    var isEditing by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf(api.name) }
-    var apiKey by remember { mutableStateOf(api.apiKey) }
-    var modelName by remember { mutableStateOf(api.modelName) }
-    var systemRole by remember { mutableStateOf(api.systemRole) }
-
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-        border = if (api.isActive) BorderStroke(2.dp, api.provider.color.copy(alpha = 0.8f)) else null,
-        shape = RoundedCornerShape(12.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = api.provider.color.copy(alpha = 0.1f)
+        ),
+        border = if (api.isActive) BorderStroke(2.dp, api.provider.color) else null
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(api.provider.color),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    api.provider.title,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = api.provider.color
+                    api.provider.title.first().toString(),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
                 )
-                Switch(checked = api.isActive, onCheckedChange = { viewModel.toggleApiActive(api.id) })
             }
-            Spacer(Modifier.height(8.dp))
-            
-            if (isEditing) {
-                // Editing UI
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) { 
+                Text(api.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${api.provider.title} • ${api.modelName}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = apiKey,
-                    onValueChange = { apiKey = it },
-                    label = { Text("API Key (Sensitive)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+            }
+            Spacer(Modifier.width(8.dp))
+            Switch(
+                checked = api.isActive,
+                onCheckedChange = { onToggleActive() },
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor = api.provider.color.copy(alpha = 0.5f),
+                    checkedThumbColor = api.provider.color
                 )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = modelName,
-                    onValueChange = { modelName = it },
-                    label = { Text("Model Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = systemRole,
-                    onValueChange = { systemRole = it },
-                    label = { Text("System Role (Prompt)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
+            )
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, "Edit", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ApiConfigModal(
+    config: ApiConfig?,
+    onDismiss: () -> Unit,
+    onSave: (ApiConfig) -> Unit
+) {
+    val initialConfig = config ?: ApiConfig(
+        provider = AiProvider.GEMINI,
+        name = "${AiProvider.GEMINI.title} Config",
+        modelName = AiProvider.GEMINI.defaultModel,
+        baseUrl = AiProvider.GEMINI.defaultUrl
+    )
+
+    var currentConfig by remember { mutableStateOf(initialConfig) }
+    var apiKeyVisible by remember { mutableStateOf(false) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(Modifier.padding(24.dp)) {
+                Text(
+                    if (config == null) "Add New API Configuration" else "Edit API Configuration",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Button(onClick = { viewModel.deleteApiConfig(api.id) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                        Text("Delete")
+
+                // Provider Selection
+                Text("API Provider", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(4.dp))
+                DropdownProvider(
+                    currentProvider = currentConfig.provider,
+                    onProviderSelected = {
+                        currentConfig = currentConfig.copy(
+                            provider = it,
+                            name = "${it.title} Config",
+                            modelName = it.defaultModel,
+                            baseUrl = it.defaultUrl
+                        )
+                    }
+                )
+                Spacer(Modifier.height(16.dp))
+
+                // Name Field
+                OutlinedTextField(
+                    value = currentConfig.name,
+                    onValueChange = { currentConfig = currentConfig.copy(name = it) },
+                    label = { Text("Configuration Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // Model Field
+                OutlinedTextField(
+                    value = currentConfig.modelName,
+                    onValueChange = { currentConfig = currentConfig.copy(modelName = it) },
+                    label = { Text("Model Name (e.g., gpt-4o)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // API Key Field
+                OutlinedTextField(
+                    value = currentConfig.apiKey,
+                    onValueChange = { currentConfig = currentConfig.copy(apiKey = it) },
+                    label = { Text("API Key") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next), // FIX 1: KeyboardOptions resolved
+                    keyboardActions = KeyboardActions(onNext = { /* focus next field */ }), // FIX 1: KeyboardActions resolved
+                    trailingIcon = {
+                        IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
+                            Icon(if (apiKeyVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null)
+                        }
+                    }
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // Base URL Field
+                OutlinedTextField(
+                    value = currentConfig.baseUrl,
+                    onValueChange = { currentConfig = currentConfig.copy(baseUrl = it) },
+                    label = { Text("Base URL (e.g., https://api.openai.com/v1)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next)
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // System Role Field
+                OutlinedTextField(
+                    value = currentConfig.systemRole,
+                    onValueChange = { currentConfig = currentConfig.copy(systemRole = it) },
+                    label = { Text("System Role / Instruction (Optional)") },
+                    minLines = 3,
+                    maxLines = 5,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(24.dp))
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = { 
-                        viewModel.updateApiConfig(api.id, api.copy(
-                            name = name,
-                            apiKey = apiKey,
-                            modelName = modelName,
-                            systemRole = systemRole
-                        ))
-                        isEditing = false
-                    }) {
-                        Text("Save")
-                    }
-                }
-
-            } else {
-                // Display UI
-                Text(api.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Model: ${api.modelName}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                )
-                if (api.systemRole.isNotBlank()) {
-                    Text(
-                        "Role: ${api.systemRole.take(50)}${if (api.systemRole.length > 50) "..." else ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    IconButton(onClick = { isEditing = true }) {
-                        Icon(Icons.Default.Edit, "Edit")
+                    Button(
+                        onClick = { onSave(currentConfig) },
+                        enabled = currentConfig.name.isNotBlank() && currentConfig.modelName.isNotBlank() && currentConfig.apiKey.isNotBlank()
+                    ) {
+                        Text(if (config == null) "Add Config" else "Save Changes")
                     }
                 }
             }
@@ -1629,24 +1824,29 @@ fun ApiConfigCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddApiButton(viewModel: AgentViewModel) {
+fun DropdownProvider(
+    currentProvider: AiProvider,
+    onProviderSelected: (AiProvider) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
-    val settings by viewModel.settings.collectAsState()
-    val canAddMore = settings.isProUser || settings.apiConfigs.size < AppTheme.FREE_API_LIMIT
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Button(
-            onClick = { if (canAddMore) expanded = true else {/* Show warning or prompt upgrade */ } },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = canAddMore
-        ) {
-            Icon(Icons.Default.Add, null)
-            Spacer(Modifier.width(8.dp))
-            Text(if (canAddMore) "Add New API" else "Max APIs Reached (Free Plan)")
-        }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = currentProvider.title,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Select Provider") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+        )
 
-        DropdownMenu(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
@@ -1654,17 +1854,10 @@ fun AddApiButton(viewModel: AgentViewModel) {
                 DropdownMenuItem(
                     text = { Text(provider.title) },
                     onClick = {
-                        val newConfig = ApiConfig(
-                            provider = provider,
-                            name = provider.title,
-                            modelName = provider.defaultModel,
-                            baseUrl = provider.defaultUrl,
-                            isActive = true
-                        )
-                        viewModel.addApiConfig(newConfig)
+                        onProviderSelected(provider)
                         expanded = false
                     },
-                    leadingIcon = { Icon(Icons.Default.Api, null, tint = provider.color) }
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                 )
             }
         }
