@@ -86,7 +86,9 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
 
         if (settings.apiConfigs.isEmpty()) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.CloudOff, null, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(16.dp))
                     Text("No APIs configured", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -148,7 +150,10 @@ fun ApiConfigCard(
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(12.dp).clip(CircleShape).background(api.provider.color))
+                Box(Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(api.provider.color))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(api.name, fontWeight = FontWeight.Bold)
@@ -216,7 +221,9 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(Modifier.fillMaxWidth().fillMaxHeight(0.9f), shape = RoundedCornerShape(24.dp)) {
+        Card(Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.9f), shape = RoundedCornerShape(24.dp)) {
             LazyColumn(Modifier.padding(24.dp)) {
                 item {
                     Text("Add New API", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -234,8 +241,13 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                         ),
                         modifier = Modifier.padding(vertical = 4.dp)
                     ) {
-                        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(12.dp).clip(CircleShape).background(provider.color))
+                        Row(Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(provider.color))
                             Spacer(Modifier.width(12.dp))
                             Text(provider.title, fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.weight(1f))

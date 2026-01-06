@@ -1,5 +1,6 @@
 package com.ktimazstudio.agent.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -149,11 +150,11 @@ fun PlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
 
 @Composable
 fun ProBadge() {
-    androidx.compose.foundation.layout.Box(
+    Box(
         modifier = Modifier
-            .androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
-            .androidx.compose.foundation.background(
-                Brush.linearGradient(listOf(AppTheme.ProStart, AppTheme.ProEnd))
+            .background(
+                Brush.linearGradient(listOf(AppTheme.ProStart, AppTheme.ProEnd)),
+                shape = RoundedCornerShape(20.dp)
             )
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
