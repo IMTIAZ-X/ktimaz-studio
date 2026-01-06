@@ -1,4 +1,3 @@
-
 package com.ktimazstudio.agent.ui.components
 
 import androidx.compose.foundation.background
@@ -33,7 +32,9 @@ fun ModernSidebar(viewModel: AgentViewModel) {
     val editingChatId by viewModel.editingChatId.collectAsState()
 
     Surface(
-        modifier = Modifier.width(320.dp).fillMaxHeight(),
+        modifier = Modifier
+            .width(320.dp)
+            .fillMaxHeight(),
         color = if (settings.isDarkTheme) AppTheme.CardDark.copy(alpha = 0.8f)
         else Color.White.copy(alpha = 0.95f)
     ) {
@@ -60,10 +61,16 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                             fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
                     }
                     items(pinnedChats, key = { it.id }) { chat ->
-                        ChatHistoryCard(chat, chat.id == currentSessionId, chat.id == editingChatId,
-                            { viewModel.openChat(chat.id) }, { viewModel.startEditingChat(chat.id) },
-                            { viewModel.renameChat(chat.id, it) }, { viewModel.deleteChat(chat.id) },
-                            { viewModel.pinChat(chat.id) })
+                        ChatHistoryCard(
+                            chat, 
+                            chat.id == currentSessionId, 
+                            chat.id == editingChatId,
+                            { viewModel.openChat(chat.id) }, 
+                            { viewModel.startEditingChat(chat.id) },
+                            { viewModel.renameChat(chat.id, it) }, 
+                            { viewModel.deleteChat(chat.id) },
+                            { viewModel.pinChat(chat.id) }
+                        )
                     }
                 }
 
@@ -73,10 +80,16 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                         modifier = Modifier.padding(vertical = 8.dp, top = if (pinnedChats.isNotEmpty()) 16.dp else 0.dp))
                 }
                 items(regularChats, key = { it.id }) { chat ->
-                    ChatHistoryCard(chat, chat.id == currentSessionId, chat.id == editingChatId,
-                        { viewModel.openChat(chat.id) }, { viewModel.startEditingChat(chat.id) },
-                        { viewModel.renameChat(chat.id, it) }, { viewModel.deleteChat(chat.id) },
-                        { viewModel.pinChat(chat.id) })
+                    ChatHistoryCard(
+                        chat, 
+                        chat.id == currentSessionId, 
+                        chat.id == editingChatId,
+                        { viewModel.openChat(chat.id) }, 
+                        { viewModel.startEditingChat(chat.id) },
+                        { viewModel.renameChat(chat.id, it) }, 
+                        { viewModel.deleteChat(chat.id) },
+                        { viewModel.pinChat(chat.id) }
+                    )
                 }
             }
 
@@ -87,15 +100,23 @@ fun ModernSidebar(viewModel: AgentViewModel) {
 
 @Composable
 fun ChatHistoryCard(
-    chat: ChatSession, isSelected: Boolean, isEditing: Boolean,
-    onChatClick: () -> Unit, onRename: () -> Unit, onRenameConfirm: (String) -> Unit,
-    onDelete: () -> Unit, onPin: () -> Unit
+    chat: ChatSession, 
+    isSelected: Boolean, 
+    isEditing: Boolean,
+    onChatClick: () -> Unit, 
+    onRename: () -> Unit, 
+    onRenameConfirm: (String) -> Unit,
+    onDelete: () -> Unit, 
+    onPin: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var editText by remember { mutableStateOf(chat.title) }
 
     Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onChatClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable { onChatClick() },
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
             else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
@@ -105,7 +126,9 @@ fun ChatHistoryCard(
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp))
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
                 contentAlignment = Alignment.Center
             ) {
@@ -116,8 +139,10 @@ fun ChatHistoryCard(
 
             if (isEditing) {
                 TextField(
-                    value = editText, onValueChange = { editText = it },
-                    modifier = Modifier.weight(1f), singleLine = true,
+                    value = editText, 
+                    onValueChange = { editText = it },
+                    modifier = Modifier.weight(1f), 
+                    singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent
@@ -164,12 +189,15 @@ fun UserFooter(viewModel: AgentViewModel) {
     Column {
         if (!settings.isProUser) {
             Card(
-                modifier = Modifier.fillMaxWidth().clickable { viewModel.openSettings() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.openSettings() },
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Box(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .background(Brush.linearGradient(listOf(
                             Color(0xFFF093FB).copy(alpha = 0.3f),
                             Color(0xFFF5576C).copy(alpha = 0.3f)
@@ -191,11 +219,16 @@ fun UserFooter(viewModel: AgentViewModel) {
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().clickable { viewModel.openSettings() }.padding(vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { viewModel.openSettings() }
+                .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(48.dp).clip(CircleShape)
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
                 contentAlignment = Alignment.Center
             ) {
@@ -208,66 +241,6 @@ fun UserFooter(viewModel: AgentViewModel) {
                     style = MaterialTheme.typography.labelMedium)
             }
             Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// FILE: ui/AgentScreen.kt
-// ═══════════════════════════════════════════════════════════════════════════════
-package com.ktimazstudio.agent.ui
-
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ktimazstudio.agent.data.AppTheme
-import com.ktimazstudio.agent.theme.ModernAgentTheme
-import com.ktimazstudio.agent.ui.components.*
-import com.ktimazstudio.agent.ui.settings.ModernSettingsModal
-import com.ktimazstudio.agent.viewmodel.AgentViewModel
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
-    val settings by viewModel.settings.collectAsState()
-
-    ModernAgentTheme(darkTheme = settings.isDarkTheme) {
-        val isSidebarOpen by viewModel.isSidebarOpen.collectAsState()
-        val isSettingsModalOpen by viewModel.isSettingsModalOpen.collectAsState()
-
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    if (settings.isDarkTheme) listOf(Color(0xFF0A0A1E), Color(0xFF1A1A2E), Color(0xFF0F0F1E))
-                    else listOf(Color(0xFFF8F9FE), Color(0xFFEEF2FF), Color(0xFFE0E7FF))
-                )
-            )
-        ) {
-            Scaffold(
-                topBar = { ModernTopBar(viewModel) },
-                containerColor = Color.Transparent,
-                content = { paddingValues ->
-                    Row(Modifier.fillMaxSize().padding(paddingValues)) {
-                        AnimatedVisibility(
-                            visible = isSidebarOpen,
-                            enter = slideInHorizontally() + fadeIn(),
-                            exit = slideOutHorizontally() + fadeOut()
-                        ) {
-                            ModernSidebar(viewModel)
-                        }
-                        ChatInterface(viewModel)
-                    }
-                    if (isSettingsModalOpen) {
-                        ModernSettingsModal(viewModel)
-                    }
-                }
-            )
         }
     }
 }

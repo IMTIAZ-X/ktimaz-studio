@@ -45,11 +45,11 @@ fun ChatInterface(viewModel: AgentViewModel) {
             ) {
                 LazyRow(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     item {
-                        Text("Active APIs:", style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.align(Alignment.CenterVertically))
+                        Text("Active APIs:", style = MaterialTheme.typography.labelMedium)
                     }
                     items(currentSession.activeApis) { apiId ->
                         val apiConfig = settings.apiConfigs.find { it.id == apiId }
@@ -62,7 +62,9 @@ fun ChatInterface(viewModel: AgentViewModel) {
         }
 
         if (messages.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.primary)
