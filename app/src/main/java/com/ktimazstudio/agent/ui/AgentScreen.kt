@@ -58,7 +58,7 @@ fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
                             enter = slideInHorizontally() + fadeIn(),
                             exit = slideOutHorizontally() + fadeOut()
                         ) {
-                            Sidebar(viewModel)
+                            ModernSidebar(viewModel)
                         }
 
                         ChatInterface(viewModel)
