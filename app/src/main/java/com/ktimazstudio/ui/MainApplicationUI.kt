@@ -33,7 +33,7 @@ import com.ktimazstudio.ui.components.CustomSearchBar
 import com.ktimazstudio.ui.screens.DashboardScreen
 import com.ktimazstudio.ui.screens.SettingsScreen
 import com.ktimazstudio.ui.screens.ProfileScreen
-import com.ktimazstudio.agent.AgentScreen
+import com.ktimazstudio.agent.ui.AgentScreen
 import com.ktimazstudio.utils.isConnected
 import com.ktimazstudio.utils.openWifiSettings
 
