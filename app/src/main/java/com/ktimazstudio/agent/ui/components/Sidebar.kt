@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.BorderStroke
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,17 +55,19 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                 val pinnedChats = chatSessions.filter { it.isPinned }
                 val regularChats = chatSessions.filter { !it.isPinned }
 
-                item {
-                    Text("Pinned", style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
-                }
+                if (pinnedChats.isNotEmpty()) {
+                    item {
+                        Text("Pinned", style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                    items(pinnedChats, key = { it.id }) { chat ->
                         ChatHistoryCard(
-                            chat, 
-                            chat.id == currentSessionId, 
+                            chat,
+                            chat.id == currentSessionId,
                             chat.id == editingChatId,
-                            { viewModel.openChat(chat.id) }, 
+                            { viewModel.openChat(chat.id) },
                             { viewModel.startEditingChat(chat.id) },
-                            { viewModel.renameChat(chat.id, it) }, 
+                            { viewModel.renameChat(chat.id, it) },
                             { viewModel.deleteChat(chat.id) },
                             { viewModel.pinChat(chat.id) }
                         )
@@ -74,18 +75,26 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                 }
 
                 item {
-                    Text("Recent", style = MaterialTheme.typography.labelLarge,
+                    Text(
+                        "Recent",
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 8.dp, top = if (pinnedChats.isNotEmpty()) 16.dp else 0.dp))
+                        modifier = Modifier.padding(
+                            start = 0.dp,
+                            top = if (pinnedChats.isNotEmpty()) 16.dp else 0.dp,
+                            end = 0.dp,
+                            bottom = 8.dp
+                        )
+                    )
                 }
                 items(regularChats, key = { it.id }) { chat ->
                     ChatHistoryCard(
-                        chat, 
-                        chat.id == currentSessionId, 
+                        chat,
+                        chat.id == currentSessionId,
                         chat.id == editingChatId,
-                        { viewModel.openChat(chat.id) }, 
+                        { viewModel.openChat(chat.id) },
                         { viewModel.startEditingChat(chat.id) },
-                        { viewModel.renameChat(chat.id, it) }, 
+                        { viewModel.renameChat(chat.id, it) },
                         { viewModel.deleteChat(chat.id) },
                         { viewModel.pinChat(chat.id) }
                     )
@@ -99,13 +108,13 @@ fun ModernSidebar(viewModel: AgentViewModel) {
 
 @Composable
 fun ChatHistoryCard(
-    chat: ChatSession, 
-    isSelected: Boolean, 
+    chat: ChatSession,
+    isSelected: Boolean,
     isEditing: Boolean,
-    onChatClick: () -> Unit, 
-    onRename: () -> Unit, 
+    onChatClick: () -> Unit,
+    onRename: () -> Unit,
     onRenameConfirm: (String) -> Unit,
-    onDelete: () -> Unit, 
+    onDelete: () -> Unit,
     onPin: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -138,9 +147,9 @@ fun ChatHistoryCard(
 
             if (isEditing) {
                 TextField(
-                    value = editText, 
+                    value = editText,
                     onValueChange = { editText = it },
-                    modifier = Modifier.weight(1f), 
+                    modifier = Modifier.weight(1f),
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -184,7 +193,7 @@ fun ChatHistoryCard(
 @Composable
 fun UserFooter(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
-    
+
     Column {
         if (!settings.isProUser) {
             Card(
