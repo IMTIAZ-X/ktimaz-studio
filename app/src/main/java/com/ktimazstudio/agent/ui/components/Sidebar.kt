@@ -143,20 +143,6 @@ fun ChatHistoryCard(
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        if (isSelected) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .clickable { onChatClick() },
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                    else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.material3.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-            ) {}
-        }
 
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
