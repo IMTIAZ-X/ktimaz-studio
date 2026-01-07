@@ -1,5 +1,6 @@
 package com.ktimazstudio
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -44,9 +45,17 @@ fun SplashScreenContent() {
 
     LaunchedEffect(Unit) {
         splashScreenState.targetState = true
-        delay(4000)
-        context.startActivity(Intent(context, MainActivity::class.java))
-        if (context is ComponentActivity) context.finish()
+        delay(4000) // App waits 4 seconds
+
+        // --- NAVIGATION FIX START ---
+        // Prevents crash by clearing the stack safely
+        val intent = Intent(context, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        context.startActivity(intent)
+        if (context is Activity) {
+            context.finish()
+        }
+        // --- NAVIGATION FIX END ---
     }
 
     val transition = updateTransition(splashScreenState, label = "SplashScreenTransition")
@@ -97,7 +106,11 @@ fun SplashScreenContent() {
                     .size(220.dp)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.12f))
-                    .blur(30.dp)
+                    // --- CRASH FIX START ---
+                    // .blur(30.dp)  <-- THIS CAUSED THE CRASH ON HIGH DEVICES.
+                    // It is too heavy for Android 12+ render engine. 
+                    // Keeping it removed is the safest fix.
+                    // --- CRASH FIX END ---
             )
 
             Box(
@@ -121,7 +134,7 @@ fun SplashScreenContent() {
             }
         }
 
-        // ✅ Advanced Loading Dots (from new code)
+        // ✅ Advanced Loading Dots
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -131,7 +144,7 @@ fun SplashScreenContent() {
             AdvancedLoadingDots()
         }
 
-        // ✅ Modern Progress Bar (from old code)
+        // ✅ Modern Progress Bar (FIXED)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -204,8 +217,8 @@ fun RippleWaveAnimation() {
 fun AdvancedLoadingDots() {
     val dotCount = 3
     val dotSize = 10.dp
-    val animationDuration = 800 // Duration for one dot's pulse
-    val delayBetweenDots = 200 // Delay before the next dot starts its pulse
+    val animationDuration = 800
+    val delayBetweenDots = 200
 
     val infiniteTransition = rememberInfiniteTransition(label = "LoadingDotsInfiniteTransition")
 
@@ -262,50 +275,42 @@ fun AdvancedLoadingDots() {
     }
 }
 
-
-@Composable
-fun Dot(scale: Float) {
-    Box(
-        modifier = Modifier
-            .size(10.dp)
-            .graphicsLayer {
-                scaleX = 0.7f + 0.3f * scale
-                scaleY = 0.7f + 0.3f * scale
-            }
-            .clip(CircleShape)
-            .background(Color(0xFF6C63FF).copy(alpha = 0.8f))
-    )
-}
-
 // -------------------------------------------------------------
-// ✅ Modern Progress Bar
+// ✅ Modern Progress Bar (FIXED FOR 4000ms DELAY)
 // -------------------------------------------------------------
 @Composable
 fun ModernLoadingBar() {
-    val infiniteTransition = rememberInfiniteTransition(label = "LoadingBar")
-    val progress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(7000, easing = FastOutSlowInEasing), // 1500
-            repeatMode = RepeatMode.Restart
+    // We start animation immediately
+    var startAnimation by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        startAnimation = true
+    }
+
+    // Changed from InfiniteTransition to animateFloatAsState
+    // This allows the bar to fill from 0 to 100% exactly within the splash time
+    val progress by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 3500, // Slightly less than the 4000ms delay to ensure it finishes
+            easing = LinearEasing
         ),
-        label = "progress"
+        label = "progressBar"
     )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .width(150.dp) // 120
-                .height(5.dp) // 4
-                .clip(RoundedCornerShape(5.dp)) // 2
+                .width(150.dp)
+                .height(5.dp)
+                .clip(RoundedCornerShape(5.dp))
                 .background(Color.Black.copy(alpha = 0.1f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(progress)
-                    .clip(RoundedCornerShape(5.dp)) // 2
+                    .fillMaxWidth(progress) // Fills based on time
+                    .clip(RoundedCornerShape(5.dp))
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(Color(0xFF6C63FF), Color(0xFFFF6B9D))
