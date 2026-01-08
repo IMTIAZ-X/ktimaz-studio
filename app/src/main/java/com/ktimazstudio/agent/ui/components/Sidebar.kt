@@ -1,31 +1,18 @@
 package com.ktimazstudio.agent.ui.components
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -34,128 +21,178 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ktimazstudio.agent.data.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
-import androidx.compose.material3.Button
 
 @Composable
 fun ModernSidebar(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
     val chatSessions by viewModel.chatSessions.collectAsState()
     val currentSessionId by viewModel.currentSessionId.collectAsState()
-    val editingChatId by viewModel.editingChatId.collectAsState()
+    var editingChatId by remember { mutableStateOf<String?>(null) }
 
     Surface(
         modifier = Modifier
-            .width(320.dp)
-            .fillMaxHeight(),
-        color = if (settings.isDarkTheme) AppTheme.CardDark.copy(alpha = 0.8f)
-        else Color.White.copy(alpha = 0.95f)
+            .width(280.dp)
+            .fillMaxHeight()
+            .shadow(12.dp),
+        color = Color(0xFF0F0F1F)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Button(
-                onClick = { viewModel.newChat() },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+        Column(Modifier.fillMaxSize()) {
+            // Header
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                color = Color(0xFF1A1A2E)
             ) {
-                Icon(Icons.Default.Add, null)
-                Spacer(Modifier.width(8.dp))
-                Text("New Chat", fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = { viewModel.newChat() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF667EEA)
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(
+                        "➕",
+                        null,
+                        modifier = Modifier.size(20.sp.value.dp),
+                        tint = Color.White
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "New Chat",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            LazyColumn(Modifier.weight(1f)) {
+            // Chat List
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 val pinnedChats = chatSessions.filter { it.isPinned }
                 val regularChats = chatSessions.filter { !it.isPinned }
 
                 if (pinnedChats.isNotEmpty()) {
                     item {
-                        Text("Pinned", style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                        Text(
+                            "PINNED",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White.copy(alpha = 0.4f),
+                            modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 4.dp)
+                        )
                     }
                     items(pinnedChats, key = { it.id }) { chat ->
-                        ChatHistoryCard(
-                            chat,
-                            chat.id == currentSessionId,
-                            chat.id == editingChatId,
-                            { viewModel.openChat(chat.id) },
-                            { viewModel.startEditingChat(chat.id) },
-                            { viewModel.renameChat(chat.id, it) },
-                            { viewModel.deleteChat(chat.id) },
-                            { viewModel.pinChat(chat.id) }
+                        ChatItem(
+                            chat = chat,
+                            isSelected = chat.id == currentSessionId,
+                            isEditing = chat.id == editingChatId,
+                            onSelect = { viewModel.openChat(chat.id) },
+                            onEdit = { editingChatId = chat.id },
+                            onRename = {
+                                viewModel.renameChat(chat.id, it)
+                                editingChatId = null
+                            },
+                            onDelete = { viewModel.deleteChat(chat.id) },
+                            onPin = { viewModel.pinChat(chat.id) }
                         )
                     }
                 }
 
                 item {
                     Text(
-                        "Recent",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(
-                            start = 0.dp,
-                            top = if (pinnedChats.isNotEmpty()) 16.dp else 0.dp,
-                            end = 0.dp,
-                            bottom = 8.dp
-                        )
+                        "RECENT",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White.copy(alpha = 0.4f),
+                        modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 4.dp)
                     )
                 }
+
                 items(regularChats, key = { it.id }) { chat ->
-                    ChatHistoryCard(
-                        chat,
-                        chat.id == currentSessionId,
-                        chat.id == editingChatId,
-                        { viewModel.openChat(chat.id) },
-                        { viewModel.startEditingChat(chat.id) },
-                        { viewModel.renameChat(chat.id, it) },
-                        { viewModel.deleteChat(chat.id) },
-                        { viewModel.pinChat(chat.id) }
+                    ChatItem(
+                        chat = chat,
+                        isSelected = chat.id == currentSessionId,
+                        isEditing = chat.id == editingChatId,
+                        onSelect = { viewModel.openChat(chat.id) },
+                        onEdit = { editingChatId = chat.id },
+                        onRename = {
+                            viewModel.renameChat(chat.id, it)
+                            editingChatId = null
+                        },
+                        onDelete = { viewModel.deleteChat(chat.id) },
+                        onPin = { viewModel.pinChat(chat.id) }
                     )
                 }
             }
 
-            UserFooter(viewModel)
+            Spacer(Modifier.height(16.dp))
+
+            // Footer
+            SidebarFooter(viewModel, settings)
         }
     }
 }
 
 @Composable
-fun ChatHistoryCard(
+fun ChatItem(
     chat: ChatSession,
     isSelected: Boolean,
     isEditing: Boolean,
-    onChatClick: () -> Unit,
-    onRename: () -> Unit,
-    onRenameConfirm: (String) -> Unit,
+    onSelect: () -> Unit,
+    onEdit: () -> Unit,
+    onRename: (String) -> Unit,
     onDelete: () -> Unit,
     onPin: () -> Unit
 ) {
-    var showMenu by remember { mutableStateOf(false) }
     var editText by remember { mutableStateOf(chat.title) }
+    var showMenu by remember { mutableStateOf(false) }
 
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable { onChatClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-            else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-        ),
+            .height(48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onSelect() },
+        color = if (isSelected) Color(0xFF667EEA).copy(alpha = 0.2f) else Color(0xFF1A1A2E),
         shape = RoundedCornerShape(12.dp)
     ) {
-
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(32.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFF667EEA),
+                                Color(0xFF764BA2)
+                            )
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.ChatBubble, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                Text("💬", fontSize = 16.sp)
             }
-
-            Spacer(Modifier.width(12.dp))
 
             if (isEditing) {
                 TextField(
@@ -165,36 +202,62 @@ fun ChatHistoryCard(
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color(0xFF667EEA),
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
                     )
                 )
-                IconButton(onClick = { onRenameConfirm(editText) }) {
-                    Icon(Icons.Default.Check, "Save")
+                IconButton(
+                    onClick = { onRename(editText) },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Text("✓", fontSize = 14.sp)
                 }
             } else {
                 Column(Modifier.weight(1f)) {
-                    Text(chat.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("${chat.messageCount} msgs", style = MaterialTheme.typography.labelSmall)
-                        if (chat.activeApis.isNotEmpty()) {
-                            Text(" • ${chat.activeApis.size} APIs", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
+                    Text(
+                        chat.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        "${chat.messageCount} messages",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
                 }
 
                 Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, "Menu", modifier = Modifier.size(20.dp))
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Text("⋮", fontSize = 14.sp, color = Color.White.copy(alpha = 0.6f))
                     }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(text = { Text("Rename") }, onClick = { onRename(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Edit, null) })
-                        DropdownMenuItem(text = { Text(if (chat.isPinned) "Unpin" else "Pin") },
-                            onClick = { onPin(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.PushPin, null) })
-                        DropdownMenuItem(text = { Text("Delete") }, onClick = { onDelete(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) })
+
+                    if (showMenu) {
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Rename", fontSize = 12.sp) },
+                                onClick = { onEdit(); showMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (chat.isPinned) "Unpin" else "Pin", fontSize = 12.sp) },
+                                onClick = { onPin(); showMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete", fontSize = 12.sp, color = Color(0xFFFF6B6B)) },
+                                onClick = { onDelete(); showMenu = false }
+                            )
+                        }
                     }
                 }
             }
@@ -203,64 +266,219 @@ fun ChatHistoryCard(
 }
 
 @Composable
-fun UserFooter(viewModel: AgentViewModel) {
-    val settings by viewModel.settings.collectAsState()
-
-    Column {
+fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         if (!settings.isProUser) {
-            Card(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
                     .clickable { viewModel.openSettings() },
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                shape = RoundedCornerShape(16.dp)
+                color = Brush.linearGradient(
+                    listOf(
+                        Color(0xFF667EEA).copy(alpha = 0.2f),
+                        Color(0xFF764BA2).copy(alpha = 0.2f)
+                    )
+                ).let { Color(0xFF667EEA).copy(alpha = 0.1f) },
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🚀", fontSize = 16.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "Upgrade to Pro",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Text(
+                        "Unlimited APIs & modes",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+
+        Divider(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White.copy(alpha = 0.1f),
+            thickness = 1.dp
+        )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { viewModel.openSettings() },
+            color = Color(0xFF1A1A2E),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Brush.linearGradient(listOf(
-                            Color(0xFFF093FB).copy(alpha = 0.3f),
-                            Color(0xFFF5576C).copy(alpha = 0.3f)
-                        )))
-                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF667EEA),
+                                    Color(0xFF764BA2)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Rocket, null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Upgrade to Pro", fontWeight = FontWeight.Bold)
-                        }
-                        Text("Unlimited APIs & all AI modes", style = MaterialTheme.typography.bodySmall)
-                    }
+                    Text("A", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
                 }
+                Column(Modifier.weight(1f)) {
+                    Text("Agent User", fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 12.sp)
+                    Text(
+                        if (settings.isProUser) "Pro Account" else "Free Account",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                }
+                Text("⚙", fontSize = 16.sp)
             }
-            Spacer(Modifier.height(12.dp))
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { viewModel.openSettings() }
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(AppTheme.PrimaryStart, AppTheme.PrimaryEnd))),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("A", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text("Agent User", fontWeight = FontWeight.SemiBold)
-                Text(if (settings.isProUser) "Pro Account" else "Free Account",
-                    style = MaterialTheme.typography.labelMedium)
-            }
-            Icon(Icons.Default.Settings, "Settings", tint = MaterialTheme.colorScheme.primary)
         }
     }
+}
+
+@Composable
+fun Button(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: RoundedCornerShape = RoundedCornerShape(4.dp),
+    colors: ButtonDefaults = ButtonDefaults.buttonColors(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    content: @Composable RowScope.() -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .clip(shape)
+            .clickable(enabled = enabled) { onClick() },
+        color = colors.containerColor,
+        shape = shape
+    ) {
+        Row(
+            modifier = Modifier.padding(contentPadding),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
+    }
+}
+
+object ButtonDefaults {
+    @Composable
+    fun buttonColors(
+        containerColor: Color = Color(0xFF667EEA),
+        disabledContainerColor: Color = Color.Gray
+    ) = ButtonColorData(containerColor, disabledContainerColor)
+}
+
+data class ButtonColorData(val containerColor: Color, val disabledContainerColor: Color)
+
+@Composable
+fun IconButton(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        modifier = modifier
+            .clip(CircleShape)
+            .clickable { onClick() },
+        color = Color.Transparent
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun DropdownMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (expanded) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.3f)
+                .shadow(8.dp),
+            color = Color(0xFF1A1A2E),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(4.dp),
+                content = content
+            )
+        }
+    }
+}
+
+@Composable
+fun DropdownMenuItem(
+    text: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() },
+        color = Color.Transparent
+    ) {
+        Box(modifier = Modifier.padding(12.dp)) {
+            text()
+        }
+    }
+}
+
+@Composable
+fun Surface(
+    modifier: Modifier = Modifier,
+    color: Color = Color.White,
+    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .background(color, shape),
+        contentAlignment = Alignment.TopStart
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun Divider(
+    modifier: Modifier = Modifier,
+    color: Color = Color.Gray,
+    thickness: Dp = 1.dp
+) {
+    Box(
+        modifier = modifier
+            .height(thickness)
+            .background(color)
+    )
 }
