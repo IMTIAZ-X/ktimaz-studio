@@ -10,26 +10,32 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AgentViewModel : ViewModel() {
+    // Settings State
     private val _settings = MutableStateFlow(AppSettings())
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
+    // Chat Sessions State
     private val _chatSessions = MutableStateFlow<List<ChatSession>>(
         listOf(ChatSession(title = "New Chat"))
     )
     val chatSessions: StateFlow<List<ChatSession>> = _chatSessions.asStateFlow()
 
-    private val _currentSessionId = MutableStateFlow(_chatSessions.value.first().id)
+    // Current Session ID
+    private val _currentSessionId = MutableStateFlow(_chatSessions.value.firstOrNull()?.id ?: "")
     val currentSessionId: StateFlow<String> = _currentSessionId.asStateFlow()
 
+    // UI State
     private val _isSidebarOpen = MutableStateFlow(true)
     val isSidebarOpen: StateFlow<Boolean> = _isSidebarOpen.asStateFlow()
 
     private val _isSettingsModalOpen = MutableStateFlow(false)
     val isSettingsModalOpen: StateFlow<Boolean> = _isSettingsModalOpen.asStateFlow()
 
+    // Selected Mode
     private val _selectedMode = MutableStateFlow(AiMode.STANDARD)
     val selectedMode: StateFlow<AiMode> = _selectedMode.asStateFlow()
 
+    // Editing State
     private val _editingChatId = MutableStateFlow<String?>(null)
     val editingChatId: StateFlow<String?> = _editingChatId.asStateFlow()
 
@@ -39,69 +45,160 @@ class AgentViewModel : ViewModel() {
     val activeApiCount: Int
         get() = _settings.value.apiConfigs.count { it.isActive }
 
-    fun toggleSidebar() { _isSidebarOpen.value = !_isSidebarOpen.value }
-    fun openSettings() { _isSettingsModalOpen.value = true }
-    fun closeSettings() { _isSettingsModalOpen.value = false }
-    fun toggleProPlan(isPro: Boolean) { _settings.value = _settings.value.copy(isProUser = isPro) }
-    fun toggleTheme(isDark: Boolean) { _settings.value = _settings.value.copy(isDarkTheme = isDark) }
-    fun setSelectedMode(mode: AiMode) { _selectedMode.value = mode }
+    init {
+        loadInitialData()
+    }
 
+    private fun loadInitialData() {
+        // Initialize with default APIs if empty
+        if (_settings.value.apiConfigs.isEmpty()) {
+            _settings.value = _settings.value.copy(
+                apiConfigs = listOf(
+                    ApiConfig(
+                        provider = AiProvider.GEMINI,
+                        name = "Gemini Default",
+                        apiKey = "",
+                        modelName = AiProvider.GEMINI.defaultModel,
+                        baseUrl = AiProvider.GEMINI.defaultUrl,
+                        isActive = false
+                    )
+                )
+            )
+        }
+    }
+
+    // UI Actions
+    fun toggleSidebar() {
+        _isSidebarOpen.value = !_isSidebarOpen.value
+    }
+
+    fun openSettings() {
+        _isSettingsModalOpen.value = true
+    }
+
+    fun closeSettings() {
+        _isSettingsModalOpen.value = false
+    }
+
+    fun toggleProPlan(isPro: Boolean) {
+        _settings.value = _settings.value.copy(isProUser = isPro)
+    }
+
+    fun toggleTheme(isDark: Boolean) {
+        _settings.value = _settings.value.copy(isDarkTheme = isDark)
+    }
+
+    fun setSelectedMode(mode: AiMode) {
+        _selectedMode.value = mode
+    }
+
+    // API Management
     fun addApiConfig(config: ApiConfig): Boolean {
-        val settings = _settings.value
-        if (!settings.isProUser && settings.apiConfigs.size >= AppTheme.FREE_API_LIMIT) {
+        val currentSettings = _settings.value
+        
+        // Check limits
+        if (!currentSettings.isProUser && currentSettings.apiConfigs.size >= AppTheme.FREE_API_LIMIT) {
             return false
         }
-        _settings.value = settings.copy(apiConfigs = settings.apiConfigs + config)
-        return true
+
+        // Validate API key
+        if (config.apiKey.isBlank()) {
+            return false
+        }
+
+        try {
+            // Add new API config
+            val newApiConfigs = currentSettings.apiConfigs + config.copy(isActive = false)
+            _settings.value = currentSettings.copy(apiConfigs = newApiConfigs)
+            return true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
+        }
     }
 
     fun updateApiConfig(configId: String, updatedConfig: ApiConfig) {
-        _settings.value = _settings.value.copy(
-            apiConfigs = _settings.value.apiConfigs.map {
-                if (it.id == configId) updatedConfig else it
-            }
-        )
+        try {
+            _settings.value = _settings.value.copy(
+                apiConfigs = _settings.value.apiConfigs.map { api ->
+                    if (api.id == configId) updatedConfig.copy(id = configId) else api
+                }
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun deleteApiConfig(configId: String) {
-        _settings.value = _settings.value.copy(
-            apiConfigs = _settings.value.apiConfigs.filter { it.id != configId }
-        )
-        _chatSessions.value.forEach { it.activeApis.remove(configId) }
-        _chatSessions.value = _chatSessions.value.toList()
+        try {
+            // Remove from settings
+            _settings.value = _settings.value.copy(
+                apiConfigs = _settings.value.apiConfigs.filter { it.id != configId }
+            )
+            
+            // Remove from all chat sessions
+            _chatSessions.value = _chatSessions.value.map { session ->
+                session.copy(
+                    activeApis = session.activeApis.filter { it != configId }.toMutableList()
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun toggleApiActive(configId: String) {
-        val config = _settings.value.apiConfigs.find { it.id == configId } ?: return
-        val currentlyActive = _settings.value.apiConfigs.count { it.isActive }
-        
-        if (!config.isActive && currentlyActive >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) return
-        
-        _settings.value = _settings.value.copy(
-            apiConfigs = _settings.value.apiConfigs.map {
-                if (it.id == configId) it.copy(isActive = !it.isActive) else it
+        try {
+            val config = _settings.value.apiConfigs.find { it.id == configId } ?: return
+            val currentlyActive = _settings.value.apiConfigs.count { it.isActive }
+            
+            if (!config.isActive && currentlyActive >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
+                return
             }
-        )
+            
+            _settings.value = _settings.value.copy(
+                apiConfigs = _settings.value.apiConfigs.map { api ->
+                    if (api.id == configId) api.copy(isActive = !api.isActive) else api
+                }
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun toggleApiForCurrentChat(configId: String) {
-        val session = currentSession ?: return
-        if (session.activeApis.contains(configId)) {
-            session.activeApis.remove(configId)
-        } else {
-            if (session.activeApis.size >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
-                session.activeApis.removeAt(0)
+        try {
+            val session = currentSession ?: return
+            val mutableApis = session.activeApis.toMutableList()
+            
+            if (mutableApis.contains(configId)) {
+                mutableApis.remove(configId)
+            } else {
+                if (mutableApis.size >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
+                    mutableApis.removeAt(0)
+                }
+                mutableApis.add(configId)
             }
-            session.activeApis.add(configId)
+            
+            // Update session
+            _chatSessions.value = _chatSessions.value.map { s ->
+                if (s.id == session.id) s.copy(activeApis = mutableApis) else s
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        _chatSessions.value = _chatSessions.value.toList()
     }
 
+    // Chat Management
     fun newChat() {
-        val newSession = ChatSession(title = "New Chat ${_chatSessions.value.size + 1}")
-        _chatSessions.value = listOf(newSession) + _chatSessions.value
-        _currentSessionId.value = newSession.id
-        _selectedMode.value = AiMode.STANDARD
+        try {
+            val newSession = ChatSession(title = "New Chat ${System.currentTimeMillis()}")
+            _chatSessions.value = listOf(newSession) + _chatSessions.value
+            _currentSessionId.value = newSession.id
+            _selectedMode.value = AiMode.STANDARD
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun openChat(sessionId: String) {
@@ -113,141 +210,168 @@ class AgentViewModel : ViewModel() {
     }
 
     fun renameChat(sessionId: String, newTitle: String) {
-        _chatSessions.value = _chatSessions.value.map {
-            if (it.id == sessionId) it.copy(title = newTitle) else it
+        try {
+            _chatSessions.value = _chatSessions.value.map { chat ->
+                if (chat.id == sessionId) chat.copy(title = newTitle) else chat
+            }
+            _editingChatId.value = null
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        _editingChatId.value = null
     }
 
     fun deleteChat(sessionId: String) {
-        _chatSessions.value = _chatSessions.value.filter { it.id != sessionId }
-        if (_currentSessionId.value == sessionId) {
-            _currentSessionId.value = _chatSessions.value.firstOrNull()?.id ?: ""
-            if (_chatSessions.value.isEmpty()) newChat()
+        try {
+            _chatSessions.value = _chatSessions.value.filter { it.id != sessionId }
+            
+            if (_currentSessionId.value == sessionId) {
+                _currentSessionId.value = _chatSessions.value.firstOrNull()?.id ?: ""
+                if (_chatSessions.value.isEmpty()) {
+                    newChat()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
     fun pinChat(sessionId: String) {
-        _chatSessions.value = _chatSessions.value.map {
-            if (it.id == sessionId) it.copy(isPinned = !it.isPinned) else it
+        try {
+            _chatSessions.value = _chatSessions.value.map { chat ->
+                if (chat.id == sessionId) chat.copy(isPinned = !chat.isPinned) else chat
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
+    // Message Sending
     fun sendUserMessage(text: String, attachments: List<Attachment>, mode: AiMode) {
-        val settings = _settings.value
-        val currentSession = this.currentSession ?: return
+        try {
+            val settings = _settings.value
+            val currentSession = this.currentSession ?: return
 
-        if (!settings.isProUser && attachments.size > 10) {
-            appendAiMessage("⚠️ Free plan limited to 10 attachments. Upgrade to Pro!")
-            return
-        }
+            // Validation
+            if (!settings.isProUser && attachments.size > 10) {
+                appendAiMessage("⚠️ Free plan limited to 10 attachments per message")
+                return
+            }
 
-        if (!settings.isProUser && mode.isPro) {
-            appendAiMessage("🔒 ${mode.title} Mode requires Pro. Upgrade to unlock!")
-            return
-        }
+            if (!settings.isProUser && mode.isPro) {
+                appendAiMessage("🔒 ${mode.title} Mode requires Pro account")
+                return
+            }
 
-        val activeApis = settings.apiConfigs.filter {
-            it.isActive && currentSession.activeApis.contains(it.id)
-        }
+            val activeApis = settings.apiConfigs.filter { api ->
+                api.isActive && currentSession.activeApis.contains(api.id)
+            }
 
-        if (activeApis.isEmpty()) {
-            appendAiMessage("⚠️ No active APIs configured. Go to Settings → API Management")
-            return
-        }
+            if (activeApis.isEmpty()) {
+                appendAiMessage("⚠️ No active APIs. Configure in Settings → API Management")
+                return
+            }
 
-        val userMessage = ChatMessage(
-            text = text.trim(),
-            isUser = true,
-            attachments = attachments,
-            mode = mode
-        )
-        
-        currentSession.messages.add(userMessage)
-        
-        if (currentSession.messages.size == 1 && currentSession.title.startsWith("New Chat")) {
-            currentSession.title = text.take(40) + if (text.length > 40) "..." else ""
-        }
-        
-        _chatSessions.value = _chatSessions.value.toList()
-
-        viewModelScope.launch {
-            _settings.value = settings.copy(
-                tokenUsage = settings.tokenUsage + 150,
-                estimatedCost = settings.estimatedCost + 0.00075
+            // Add user message
+            val userMessage = ChatMessage(
+                text = text.trim(),
+                isUser = true,
+                attachments = attachments,
+                mode = mode
             )
-
-            delay(800)
-            currentSession.messages.add(ChatMessage(text = "...", isUser = false, isStreaming = true))
+            
+            currentSession.messages.add(userMessage)
+            
+            // Update title if first message
+            if (currentSession.messages.size == 1 && currentSession.title.startsWith("New Chat")) {
+                currentSession.title = text.take(40) + if (text.length > 40) "..." else ""
+            }
+            
+            // Update state
             _chatSessions.value = _chatSessions.value.toList()
 
-            delay(1500)
-            currentSession.messages.removeLast()
-            val reply = generateAiReply(userMessage, activeApis)
-            currentSession.messages.add(
-                ChatMessage(text = reply, isUser = false, mode = mode, usedApis = activeApis.map { it.name })
-            )
-            _chatSessions.value = _chatSessions.value.toList()
+            // Simulate AI response
+            viewModelScope.launch {
+                try {
+                    _settings.value = settings.copy(
+                        tokenUsage = settings.tokenUsage + 150,
+                        estimatedCost = settings.estimatedCost + 0.00075
+                    )
+
+                    delay(800)
+                    
+                    // Add loading message
+                    currentSession.messages.add(
+                        ChatMessage(text = "...", isUser = false, isStreaming = true)
+                    )
+                    _chatSessions.value = _chatSessions.value.toList()
+
+                    delay(1500)
+                    
+                    // Remove loading and add response
+                    if (currentSession.messages.isNotEmpty()) {
+                        currentSession.messages.removeLast()
+                    }
+                    
+                    val reply = generateAiReply(userMessage, activeApis)
+                    currentSession.messages.add(
+                        ChatMessage(
+                            text = reply,
+                            isUser = false,
+                            mode = mode,
+                            usedApis = activeApis.map { it.name }
+                        )
+                    )
+                    _chatSessions.value = _chatSessions.value.toList()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
     private fun generateAiReply(userMessage: ChatMessage, activeApis: List<ApiConfig>): String {
-        val attachmentInfo = if (userMessage.attachments.isNotEmpty()) {
-            "\n\n📎 **Attachments:** ${userMessage.attachments.size} file(s) processed"
-        } else ""
-
-        val apiInfo = buildString {
-            append("\n\n**Active APIs (${activeApis.size}):**\n")
-            activeApis.forEach { api ->
-                append("• ${api.name} (${api.provider.title})\n")
-                append("  Model: ${api.modelName}\n")
-                if (api.systemRole.isNotBlank()) {
-                    append("  Role: ${api.systemRole.take(50)}...\n")
-                }
-            }
-        }
-
         return when (userMessage.mode) {
             AiMode.THINKING -> """
-                🧠 **Thinking Mode Activated**
+                🧠 **Thinking Mode**
                 
-                **Deep Analysis Process:**
-                1. Understanding query context
-                2. Breaking down components
-                3. Evaluating perspectives
-                4. Synthesizing conclusions
+                Analyzing: "${userMessage.text.take(50)}"
                 
-                **Final Answer:** Based on deep reasoning with ${activeApis.size} AI model(s)$attachmentInfo$apiInfo
+                Using ${activeApis.size} AI model(s):
+                ${activeApis.joinToString("\n") { "• ${it.name}" }}
+                
+                Response generated successfully.
             """.trimIndent()
             
             AiMode.RESEARCH -> """
-                🔬 **Deep Research Mode**
+                🔬 **Research Mode**
                 
-                **Research Summary:** Topic analyzed
+                Topic: "${userMessage.text.take(50)}"
                 
-                **Key Findings:**
-                • Comprehensive analysis completed
-                • Multiple AI models consulted
-                • Evidence-based conclusions
+                Analysis by:
+                ${activeApis.joinToString("\n") { "• ${it.name} (${it.modelName})" }}
                 
-                **Collaborating Models:** ${activeApis.joinToString { it.name }}$attachmentInfo$apiInfo
+                Key findings documented.
             """.trimIndent()
             
             else -> """
-                Hello! I'm **${AppTheme.APP_NAME}** with ${activeApis.size} active AI model(s) working together.
+                Hello! I'm your AI Agent Assistant.
                 
-                **Current Configuration:**
-                ${activeApis.mapIndexed { index, api -> 
-                    "${index + 1}. ${api.name} - ${api.provider.title} (${api.modelName})"
-                }.joinToString("\n")}
+                Processing with ${activeApis.size} active API(s):
+                ${activeApis.mapIndexed { idx, api -> "${idx + 1}. ${api.name}" }.joinToString("\n")}
                 
-                How can we assist you today?$attachmentInfo
+                Ready to help with: ${userMessage.text.take(60)}
             """.trimIndent()
         }
     }
 
     private fun appendAiMessage(text: String) {
-        currentSession?.messages?.add(ChatMessage(text = text, isUser = false))
-        _chatSessions.value = _chatSessions.value.toList()
+        try {
+            currentSession?.messages?.add(ChatMessage(text = text, isUser = false))
+            _chatSessions.value = _chatSessions.value.toList()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
