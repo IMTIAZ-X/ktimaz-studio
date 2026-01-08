@@ -20,6 +20,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.ktimazstudio.agent.data.*
+import androidx.compose.material3.*
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.unit.Dp
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
 @Composable
