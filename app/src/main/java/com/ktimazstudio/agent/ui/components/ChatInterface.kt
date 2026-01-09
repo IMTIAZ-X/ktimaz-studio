@@ -393,3 +393,61 @@ fun LoadingDots() {
         }
     }
 }
+
+@Composable
+fun Surface(
+    modifier: Modifier = Modifier,
+    color: Color = Color.White,
+    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
+    content: @Composable () -> Unit
+) {
+    Box(modifier = modifier.background(color, shape)) {
+        content()
+    }
+}
+
+@Composable
+fun Button(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: RoundedCornerShape = RoundedCornerShape(4.dp),
+    colors: ButtonDefaults = ButtonDefaults.buttonColors(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    content: @Composable RowScope.() -> Unit
+) {
+    androidx.compose.material3.Surface(
+        modifier = modifier
+            .clip(shape),
+        color = if (enabled) colors.containerColor else colors.disabledContainerColor,
+        shape = shape
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(shape)
+                .clickable(enabled = enabled) { onClick() }
+                .padding(contentPadding),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
+    }
+}
+
+@Composable
+fun clickable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
+    return Modifier.then(
+        androidx.compose.foundation.clickable(enabled = enabled) { onClick() }
+    )
+}
+
+object ButtonDefaults {
+    @Composable
+    fun buttonColors(
+        containerColor: Color = Color(0xFF667EEA),
+        disabledContainerColor: Color = Color.Gray
+    ) = ButtonColorData(containerColor, disabledContainerColor)
+}
+
+data class ButtonColorData(val containerColor: Color, val disabledContainerColor: Color)

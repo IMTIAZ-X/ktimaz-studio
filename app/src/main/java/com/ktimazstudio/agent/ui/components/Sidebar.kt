@@ -21,8 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.*
 import androidx.compose.ui.unit.Dp
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import com.ktimazstudio.agent.data.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
@@ -49,7 +49,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                     .clip(RoundedCornerShape(16.dp)),
                 color = Color(0xFF1A1A2E)
             ) {
-                Button(
+                androidx.compose.material3.Button(
                     onClick = { viewModel.newChat() },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -60,11 +60,9 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                     ),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(
+                    Text(
                         "➕",
-                        null,
-                        modifier = Modifier.size(20.sp.value.dp),
-                        tint = Color.White
+                        fontSize = 20.sp
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
@@ -213,11 +211,16 @@ fun ChatItem(
                         unfocusedTextColor = Color.White
                     )
                 )
-                IconButton(
+                androidx.compose.material3.IconButton(
                     onClick = { onRename(editText) },
                     modifier = Modifier.size(28.dp)
                 ) {
-                    Text("✓", fontSize = 14.sp)
+                    Icon(
+                        Icons.Default.Check,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             } else {
                 Column(Modifier.weight(1f)) {
@@ -237,7 +240,7 @@ fun ChatItem(
                 }
 
                 Box {
-                    IconButton(
+                    androidx.compose.material3.IconButton(
                         onClick = { showMenu = true },
                         modifier = Modifier.size(28.dp)
                     ) {
@@ -245,19 +248,19 @@ fun ChatItem(
                     }
 
                     if (showMenu) {
-                        DropdownMenu(
+                        DropdownMenuCustom(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("Rename", fontSize = 12.sp) },
+                            DropdownMenuItemCustom(
+                                text = { Text("Rename", fontSize = 12.sp, color = Color.White) },
                                 onClick = { onEdit(); showMenu = false }
                             )
-                            DropdownMenuItem(
-                                text = { Text(if (chat.isPinned) "Unpin" else "Pin", fontSize = 12.sp) },
+                            DropdownMenuItemCustom(
+                                text = { Text(if (chat.isPinned) "Unpin" else "Pin", fontSize = 12.sp, color = Color.White) },
                                 onClick = { onPin(); showMenu = false }
                             )
-                            DropdownMenuItem(
+                            DropdownMenuItemCustom(
                                 text = { Text("Delete", fontSize = 12.sp, color = Color(0xFFFF6B6B)) },
                                 onClick = { onDelete(); showMenu = false }
                             )
@@ -283,12 +286,7 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .clickable { viewModel.openSettings() },
-                color = Brush.linearGradient(
-                    listOf(
-                        Color(0xFF667EEA).copy(alpha = 0.2f),
-                        Color(0xFF764BA2).copy(alpha = 0.2f)
-                    )
-                ).let { Color(0xFF667EEA).copy(alpha = 0.1f) },
+                color = Color(0xFF667EEA).copy(alpha = 0.1f),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Column(
@@ -314,7 +312,7 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
             }
         }
 
-        Divider(
+        DividerCustom(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White.copy(alpha = 0.1f),
             thickness = 1.dp
@@ -360,100 +358,8 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
                         color = Color.White.copy(alpha = 0.6f)
                     )
                 }
-                Text("⚙", fontSize = 16.sp)
+                Text("⚙️", fontSize = 16.sp)
             }
-        }
-    }
-}
-
-@Composable
-fun Button(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    shape: RoundedCornerShape = RoundedCornerShape(4.dp),
-    colors: ButtonDefaults = ButtonDefaults.buttonColors(),
-    contentPadding: PaddingValues = PaddingValues(0.dp),
-    content: @Composable RowScope.() -> Unit
-) {
-    Surface(
-        modifier = modifier
-            .clip(shape)
-            .clickable(enabled = enabled) { onClick() },
-        color = colors.containerColor,
-        shape = shape
-    ) {
-        Row(
-            modifier = Modifier.padding(contentPadding),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-            content = content
-        )
-    }
-}
-
-object ButtonDefaults {
-    @Composable
-    fun buttonColors(
-        containerColor: Color = Color(0xFF667EEA),
-        disabledContainerColor: Color = Color.Gray
-    ) = ButtonColorData(containerColor, disabledContainerColor)
-}
-
-data class ButtonColorData(val containerColor: Color, val disabledContainerColor: Color)
-
-@Composable
-fun IconButton(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Surface(
-        modifier = modifier
-            .clip(CircleShape)
-            .clickable { onClick() },
-        color = Color.Transparent
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            content()
-        }
-    }
-}
-
-@Composable
-fun DropdownMenu(
-    expanded: Boolean,
-    onDismissRequest: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    if (expanded) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.3f)
-                .shadow(8.dp),
-            color = Color(0xFF1A1A2E),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(4.dp),
-                content = content
-            )
-        }
-    }
-}
-
-@Composable
-fun DropdownMenuItem(
-    text: @Composable () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick() },
-        color = Color.Transparent
-    ) {
-        Box(modifier = Modifier.padding(12.dp)) {
-            text()
         }
     }
 }
@@ -475,7 +381,7 @@ fun Surface(
 }
 
 @Composable
-fun Divider(
+fun DividerCustom(
     modifier: Modifier = Modifier,
     color: Color = Color.Gray,
     thickness: Dp = 1.dp
@@ -485,4 +391,46 @@ fun Divider(
             .height(thickness)
             .background(color)
     )
+}
+
+@Composable
+fun DropdownMenuCustom(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (expanded) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.3f)
+                .shadow(8.dp),
+            color = Color(0xFF1A1A2E),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(4.dp),
+                content = content
+            )
+        }
+    }
+}
+
+@Composable
+fun DropdownMenuItemCustom(
+    text: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() },
+        color = Color.Transparent
+    ) {
+        Box(modifier = Modifier.padding(12.dp)) {
+            text()
+        }
+    }
 }

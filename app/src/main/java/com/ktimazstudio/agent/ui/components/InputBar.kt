@@ -131,7 +131,7 @@ fun ModernInputBar(
                             color = Color.White.copy(alpha = 0.6f)
                         )
                     }
-                    IconButton(
+                    IconButtonCustom(
                         onClick = { viewModel.setSelectedMode(AiMode.STANDARD) },
                         modifier = Modifier.size(28.dp)
                     ) {
@@ -165,7 +165,7 @@ fun ModernInputBar(
                 ) {
                     // File Menu Button
                     Box {
-                        IconButton(
+                        IconButtonCustom(
                             onClick = { showFileMenu = true },
                             modifier = Modifier.size(40.dp)
                         ) {
@@ -178,11 +178,11 @@ fun ModernInputBar(
                         }
 
                         if (showFileMenu) {
-                            DropdownMenu(
+                            DropdownMenuCustom(
                                 expanded = showFileMenu,
                                 onDismissRequest = { showFileMenu = false }
                             ) {
-                                DropdownMenuItem(
+                                DropdownMenuItemCustom(
                                     text = {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
@@ -194,7 +194,7 @@ fun ModernInputBar(
                                                 modifier = Modifier.size(20.dp),
                                                 tint = Color(0xFF667EEA)
                                             )
-                                            Text("Upload Image")
+                                            Text("Upload Image", color = Color.White)
                                         }
                                     },
                                     onClick = {
@@ -202,7 +202,7 @@ fun ModernInputBar(
                                         showFileMenu = false
                                     }
                                 )
-                                DropdownMenuItem(
+                                DropdownMenuItemCustom(
                                     text = {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
@@ -214,7 +214,7 @@ fun ModernInputBar(
                                                 modifier = Modifier.size(20.dp),
                                                 tint = Color(0xFF764BA2)
                                             )
-                                            Text("Upload File")
+                                            Text("Upload File", color = Color.White)
                                         }
                                     },
                                     onClick = {
@@ -228,7 +228,7 @@ fun ModernInputBar(
 
                     // Mode Menu Button
                     Box {
-                        IconButton(
+                        IconButtonCustom(
                             onClick = { showModeMenu = true },
                             modifier = Modifier.size(40.dp)
                         ) {
@@ -241,13 +241,13 @@ fun ModernInputBar(
                         }
 
                         if (showModeMenu) {
-                            DropdownMenu(
+                            DropdownMenuCustom(
                                 expanded = showModeMenu,
                                 onDismissRequest = { showModeMenu = false }
                             ) {
                                 AiMode.values().forEach { mode ->
                                     val isLocked = mode.isPro && !settings.isProUser
-                                    DropdownMenuItem(
+                                    DropdownMenuItemCustom(
                                         text = {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
@@ -257,7 +257,8 @@ fun ModernInputBar(
                                                 Column(Modifier.weight(1f)) {
                                                     Text(
                                                         mode.title,
-                                                        fontWeight = FontWeight.SemiBold
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color.White
                                                     )
                                                     if (isLocked) {
                                                         Text(
@@ -274,8 +275,7 @@ fun ModernInputBar(
                                                 viewModel.setSelectedMode(mode)
                                                 showModeMenu = false
                                             }
-                                        },
-                                        enabled = !isLocked
+                                        }
                                     )
                                 }
                             }
@@ -315,7 +315,7 @@ fun ModernInputBar(
                     )
 
                     // Send Button
-                    Button(
+                    androidx.compose.material3.Button(
                         onClick = onSend,
                         enabled = input.isNotBlank() || attachedFiles.isNotEmpty(),
                         modifier = Modifier
@@ -404,4 +404,37 @@ fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
             )
         }
     }
+}
+
+@Composable
+fun Surface(
+    modifier: Modifier = Modifier,
+    color: Color = Color.White,
+    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
+    content: @Composable () -> Unit
+) {
+    Box(modifier = modifier.background(color, shape)) {
+        content()
+    }
+}
+
+@Composable
+fun IconButtonCustom(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        modifier = modifier
+            .clip(CircleShape)
+            .clickable { onClick() },
+        color = Color.Transparent
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun clickable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
+    return Modifier.then(
+        androidx.compose.foundation.clickable(enabled = enabled) { onClick() }
+    )
 }
