@@ -401,7 +401,8 @@ fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
     }
 }
 
-// @Composable fun DropdownMenuCustom(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+@Composable
+fun DropdownMenuCustom(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     if (expanded) {
         androidx.compose.material3.Surface(
             modifier = Modifier
@@ -415,7 +416,8 @@ fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
     }
 }
 
-// @Composable fun DropdownMenuItemCustom(text: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
+@Composable
+fun DropdownMenuItemCustom(text: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
     androidx.compose.material3.Surface(
         modifier = modifier
             .fillMaxWidth()
