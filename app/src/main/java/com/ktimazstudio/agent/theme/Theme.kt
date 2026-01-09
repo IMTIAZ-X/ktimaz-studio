@@ -1,4 +1,4 @@
-package com.ktimazstudio.agent.theme
+package com.ktimazstudio.agent.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
@@ -8,6 +8,8 @@ import com.ktimazstudio.agent.data.AppTheme
 
 private val DarkColorScheme = darkColorScheme(
     primary = AppTheme.PrimaryStart,
+    secondary = AppTheme.PrimaryEnd,
+    tertiary = AppTheme.ProStart,
     background = AppTheme.SurfaceDark,
     surface = AppTheme.CardDark,
     onPrimary = Color.White,
@@ -17,6 +19,8 @@ private val DarkColorScheme = darkColorScheme(
 
 private val LightColorScheme = lightColorScheme(
     primary = AppTheme.PrimaryStart,
+    secondary = AppTheme.PrimaryEnd,
+    tertiary = AppTheme.ProStart,
     background = Color(0xFFF8F9FE),
     surface = Color.White,
     onPrimary = Color.White,
@@ -31,6 +35,7 @@ fun ModernAgentTheme(
 ) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+        typography = MaterialTheme.typography,
         content = content
     )
 }
