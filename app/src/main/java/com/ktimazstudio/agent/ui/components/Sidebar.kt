@@ -20,7 +20,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.*
-import androidx.compose.ui.unit.Dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.ktimazstudio.agent.data.*
@@ -33,7 +32,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
     val currentSessionId by viewModel.currentSessionId.collectAsState()
     var editingChatId by remember { mutableStateOf<String?>(null) }
 
-    Surface(
+    androidx.compose.material3.Surface(
         modifier = Modifier
             .width(280.dp)
             .fillMaxHeight()
@@ -41,8 +40,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
         color = Color(0xFF0F0F1F)
     ) {
         Column(Modifier.fillMaxSize()) {
-            // Header
-            Surface(
+            androidx.compose.material3.Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
@@ -60,10 +58,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                     ),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Text(
-                        "➕",
-                        fontSize = 20.sp
-                    )
+                    Text("➕", fontSize = 20.sp)
                     Spacer(Modifier.width(8.dp))
                     Text(
                         "New Chat",
@@ -76,7 +71,6 @@ fun ModernSidebar(viewModel: AgentViewModel) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Chat List
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -104,10 +98,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                             isEditing = chat.id == editingChatId,
                             onSelect = { viewModel.openChat(chat.id) },
                             onEdit = { editingChatId = chat.id },
-                            onRename = {
-                                viewModel.renameChat(chat.id, it)
-                                editingChatId = null
-                            },
+                            onRename = { viewModel.renameChat(chat.id, it); editingChatId = null },
                             onDelete = { viewModel.deleteChat(chat.id) },
                             onPin = { viewModel.pinChat(chat.id) }
                         )
@@ -131,10 +122,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                         isEditing = chat.id == editingChatId,
                         onSelect = { viewModel.openChat(chat.id) },
                         onEdit = { editingChatId = chat.id },
-                        onRename = {
-                            viewModel.renameChat(chat.id, it)
-                            editingChatId = null
-                        },
+                        onRename = { viewModel.renameChat(chat.id, it); editingChatId = null },
                         onDelete = { viewModel.deleteChat(chat.id) },
                         onPin = { viewModel.pinChat(chat.id) }
                     )
@@ -142,8 +130,6 @@ fun ModernSidebar(viewModel: AgentViewModel) {
             }
 
             Spacer(Modifier.height(16.dp))
-
-            // Footer
             SidebarFooter(viewModel, settings)
         }
     }
@@ -163,7 +149,7 @@ fun ChatItem(
     var editText by remember { mutableStateOf(chat.title) }
     var showMenu by remember { mutableStateOf(false) }
 
-    Surface(
+    androidx.compose.material3.Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
@@ -185,10 +171,7 @@ fun ChatItem(
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.linearGradient(
-                            listOf(
-                                Color(0xFF667EEA),
-                                Color(0xFF764BA2)
-                            )
+                            listOf(Color(0xFF667EEA), Color(0xFF764BA2))
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -215,12 +198,7 @@ fun ChatItem(
                     onClick = { onRename(editText) },
                     modifier = Modifier.size(28.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Check,
-                        null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(16.dp))
                 }
             } else {
                 Column(Modifier.weight(1f)) {
@@ -248,10 +226,7 @@ fun ChatItem(
                     }
 
                     if (showMenu) {
-                        DropdownMenuCustom(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
+                        DropdownMenuCustom(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                             DropdownMenuItemCustom(
                                 text = { Text("Rename", fontSize = 12.sp, color = Color.White) },
                                 onClick = { onEdit(); showMenu = false }
@@ -281,7 +256,7 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (!settings.isProUser) {
-            Surface(
+            androidx.compose.material3.Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
@@ -312,13 +287,14 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
             }
         }
 
-        DividerCustom(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color.White.copy(alpha = 0.1f),
-            thickness = 1.dp
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color.White.copy(alpha = 0.1f))
         )
 
-        Surface(
+        androidx.compose.material3.Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
@@ -340,10 +316,7 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                listOf(
-                                    Color(0xFF667EEA),
-                                    Color(0xFF764BA2)
-                                )
+                                listOf(Color(0xFF667EEA), Color(0xFF764BA2))
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -365,63 +338,23 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
 }
 
 @Composable
-fun Surface(
-    modifier: Modifier = Modifier,
-    color: Color = Color.White,
-    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
-    content: @Composable () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .background(color, shape),
-        contentAlignment = Alignment.TopStart
-    ) {
-        content()
-    }
-}
-
-@Composable
-fun DividerCustom(
-    modifier: Modifier = Modifier,
-    color: Color = Color.Gray,
-    thickness: Dp = 1.dp
-) {
-    Box(
-        modifier = modifier
-            .height(thickness)
-            .background(color)
-    )
-}
-
-@Composable
-fun DropdownMenuCustom(
-    expanded: Boolean,
-    onDismissRequest: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
-) {
+fun DropdownMenuCustom(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     if (expanded) {
-        Surface(
+        androidx.compose.material3.Surface(
             modifier = Modifier
                 .fillMaxWidth(0.3f)
                 .shadow(8.dp),
             color = Color(0xFF1A1A2E),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(4.dp),
-                content = content
-            )
+            Column(modifier = Modifier.padding(4.dp), content = content)
         }
     }
 }
 
 @Composable
-fun DropdownMenuItemCustom(
-    text: @Composable () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
+fun DropdownMenuItemCustom(text: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    androidx.compose.material3.Surface(
         modifier = modifier
             .fillMaxWidth()
             .height(40.dp)
@@ -429,8 +362,6 @@ fun DropdownMenuItemCustom(
             .clickable { onClick() },
         color = Color.Transparent
     ) {
-        Box(modifier = Modifier.padding(12.dp)) {
-            text()
-        }
+        Box(modifier = Modifier.padding(12.dp)) { text() }
     }
 }

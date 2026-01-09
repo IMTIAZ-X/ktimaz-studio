@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -102,7 +103,7 @@ fun ModernInputBar(
             enter = slideInVertically() + fadeIn(),
             exit = slideOutVertically() + fadeOut()
         ) {
-            Surface(
+            androidx.compose.material3.Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp)
@@ -131,7 +132,7 @@ fun ModernInputBar(
                             color = Color.White.copy(alpha = 0.6f)
                         )
                     }
-                    IconButtonCustom(
+                    androidx.compose.material3.IconButton(
                         onClick = { viewModel.setSelectedMode(AiMode.STANDARD) },
                         modifier = Modifier.size(28.dp)
                     ) {
@@ -146,8 +147,7 @@ fun ModernInputBar(
             }
         }
 
-        // Modern Input Card
-        Surface(
+        androidx.compose.material3.Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(12.dp, RoundedCornerShape(20.dp))
@@ -163,9 +163,8 @@ fun ModernInputBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // File Menu Button
                     Box {
-                        IconButtonCustom(
+                        androidx.compose.material3.IconButton(
                             onClick = { showFileMenu = true },
                             modifier = Modifier.size(40.dp)
                         ) {
@@ -226,9 +225,8 @@ fun ModernInputBar(
                         }
                     }
 
-                    // Mode Menu Button
                     Box {
-                        IconButtonCustom(
+                        androidx.compose.material3.IconButton(
                             onClick = { showModeMenu = true },
                             modifier = Modifier.size(40.dp)
                         ) {
@@ -282,7 +280,6 @@ fun ModernInputBar(
                         }
                     }
 
-                    // Text Input
                     TextField(
                         value = input,
                         onValueChange = {
@@ -314,7 +311,6 @@ fun ModernInputBar(
                         maxLines = 5
                     )
 
-                    // Send Button
                     androidx.compose.material3.Button(
                         onClick = onSend,
                         enabled = input.isNotBlank() || attachedFiles.isNotEmpty(),
@@ -338,7 +334,6 @@ fun ModernInputBar(
                     }
                 }
 
-                // Character Count
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -366,7 +361,7 @@ fun ModernInputBar(
 
 @Composable
 fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
-    Surface(
+    androidx.compose.material3.Surface(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .pointerInput(Unit) {
@@ -407,34 +402,30 @@ fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
 }
 
 @Composable
-fun Surface(
-    modifier: Modifier = Modifier,
-    color: Color = Color.White,
-    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
-    content: @Composable () -> Unit
-) {
-    Box(modifier = modifier.background(color, shape)) {
-        content()
-    }
-}
-
-@Composable
-fun IconButtonCustom(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Surface(
-        modifier = modifier
-            .clip(CircleShape)
-            .clickable { onClick() },
-        color = Color.Transparent
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            content()
+fun DropdownMenuCustom(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    if (expanded) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.3f)
+                .shadow(8.dp),
+            color = Color(0xFF1A1A2E),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(4.dp), content = content)
         }
     }
 }
 
 @Composable
-fun clickable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
-    return Modifier.then(
-        androidx.compose.foundation.clickable(enabled = enabled) { onClick() }
-    )
+fun DropdownMenuItemCustom(text: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    androidx.compose.material3.Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() },
+        color = Color.Transparent
+    ) {
+        Box(modifier = Modifier.padding(12.dp)) { text() }
+    }
 }

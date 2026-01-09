@@ -60,7 +60,6 @@ fun ChatInterface(viewModel: AgentViewModel) {
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Modern Header with API Status
             if (currentSession != null && currentSession.activeApis.isNotEmpty()) {
                 ModernActiveApiBar(
                     apis = currentSession.activeApis,
@@ -69,7 +68,6 @@ fun ChatInterface(viewModel: AgentViewModel) {
                 )
             }
 
-            // Messages Area
             if (messages.isEmpty()) {
                 WelcomeScreen(viewModel, currentSession, AppTheme.APP_NAME)
             } else {
@@ -88,7 +86,6 @@ fun ChatInterface(viewModel: AgentViewModel) {
                 }
             }
 
-            // Modern Input Bar
             ModernInputBar(
                 input = input,
                 onInputChange = { input = it },
@@ -113,7 +110,7 @@ fun ModernActiveApiBar(
     settings: AppSettings,
     onRemove: (String) -> Unit
 ) {
-    Surface(
+    androidx.compose.material3.Surface(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(8.dp),
@@ -161,7 +158,7 @@ fun ModernActiveApiBar(
 
 @Composable
 fun ModernApiChip(api: ApiConfig, onRemove: () -> Unit) {
-    Surface(
+    androidx.compose.material3.Surface(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .pointerInput(Unit) {
@@ -244,7 +241,7 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
             Spacer(Modifier.height(24.dp))
 
             if (session?.activeApis?.isEmpty() == true) {
-                Surface(
+                androidx.compose.material3.Surface(
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .clip(RoundedCornerShape(16.dp)),
@@ -278,7 +275,7 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
 
                 Spacer(Modifier.height(16.dp))
 
-                Button(
+                androidx.compose.material3.Button(
                     onClick = { viewModel.openSettings() },
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
@@ -353,7 +350,7 @@ fun ModernMessageBubble(msg: ChatMessage) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         msg.usedApis.forEach { api ->
-                            Surface(
+                            androidx.compose.material3.Surface(
                                 color = Color.White.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
@@ -393,61 +390,3 @@ fun LoadingDots() {
         }
     }
 }
-
-@Composable
-fun Surface(
-    modifier: Modifier = Modifier,
-    color: Color = Color.White,
-    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
-    content: @Composable () -> Unit
-) {
-    Box(modifier = modifier.background(color, shape)) {
-        content()
-    }
-}
-
-@Composable
-fun Button(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    shape: RoundedCornerShape = RoundedCornerShape(4.dp),
-    colors: ButtonDefaults = ButtonDefaults.buttonColors(),
-    contentPadding: PaddingValues = PaddingValues(0.dp),
-    content: @Composable RowScope.() -> Unit
-) {
-    androidx.compose.material3.Surface(
-        modifier = modifier
-            .clip(shape),
-        color = if (enabled) colors.containerColor else colors.disabledContainerColor,
-        shape = shape
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(shape)
-                .clickable(enabled = enabled) { onClick() }
-                .padding(contentPadding),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-            content = content
-        )
-    }
-}
-
-@Composable
-fun clickable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
-    return Modifier.then(
-        androidx.compose.foundation.clickable(enabled = enabled) { onClick() }
-    )
-}
-
-object ButtonDefaults {
-    @Composable
-    fun buttonColors(
-        containerColor: Color = Color(0xFF667EEA),
-        disabledContainerColor: Color = Color.Gray
-    ) = ButtonColorData(containerColor, disabledContainerColor)
-}
-
-data class ButtonColorData(val containerColor: Color, val disabledContainerColor: Color)
