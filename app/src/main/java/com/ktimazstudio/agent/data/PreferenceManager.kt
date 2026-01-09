@@ -3,6 +3,7 @@ package com.ktimazstudio.agent.data
 import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 object PreferenceManager {
