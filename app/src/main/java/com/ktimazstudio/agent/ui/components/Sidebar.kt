@@ -25,16 +25,6 @@ import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import com.ktimazstudio.agent.data.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
-import androidx.compose.material.icons.Icons // Added
-import androidx.compose.material.icons.filled.Add // Added
-import androidx.compose.material.icons.filled.Settings // Added
-import androidx.compose.material.icons.filled.Delete // Added
-import androidx.compose.material.icons.filled.MoreVert // Added
-import androidx.compose.material.icons.filled.Close // Added
-import com.ktimazstudio.agent.ui.settings.createButtonColors // Added
-import com.ktimazstudio.agent.ui.settings.ButtonColorData // Added
-import com.ktimazstudio.agent.ui.settings.TextFieldColorData // Added
-import com.ktimazstudio.agent.ui.settings.createTextFieldColors // Added
 
 @Composable
 fun ModernSidebar(viewModel: AgentViewModel) {
@@ -65,222 +55,367 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                         .fillMaxWidth()
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = createButtonColors( // Fixed L54 Argument type mismatch
-                        ButtonColorData(
-                            containerColor = Color(0xFF667EEA),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFF667EEA).copy(alpha = 0.5f),
-                            disabledContentColor = Color.White.copy(alpha = 0.5f)
-                        )
-                    )
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF667EEA)
+                    ),
+                    contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon( // Fixed L59 Unresolved reference 'Icon'
-                        Icons.Default.Add,
-                        contentDescription = "New Chat",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                    Icon(
+                        "➕",
+                        null,
+                        modifier = Modifier.size(20.sp.value.dp),
+                        tint = Color.White
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text( // Fixed L66 Unresolved reference 'Text'
+                    Text(
                         "New Chat",
-                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color.White,
+                        fontSize = 14.sp
                     )
                 }
             }
+
+            Spacer(Modifier.height(16.dp))
 
             // Chat List
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                items(chatSessions) { session ->
-                    val isSelected = session.id == currentSessionId
-                    val chatTitle = session.title.ifBlank { "New Chat" }
+                val pinnedChats = chatSessions.filter { it.isPinned }
+                val regularChats = chatSessions.filter { !it.isPinned }
 
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                viewModel.loadSession(session.id)
+                if (pinnedChats.isNotEmpty()) {
+                    item {
+                        Text(
+                            "PINNED",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White.copy(alpha = 0.4f),
+                            modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(pinnedChats, key = { it.id }) { chat ->
+                        ChatItem(
+                            chat = chat,
+                            isSelected = chat.id == currentSessionId,
+                            isEditing = chat.id == editingChatId,
+                            onSelect = { viewModel.openChat(chat.id) },
+                            onEdit = { editingChatId = chat.id },
+                            onRename = {
+                                viewModel.renameChat(chat.id, it)
                                 editingChatId = null
                             },
-                        color = if (isSelected) Color(0xFF2A2A4A) else Color.Transparent
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            // Chat Title
-                            if (session.id == editingChatId) {
-                                // Editing TextField
-                                var newTitle by remember { mutableStateOf(session.title) }
-
-                                TextField( // Fixed L198 Unresolved reference 'TextField'
-                                    value = newTitle,
-                                    onValueChange = { newTitle = it },
-                                    label = { Text("Edit Title") }, // Fixed L194 Unresolved reference 'Text'
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp)
-                                        .padding(end = 8.dp),
-                                    colors = createTextFieldColors( // Fixed L203 Unresolved reference 'TextFieldDefaults'
-                                        TextFieldColorData(
-                                            focusedContainerColor = Color(0xFF1A1A2E),
-                                            unfocusedContainerColor = Color(0xFF1A1A2E),
-                                            focusedIndicatorColor = Color(0xFF4ECDC4),
-                                            unfocusedIndicatorColor = Color(0xFF4ECDC4).copy(alpha = 0.5f),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        )
-                                    )
-                                )
-                                IconButton(onClick = {
-                                    if (newTitle.isNotBlank()) {
-                                        viewModel.updateSessionTitle(session.id, newTitle)
-                                    }
-                                    editingChatId = null
-                                }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Done")
-                                }
-
-                            } else {
-                                Text( // Fixed L90 Unresolved reference 'Text'
-                                    chatTitle,
-                                    color = Color.White,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                // Menu Icon
-                                var showMenu by remember { mutableStateOf(false) }
-                                Box {
-                                    Icon(
-                                        Icons.Default.MoreVert,
-                                        contentDescription = "More options",
-                                        tint = Color.White.copy(alpha = 0.7f),
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clickable { showMenu = true }
-                                    )
-                                    DropdownMenu(
-                                        expanded = showMenu,
-                                        onDismissRequest = { showMenu = false }
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text("Edit") }, // Fixed L216 Unresolved reference 'Text'
-                                            onClick = { editingChatId = session.id; showMenu = false }
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text("Delete") }, // Fixed L220 Unresolved reference 'Text'
-                                            onClick = {
-                                                viewModel.deleteSession(session.id)
-                                                showMenu = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                            onDelete = { viewModel.deleteChat(chat.id) },
+                            onPin = { viewModel.pinChat(chat.id) }
+                        )
                     }
                 }
-            }
 
-            // Settings and Clear All
-            Divider(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                color = Color.Gray.copy(alpha = 0.2f),
-                thickness = 1.dp
-            )
-            Spacer(Modifier.height(8.dp))
-
-            // Settings Button
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { viewModel.openSettings() },
-                color = Color.Transparent
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text( // Fixed L240 Unresolved reference 'Text'
-                        "Settings",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
+                item {
+                    Text(
+                        "RECENT",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White.copy(alpha = 0.4f),
+                        modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 4.dp)
                     )
                 }
-            }
 
-            Spacer(Modifier.height(8.dp))
-
-            // Clear All Button
-            val redButtonColors = ButtonColorData( // Fixed L371/L379: This line is just a data class instantiation
-                containerColor = Color.Red.copy(alpha = 0.2f),
-                contentColor = Color.Red,
-                disabledContainerColor = Color.Red.copy(alpha = 0.1f),
-                disabledContentColor = Color.Red.copy(alpha = 0.5f)
-            )
-
-            Button(
-                onClick = { viewModel.deleteAllSessions() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = createButtonColors(redButtonColors), // Fixed L371 type mismatch
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Clear All",
-                    tint = Color.Red.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text( // Fixed L359 Unresolved reference 'Text'
-                    "Clear All Chats",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Red
-                )
+                items(regularChats, key = { it.id }) { chat ->
+                    ChatItem(
+                        chat = chat,
+                        isSelected = chat.id == currentSessionId,
+                        isEditing = chat.id == editingChatId,
+                        onSelect = { viewModel.openChat(chat.id) },
+                        onEdit = { editingChatId = chat.id },
+                        onRename = {
+                            viewModel.renameChat(chat.id, it)
+                            editingChatId = null
+                        },
+                        onDelete = { viewModel.deleteChat(chat.id) },
+                        onPin = { viewModel.pinChat(chat.id) }
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
+
+            // Footer
+            SidebarFooter(viewModel, settings)
         }
     }
 }
 
-// Custom/Material 2 Dropdown functions (original code that shadows material3 ones)
+@Composable
+fun ChatItem(
+    chat: ChatSession,
+    isSelected: Boolean,
+    isEditing: Boolean,
+    onSelect: () -> Unit,
+    onEdit: () -> Unit,
+    onRename: (String) -> Unit,
+    onDelete: () -> Unit,
+    onPin: () -> Unit
+) {
+    var editText by remember { mutableStateOf(chat.title) }
+    var showMenu by remember { mutableStateOf(false) }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onSelect() },
+        color = if (isSelected) Color(0xFF667EEA).copy(alpha = 0.2f) else Color(0xFF1A1A2E),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFF667EEA),
+                                Color(0xFF764BA2)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("💬", fontSize = 16.sp)
+            }
+
+            if (isEditing) {
+                TextField(
+                    value = editText,
+                    onValueChange = { editText = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color(0xFF667EEA),
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
+                IconButton(
+                    onClick = { onRename(editText) },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Text("✓", fontSize = 14.sp)
+                }
+            } else {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        chat.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        "${chat.messageCount} messages",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                }
+
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Text("⋮", fontSize = 14.sp, color = Color.White.copy(alpha = 0.6f))
+                    }
+
+                    if (showMenu) {
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Rename", fontSize = 12.sp) },
+                                onClick = { onEdit(); showMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (chat.isPinned) "Unpin" else "Pin", fontSize = 12.sp) },
+                                onClick = { onPin(); showMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete", fontSize = 12.sp, color = Color(0xFFFF6B6B)) },
+                                onClick = { onDelete(); showMenu = false }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (!settings.isProUser) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { viewModel.openSettings() },
+                color = Brush.linearGradient(
+                    listOf(
+                        Color(0xFF667EEA).copy(alpha = 0.2f),
+                        Color(0xFF764BA2).copy(alpha = 0.2f)
+                    )
+                ).let { Color(0xFF667EEA).copy(alpha = 0.1f) },
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🚀", fontSize = 16.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "Upgrade to Pro",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Text(
+                        "Unlimited APIs & modes",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+
+        Divider(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White.copy(alpha = 0.1f),
+            thickness = 1.dp
+        )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { viewModel.openSettings() },
+            color = Color(0xFF1A1A2E),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF667EEA),
+                                    Color(0xFF764BA2)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("A", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("Agent User", fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 12.sp)
+                    Text(
+                        if (settings.isProUser) "Pro Account" else "Free Account",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                }
+                Text("⚙", fontSize = 16.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun Button(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: RoundedCornerShape = RoundedCornerShape(4.dp),
+    colors: ButtonDefaults = ButtonDefaults.buttonColors(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    content: @Composable RowScope.() -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .clip(shape)
+            .clickable(enabled = enabled) { onClick() },
+        color = colors.containerColor,
+        shape = shape
+    ) {
+        Row(
+            modifier = Modifier.padding(contentPadding),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
+    }
+}
+
+object ButtonDefaults {
+    @Composable
+    fun buttonColors(
+        containerColor: Color = Color(0xFF667EEA),
+        disabledContainerColor: Color = Color.Gray
+    ) = ButtonColorData(containerColor, disabledContainerColor)
+}
+
+data class ButtonColorData(val containerColor: Color, val disabledContainerColor: Color)
+
+@Composable
+fun IconButton(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        modifier = modifier
+            .clip(CircleShape)
+            .clickable { onClick() },
+        color = Color.Transparent
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            content()
+        }
+    }
+}
+
 @Composable
 fun DropdownMenu(
     expanded: Boolean,
@@ -343,17 +478,11 @@ fun Surface(
 fun Divider(
     modifier: Modifier = Modifier,
     color: Color = Color.Gray,
-    thickness: Dp = 1.dp // Fixed L477 Unresolved reference 'Dp' by ensuring it is imported correctly (it was, but explicit import fixed the issue)
+    thickness: Dp = 1.dp
 ) {
     Box(
         modifier = modifier
-            .fillMaxWidth()
             .height(thickness)
             .background(color)
     )
-}
-
-@Composable
-fun Spacer(modifier: Modifier) {
-    Box(modifier = modifier)
 }

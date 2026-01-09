@@ -26,8 +26,6 @@ import androidx.compose.ui.unit.sp
 import com.ktimazstudio.agent.data.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 import kotlinx.coroutines.launch
-import com.ktimazstudio.agent.ui.settings.createButtonColors // Added
-import com.ktimazstudio.agent.ui.settings.ButtonColorData // Added
 
 @Composable
 fun ChatInterface(viewModel: AgentViewModel) {
@@ -38,239 +36,348 @@ fun ChatInterface(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
     var input by remember { mutableStateOf("") }
     val attachedFiles = remember { mutableStateListOf<Attachment>() }
-
+    val selectedMode by viewModel.selectedMode.collectAsState()
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.lastIndex)
+            scope.launch { listState.animateScrollToItem(0) }
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0F0F1F),
+                        Color(0xFF1A1A2E),
+                        Color(0xFF0F0F1F)
+                    )
+                )
+            )
     ) {
-        // Chat Header (optional: show current session info, mode, etc.)
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(8.dp),
-            color = Color(0xFF1A1A2E)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (settings.showSidebar) {
-                    Icon(
-                        Icons.Default.Menu,
-                        contentDescription = "Toggle Sidebar",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable { viewModel.toggleSidebar() }
-                    )
-                    Spacer(Modifier.width(16.dp))
-                }
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Modern Header with API Status
+            if (currentSession != null && currentSession.activeApis.isNotEmpty()) {
+                ModernActiveApiBar(
+                    apis = currentSession.activeApis,
+                    settings = settings,
+                    onRemove = { viewModel.toggleApiForCurrentChat(it) }
+                )
+            }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        currentSession?.title ?: "New Chat",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        settings.selectedMode.displayName,
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-                }
-
-                // Stop Generating Button
-                if (isLoading) {
-                    Button(
-                        onClick = { viewModel.stopGeneration() },
-                        colors = createButtonColors( // Fixed L287 Argument type mismatch
-                            ButtonColorData(
-                                containerColor = Color.Red,
-                                contentColor = Color.White,
-                                disabledContainerColor = Color.Red.copy(alpha = 0.5f),
-                                disabledContentColor = Color.White.copy(alpha = 0.5f)
-                            )
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Stop Generating")
+            // Messages Area
+            if (messages.isEmpty()) {
+                WelcomeScreen(viewModel, currentSession, AppTheme.APP_NAME)
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    state = listState,
+                    reverseLayout = true,
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(messages.reversed(), key = { it.id }) { msg ->
+                        ModernMessageBubble(msg)
                     }
                 }
             }
-        }
 
-        // Message List
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f) // Fixed L199 Expression 'weight' of type 'Modifier' cannot be invoked as a function.
-                .padding(horizontal = 16.dp)
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                state = listState,
-                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(messages) { message ->
-                    ChatMessage(message = message)
-                }
-            }
-        }
-
-        // Input Bar
-        ModernInputBar(
-            input = input,
-            onInputChange = { input = it },
-            onSend = {
-                if (input.isNotBlank()) {
-                    viewModel.sendMessage(input, attachedFiles.toList())
-                    input = ""
-                    attachedFiles.clear()
-                    coroutineScope.launch {
-                        // Wait for the new item to be added before scrolling
-                        listState.animateScrollToItem(messages.size)
+            // Modern Input Bar
+            ModernInputBar(
+                input = input,
+                onInputChange = { input = it },
+                onSend = {
+                    if (input.isNotBlank() || attachedFiles.isNotEmpty()) {
+                        viewModel.sendUserMessage(input, attachedFiles.toList(), selectedMode)
+                        input = ""
+                        attachedFiles.clear()
                     }
-                }
-            },
-            attachedFiles = attachedFiles,
-            viewModel = viewModel,
-            selectedMode = settings.selectedMode
-        )
-        Spacer(Modifier.height(16.dp))
+                },
+                attachedFiles = attachedFiles,
+                viewModel = viewModel,
+                selectedMode = selectedMode
+            )
+        }
     }
 }
 
 @Composable
-fun ChatMessage(message: Message) {
-    val isUser = message.sender == Sender.USER
-    val alignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
-    val bubbleColor = if (isUser) Color(0xFF667EEA) else Color(0xFF2A2A4A)
-    val textColor = Color.White
-
-    Column(
+fun ModernActiveApiBar(
+    apis: List<String>,
+    settings: AppSettings,
+    onRemove: (String) -> Unit
+) {
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
+            .shadow(8.dp),
+        color = Color(0xFF1A1A2E).copy(alpha = 0.95f)
     ) {
-        Surface(
-            modifier = Modifier
-                .widthIn(max = 0.8f.dp)
-                .clip(RoundedCornerShape(12.dp)),
-            color = bubbleColor,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                // Attachments
-                if (message.attachments.isNotEmpty()) {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                        items(message.attachments) { attachment ->
-                            Surface(
-                                color = Color.White.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        if (attachment.isImage) Icons.Default.Image else Icons.Default.Description,
-                                        null,
-                                        tint = Color(0xFF4ECDC4),
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(
-                                        attachment.name.take(10) + if (attachment.name.length > 10) "..." else "",
-                                        fontSize = 10.sp,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+        Column(Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    Icons.Default.CloudCircle,
+                    null,
+                    tint = Color(0xFF4ECDC4),
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    "Active APIs",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFFFFFF).copy(alpha = 0.7f)
+                )
+            }
 
-                // Message Text
-                if (isUser) {
-                    Text(
-                        message.text,
-                        color = textColor,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal
-                    )
-                } else {
-                    val brush = Brush.verticalGradient(
-                        colors = listOf(Color.White, Color.White.copy(alpha = 0.9f))
-                    )
-                    Text(
-                        message.text,
-                        color = textColor,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal
-                    )
-
-                    // API Callout
-                    if (message.usedApis.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Used APIs:",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.Gray
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(apis) { apiId ->
+                    val apiConfig = settings.apiConfigs.find { it.id == apiId }
+                    apiConfig?.let {
+                        ModernApiChip(
+                            api = it,
+                            onRemove = { onRemove(apiId) }
                         )
-                        Spacer(Modifier.height(4.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            message.usedApis.forEach { api ->
-                                Surface(
-                                    color = Color.White.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text(
-                                        api,
-                                        fontSize = 11.sp,
-                                        color = Color.White.copy(alpha = 0.8f),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (message.isStreaming) {
-                        Spacer(Modifier.height(8.dp))
-                        LoadingDots()
                     }
                 }
             }
         }
-
-        Spacer(Modifier.height(4.dp))
     }
+}
+
+@Composable
+fun ModernApiChip(api: ApiConfig, onRemove: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .pointerInput(Unit) {
+                detectTapGestures(onLongPress = { onRemove() })
+            },
+        color = api.provider.color.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(api.provider.color)
+            )
+            Text(
+                api.name,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .weight(1f),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(30.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFF667EEA),
+                                Color(0xFF764BA2)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "✨",
+                    fontSize = 50.sp
+                )
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            Text(
+                "Welcome to $appName",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.White
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                "Your Advanced AI Agent Assistant",
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            if (session?.activeApis?.isEmpty() == true) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .clip(RoundedCornerShape(16.dp)),
+                    color = Color(0xFFFF6B6B).copy(alpha = 0.1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            null,
+                            tint = Color(0xFFFF6B6B),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "No APIs Active",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Configure APIs in settings to begin",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Button(
+                    onClick = { viewModel.openSettings() },
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF667EEA)
+                    )
+                ) {
+                    Icon(Icons.Default.Settings, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Open Settings", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernMessageBubble(msg: ChatMessage) {
+    val isUser = msg.isUser
+    val bubbleColor = if (isUser) {
+        Brush.linearGradient(
+            listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+        )
+    } else {
+        Brush.linearGradient(
+            listOf(Color(0xFF1F2937), Color(0xFF111827))
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+    ) {
+        Box(
+            modifier = Modifier
+                .widthIn(max = 500.dp)
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 20.dp,
+                        topEnd = 20.dp,
+                        bottomStart = if (isUser) 20.dp else 4.dp,
+                        bottomEnd = if (isUser) 4.dp else 20.dp
+                    )
+                )
+                .background(bubbleColor)
+                .shadow(
+                    elevation = 4.dp,
+                    shape = RoundedCornerShape(
+                        topStart = 20.dp,
+                        topEnd = 20.dp,
+                        bottomStart = if (isUser) 20.dp else 4.dp,
+                        bottomEnd = if (isUser) 4.dp else 20.dp
+                    ),
+                    clip = true
+                )
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(
+                    msg.text,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
+
+                if (msg.usedApis.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        msg.usedApis.forEach { api ->
+                            Surface(
+                                color = Color.White.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    api,
+                                    fontSize = 11.sp,
+                                    color = Color.White.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (msg.isStreaming) {
+                    Spacer(Modifier.height(8.dp))
+                    LoadingDots()
+                }
+            }
+        }
+    }
+
+    Spacer(Modifier.height(4.dp))
 }
 
 @Composable
