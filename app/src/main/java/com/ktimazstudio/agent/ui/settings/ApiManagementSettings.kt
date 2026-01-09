@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.ktimazstudio.agent.data.*
-import androidx.compose.material3.*
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
@@ -549,24 +549,22 @@ fun ApiInputField(label: String, value: String, isSecret: Boolean = false, onVal
             color = Color(0xFF1A1A2E),
             shape = RoundedCornerShape(10.dp)
         ) {
-            TextField(
+            androidx.compose.material.TextField(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(12.dp)
                     .height(40.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
+                colors = androidx.compose.material.TextFieldDefaults.textFieldColors(
+                    backgroundColor = Color.Transparent,
                     focusedIndicatorColor = Color(0xFF667EEA),
                     unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
+                    textColor = Color.White
                 ),
                 singleLine = true,
-                textStyle = androidx.compose.material3.LocalTextStyle.current.copy(fontSize = 12.sp),
-                visualTransformation = if (isSecret) PasswordVisualTransformation() else VisualTransformation.None
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                visualTransformation = if (isSecret) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None
             )
         }
     }
@@ -608,80 +606,6 @@ fun DropdownMenuItemCustom(text: @Composable () -> Unit, onClick: () -> Unit, mo
 }
 
 @Composable
-fun DividerCustom(modifier: Modifier = Modifier, thickness: Dp = 1.dp, color: Color = Color.White.copy(alpha = 0.1f)) {
+fun DividerCustom(modifier: Modifier = Modifier, thickness: androidx.compose.ui.unit.Dp = 1.dp, color: Color = Color.White.copy(alpha = 0.1f)) {
     Box(modifier = modifier.height(thickness).background(color))
 }
-
-@Composable
-fun TextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    label: String? = null,
-    colors: TextFieldDefaults.() -> Unit = {},
-    singleLine: Boolean = false,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
-    textStyle: androidx.compose.material3.TextStyle = androidx.compose.material3.LocalTextStyle.current,
-    placeholder: @Composable (() -> Unit)? = null
-) {
-    androidx.compose.material3.TextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
-        singleLine = singleLine,
-        visualTransformation = visualTransformation,
-        placeholder = placeholder
-    )
-}
-
-@Composable
-fun PasswordVisualTransformation(): VisualTransformation {
-    return object : VisualTransformation {
-        override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
-            return androidx.compose.ui.text.input.TransformedText(
-                androidx.compose.ui.text.AnnotatedString("•".repeat(text.length)),
-                androidx.compose.ui.text.input.OffsetMapping.Identity
-            )
-        }
-    }
-}
-
-@Composable
-fun VisualTransformation(): VisualTransformation {
-    return object : VisualTransformation {
-        override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
-            return androidx.compose.ui.text.input.TransformedText(text, androidx.compose.ui.text.input.OffsetMapping.Identity)
-        }
-    }
-}
-
-object TextFieldDefaults {
-    @Composable
-    fun colors(
-        focusedContainerColor: Color = Color.White,
-        unfocusedContainerColor: Color = Color.White,
-        focusedIndicatorColor: Color = Color.Black,
-        unfocusedIndicatorColor: Color = Color.Gray,
-        focusedTextColor: Color = Color.Black,
-        unfocusedTextColor: Color = Color.Black
-    ) = TextFieldColorData(focusedContainerColor, unfocusedContainerColor, focusedIndicatorColor, unfocusedIndicatorColor, focusedTextColor, unfocusedTextColor)
-}
-
-data class TextFieldColorData(
-    val focusedContainerColor: Color,
-    val unfocusedContainerColor: Color,
-    val focusedIndicatorColor: Color,
-    val unfocusedIndicatorColor: Color,
-    val focusedTextColor: Color,
-    val unfocusedTextColor: Color
-)
-
-@Composable
-fun clickable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
-    return Modifier.then(
-        androidx.compose.foundation.clickable(enabled = enabled) { onClick() }
-    )
-}
-
-import androidx.compose.ui.text.input.VisualTransformation as VT
-import androidx.compose.ui.text.input.PasswordVisualTransformation as PVT
