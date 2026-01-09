@@ -67,6 +67,27 @@ class AgentViewModel : ViewModel() {
         }
     }
 
+    // Save all data
+    fun saveAllData() {
+        PreferenceManager.saveBasicSettings(_settings.value)
+        PreferenceManager.saveApiConfigs(_settings.value.apiConfigs)
+        PreferenceManager.saveChatSessions(_chatSessions.value)
+    }
+
+    // Load all data
+    fun loadAllData() {
+        val loadedSettings = PreferenceManager.loadBasicSettings().copy(
+            apiConfigs = PreferenceManager.loadApiConfigs()
+        )
+        _settings.value = loadedSettings
+        
+        val loadedSessions = PreferenceManager.loadChatSessions()
+        if (loadedSessions.isNotEmpty()) {
+            _chatSessions.value = loadedSessions
+            _currentSessionId.value = loadedSessions.first().id
+        }
+    }
+
     // UI Actions
     fun toggleSidebar() {
         _isSidebarOpen.value = !_isSidebarOpen.value
@@ -78,14 +99,17 @@ class AgentViewModel : ViewModel() {
 
     fun closeSettings() {
         _isSettingsModalOpen.value = false
+        saveAllData()
     }
 
     fun toggleProPlan(isPro: Boolean) {
         _settings.value = _settings.value.copy(isProUser = isPro)
+        saveAllData()
     }
 
     fun toggleTheme(isDark: Boolean) {
         _settings.value = _settings.value.copy(isDarkTheme = isDark)
+        saveAllData()
     }
 
     fun setSelectedMode(mode: AiMode) {
@@ -110,6 +134,7 @@ class AgentViewModel : ViewModel() {
             // Add new API config
             val newApiConfigs = currentSettings.apiConfigs + config.copy(isActive = false)
             _settings.value = currentSettings.copy(apiConfigs = newApiConfigs)
+            saveAllData()
             return true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -124,6 +149,7 @@ class AgentViewModel : ViewModel() {
                     if (api.id == configId) updatedConfig.copy(id = configId) else api
                 }
             )
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -142,6 +168,7 @@ class AgentViewModel : ViewModel() {
                     activeApis = session.activeApis.filter { it != configId }.toMutableList()
                 )
             }
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -161,6 +188,7 @@ class AgentViewModel : ViewModel() {
                     if (api.id == configId) api.copy(isActive = !api.isActive) else api
                 }
             )
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -184,6 +212,7 @@ class AgentViewModel : ViewModel() {
             _chatSessions.value = _chatSessions.value.map { s ->
                 if (s.id == session.id) s.copy(activeApis = mutableApis) else s
             }
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -196,6 +225,7 @@ class AgentViewModel : ViewModel() {
             _chatSessions.value = listOf(newSession) + _chatSessions.value
             _currentSessionId.value = newSession.id
             _selectedMode.value = AiMode.STANDARD
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -215,6 +245,7 @@ class AgentViewModel : ViewModel() {
                 if (chat.id == sessionId) chat.copy(title = newTitle) else chat
             }
             _editingChatId.value = null
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -230,6 +261,7 @@ class AgentViewModel : ViewModel() {
                     newChat()
                 }
             }
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -240,6 +272,7 @@ class AgentViewModel : ViewModel() {
             _chatSessions.value = _chatSessions.value.map { chat ->
                 if (chat.id == sessionId) chat.copy(isPinned = !chat.isPinned) else chat
             }
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -253,12 +286,12 @@ class AgentViewModel : ViewModel() {
 
             // Validation
             if (!settings.isProUser && attachments.size > 10) {
-                appendAiMessage("⚠️ Free plan limited to 10 attachments per message")
+                appendAiMessage("Free plan limited to 10 attachments per message")
                 return
             }
 
             if (!settings.isProUser && mode.isPro) {
-                appendAiMessage("🔒 ${mode.title} Mode requires Pro account")
+                appendAiMessage("${mode.title} Mode requires Pro account")
                 return
             }
 
@@ -267,7 +300,7 @@ class AgentViewModel : ViewModel() {
             }
 
             if (activeApis.isEmpty()) {
-                appendAiMessage("⚠️ No active APIs. Configure in Settings → API Management")
+                appendAiMessage("No active APIs. Configure in Settings → API Management")
                 return
             }
 
@@ -288,6 +321,7 @@ class AgentViewModel : ViewModel() {
             
             // Update state
             _chatSessions.value = _chatSessions.value.toList()
+            saveAllData()
 
             // Simulate AI response
             viewModelScope.launch {
@@ -296,6 +330,7 @@ class AgentViewModel : ViewModel() {
                         tokenUsage = settings.tokenUsage + 150,
                         estimatedCost = settings.estimatedCost + 0.00075
                     )
+                    saveAllData()
 
                     delay(800)
                     
@@ -322,6 +357,7 @@ class AgentViewModel : ViewModel() {
                         )
                     )
                     _chatSessions.value = _chatSessions.value.toList()
+                    saveAllData()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -334,7 +370,7 @@ class AgentViewModel : ViewModel() {
     private fun generateAiReply(userMessage: ChatMessage, activeApis: List<ApiConfig>): String {
         return when (userMessage.mode) {
             AiMode.THINKING -> """
-                🧠 **Thinking Mode**
+                **Thinking Mode**
                 
                 Analyzing: "${userMessage.text.take(50)}"
                 
@@ -345,7 +381,7 @@ class AgentViewModel : ViewModel() {
             """.trimIndent()
             
             AiMode.RESEARCH -> """
-                🔬 **Research Mode**
+                **Research Mode**
                 
                 Topic: "${userMessage.text.take(50)}"
                 
@@ -370,6 +406,7 @@ class AgentViewModel : ViewModel() {
         try {
             currentSession?.messages?.add(ChatMessage(text = text, isUser = false))
             _chatSessions.value = _chatSessions.value.toList()
+            saveAllData()
         } catch (e: Exception) {
             e.printStackTrace()
         }
