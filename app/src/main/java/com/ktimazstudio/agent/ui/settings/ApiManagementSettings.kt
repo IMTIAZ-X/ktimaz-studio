@@ -21,12 +21,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.ktimazstudio.agent.data.*
 import androidx.compose.material3.*
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.input.TransformedText
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.unit.Dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
 @Composable
@@ -116,7 +112,7 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("⚠", fontSize = 16.sp)
+                    Text("⚠️", fontSize = 16.sp)
                     Text(
                         "Free plan limited to 5 APIs",
                         fontSize = 12.sp,
@@ -200,7 +196,7 @@ fun EmptyApiState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("☁", fontSize = 40.sp)
+            Text("☁️", fontSize = 40.sp)
             Text("No APIs Configured", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Text(
                 "Add your first API to get started",
@@ -249,7 +245,7 @@ fun ApiConfigCard(
                 MenuButton(onEdit = onEdit, onDelete = onDelete)
             }
 
-            Divider(modifier = Modifier.fillMaxWidth(), thickness = 1.dp)
+            DividerCustom(modifier = Modifier.fillMaxWidth(), thickness = 1.dp)
 
             ToggleRow(
                 label = "Globally Active",
@@ -306,9 +302,9 @@ fun MenuButton(onEdit: () -> Unit, onDelete: () -> Unit) {
     Box {
         Text("⋮", fontSize = 14.sp, color = Color.White.copy(alpha = 0.6f), modifier = Modifier.clickable { showMenu = true })
         if (showMenu) {
-            DropdownMenu(expanded = true, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(text = { Text("Edit", fontSize = 12.sp, color = Color.White) }, onClick = { onEdit(); showMenu = false })
-                DropdownMenuItem(text = { Text("Delete", fontSize = 12.sp, color = Color(0xFFFF6B6B)) }, onClick = { onDelete(); showMenu = false })
+            DropdownMenuCustom(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItemCustom(text = { Text("Edit", fontSize = 12.sp, color = Color.White) }, onClick = { onEdit(); showMenu = false })
+                DropdownMenuItemCustom(text = { Text("Delete", fontSize = 12.sp, color = Color(0xFFFF6B6B)) }, onClick = { onDelete(); showMenu = false })
             }
         }
     }
@@ -589,7 +585,7 @@ fun Surface(
 }
 
 @Composable
-fun DropdownMenu(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun DropdownMenuCustom(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     if (expanded) {
         Surface(color = Color(0xFF1A1A2E), shape = RoundedCornerShape(8.dp)) {
             Column(modifier = Modifier.padding(4.dp), content = content)
@@ -598,7 +594,7 @@ fun DropdownMenu(expanded: Boolean, onDismissRequest: () -> Unit, content: @Comp
 }
 
 @Composable
-fun DropdownMenuItem(text: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun DropdownMenuItemCustom(text: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -612,8 +608,8 @@ fun DropdownMenuItem(text: @Composable () -> Unit, onClick: () -> Unit, modifier
 }
 
 @Composable
-fun Divider(modifier: Modifier = Modifier, thickness: Dp = 1.dp) {
-    Box(modifier = modifier.height(thickness).background(Color.White.copy(alpha = 0.1f)))
+fun DividerCustom(modifier: Modifier = Modifier, thickness: Dp = 1.dp, color: Color = Color.White.copy(alpha = 0.1f)) {
+    Box(modifier = modifier.height(thickness).background(color))
 }
 
 @Composable
@@ -622,32 +618,41 @@ fun TextField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     label: String? = null,
-    colors: TextFieldDefaults = TextFieldDefaults.colors(),
+    colors: TextFieldDefaults.() -> Unit = {},
     singleLine: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    textStyle: androidx.compose.material3.TextStyle = androidx.compose.material3.LocalTextStyle.current
+    textStyle: androidx.compose.material3.TextStyle = androidx.compose.material3.LocalTextStyle.current,
+    placeholder: @Composable (() -> Unit)? = null
 ) {
-    var focused by remember { mutableStateOf(false) }
-    BasicTextField(
+    androidx.compose.material3.TextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier
-            .onFocusChanged { focused = it.isFocused }
-            .padding(0.dp),
+        modifier = modifier,
         singleLine = singleLine,
-        textStyle = textStyle
+        visualTransformation = visualTransformation,
+        placeholder = placeholder
     )
 }
 
 @Composable
-fun BasicTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    singleLine: Boolean = false,
-    textStyle: androidx.compose.material3.TextStyle
-) {
-    // Simplified implementation
+fun PasswordVisualTransformation(): VisualTransformation {
+    return object : VisualTransformation {
+        override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
+            return androidx.compose.ui.text.input.TransformedText(
+                androidx.compose.ui.text.AnnotatedString("•".repeat(text.length)),
+                androidx.compose.ui.text.input.OffsetMapping.Identity
+            )
+        }
+    }
+}
+
+@Composable
+fun VisualTransformation(): VisualTransformation {
+    return object : VisualTransformation {
+        override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
+            return androidx.compose.ui.text.input.TransformedText(text, androidx.compose.ui.text.input.OffsetMapping.Identity)
+        }
+    }
 }
 
 object TextFieldDefaults {
@@ -672,45 +677,11 @@ data class TextFieldColorData(
 )
 
 @Composable
-fun ColumnScope.RowScope() {}
-
-class PasswordVisualTransformation : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        return TransformedText(
-            AnnotatedString("•".repeat(text.length)),
-            OffsetMapping.Identity
-        )
-    }
+fun clickable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
+    return Modifier.then(
+        androidx.compose.foundation.clickable(enabled = enabled) { onClick() }
+    )
 }
 
-interface VisualTransformation {
-    fun filter(text: AnnotatedString): TransformedText
-}
-
-data class TransformedText(val text: AnnotatedString, val offsetMapping: OffsetMapping)
-
-interface OffsetMapping {
-    fun originalToTransformed(offset: Int): Int
-    fun transformedToOriginal(offset: Int): Int
-
-    companion object {
-        val Identity = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int) = offset
-            override fun transformedToOriginal(offset: Int) = offset
-        }
-    }
-}
-
-class AnnotatedString(val text: String) {
-    val length get() = text.length
-}
-
-@Composable
-fun Spacer(modifier: Modifier) {
-    Box(modifier = modifier)
-}
-
-@Composable
-fun Icon(emoji: String, modifier: Modifier = Modifier) {
-    Text(emoji, modifier = modifier)
-}
+import androidx.compose.ui.text.input.VisualTransformation as VT
+import androidx.compose.ui.text.input.PasswordVisualTransformation as PVT
