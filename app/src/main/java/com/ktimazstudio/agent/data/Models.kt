@@ -4,10 +4,6 @@ import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import java.util.*
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DATA MODELS
-// ═══════════════════════════════════════════════════════════════════════════════
-
 data class Attachment(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
