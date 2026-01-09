@@ -1,3 +1,5 @@
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 package com.ktimazstudio.agent.ui.settings
 
 import androidx.compose.animation.*
@@ -566,7 +568,7 @@ fun ApiInputField(label: String, value: String, isSecret: Boolean = false, onVal
                 ),
                 singleLine = true,
                 textStyle = androidx.compose.material3.LocalTextStyle.current.copy(fontSize = 12.sp),
-                visualTransformation = if (isSecret) PasswordVisualTransformation() else VisualTransformation.None
+                visualTransformation = if (isSecret) PasswordVisualTransformation.None else VisualTransformation.None
             )
         }
     }
@@ -635,7 +637,7 @@ fun TextField(
 }
 
 @Composable
-fun PasswordVisualTransformation(): VisualTransformation {
+fun PasswordVisualTransformation.None: VisualTransformation {
     return object : VisualTransformation {
         override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
             return androidx.compose.ui.text.input.TransformedText(
@@ -647,7 +649,7 @@ fun PasswordVisualTransformation(): VisualTransformation {
 }
 
 @Composable
-fun VisualTransformation(): VisualTransformation {
+fun VisualTransformation.None: VisualTransformation {
     return object : VisualTransformation {
         override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
             return androidx.compose.ui.text.input.TransformedText(text, androidx.compose.ui.text.input.OffsetMapping.Identity)
