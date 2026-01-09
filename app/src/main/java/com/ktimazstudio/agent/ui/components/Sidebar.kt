@@ -19,10 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.*
-import androidx.compose.ui.unit.Dp
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
 import com.ktimazstudio.agent.data.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
@@ -33,7 +29,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
     val currentSessionId by viewModel.currentSessionId.collectAsState()
     var editingChatId by remember { mutableStateOf<String?>(null) }
 
-    Surface(
+    androidx.compose.material.Surface(
         modifier = Modifier
             .width(280.dp)
             .fillMaxHeight()
@@ -42,29 +38,29 @@ fun ModernSidebar(viewModel: AgentViewModel) {
     ) {
         Column(Modifier.fillMaxSize()) {
             // Header
-            Surface(
+            androidx.compose.material.Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
                     .clip(RoundedCornerShape(16.dp)),
                 color = Color(0xFF1A1A2E)
             ) {
-                Button(
+                CustomButton(
                     onClick = { viewModel.newChat() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF667EEA)
+                    buttonColorData = ButtonColorData(
+                        containerColor = Color(0xFF667EEA),
+                        disabledContainerColor = Color.Gray
                     ),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(
+                    Text(
                         "➕",
-                        null,
                         modifier = Modifier.size(20.sp.value.dp),
-                        tint = Color.White
+                        color = Color.White
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
@@ -165,7 +161,7 @@ fun ChatItem(
     var editText by remember { mutableStateOf(chat.title) }
     var showMenu by remember { mutableStateOf(false) }
 
-    Surface(
+    androidx.compose.material.Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
@@ -199,12 +195,12 @@ fun ChatItem(
             }
 
             if (isEditing) {
-                TextField(
+                CustomTextField(
                     value = editText,
                     onValueChange = { editText = it },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    colors = TextFieldDefaults.colors(
+                    colors = TextFieldColorData(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color(0xFF667EEA),
@@ -213,7 +209,7 @@ fun ChatItem(
                         unfocusedTextColor = Color.White
                     )
                 )
-                IconButton(
+                CustomIconButton(
                     onClick = { onRename(editText) },
                     modifier = Modifier.size(28.dp)
                 ) {
@@ -237,7 +233,7 @@ fun ChatItem(
                 }
 
                 Box {
-                    IconButton(
+                    CustomIconButton(
                         onClick = { showMenu = true },
                         modifier = Modifier.size(28.dp)
                     ) {
@@ -245,19 +241,19 @@ fun ChatItem(
                     }
 
                     if (showMenu) {
-                        DropdownMenu(
+                        CustomDropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
-                            DropdownMenuItem(
+                            CustomDropdownMenuItem(
                                 text = { Text("Rename", fontSize = 12.sp) },
                                 onClick = { onEdit(); showMenu = false }
                             )
-                            DropdownMenuItem(
+                            CustomDropdownMenuItem(
                                 text = { Text(if (chat.isPinned) "Unpin" else "Pin", fontSize = 12.sp) },
                                 onClick = { onPin(); showMenu = false }
                             )
-                            DropdownMenuItem(
+                            CustomDropdownMenuItem(
                                 text = { Text("Delete", fontSize = 12.sp, color = Color(0xFFFF6B6B)) },
                                 onClick = { onDelete(); showMenu = false }
                             )
@@ -278,17 +274,12 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (!settings.isProUser) {
-            Surface(
+            androidx.compose.material.Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .clickable { viewModel.openSettings() },
-                color = Brush.linearGradient(
-                    listOf(
-                        Color(0xFF667EEA).copy(alpha = 0.2f),
-                        Color(0xFF764BA2).copy(alpha = 0.2f)
-                    )
-                ).let { Color(0xFF667EEA).copy(alpha = 0.1f) },
+                color = Color(0xFF667EEA).copy(alpha = 0.1f),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Column(
@@ -314,13 +305,13 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
             }
         }
 
-        Divider(
+        CustomDivider(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White.copy(alpha = 0.1f),
             thickness = 1.dp
         )
 
-        Surface(
+        androidx.compose.material.Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
@@ -367,20 +358,20 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
 }
 
 @Composable
-fun Button(
+fun CustomButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     shape: RoundedCornerShape = RoundedCornerShape(4.dp),
-    colors: ButtonDefaults = ButtonDefaults.buttonColors(),
+    buttonColorData: ButtonColorData = ButtonColorData(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable RowScope.() -> Unit
 ) {
-    Surface(
+    androidx.compose.material.Surface(
         modifier = modifier
             .clip(shape)
             .clickable(enabled = enabled) { onClick() },
-        color = colors.containerColor,
+        color = if (enabled) buttonColorData.containerColor else buttonColorData.disabledContainerColor,
         shape = shape
     ) {
         Row(
@@ -392,19 +383,18 @@ fun Button(
     }
 }
 
-object ButtonDefaults {
-    @Composable
-    fun buttonColors(
-        containerColor: Color = Color(0xFF667EEA),
-        disabledContainerColor: Color = Color.Gray
-    ) = ButtonColorData(containerColor, disabledContainerColor)
-}
-
-data class ButtonColorData(val containerColor: Color, val disabledContainerColor: Color)
+data class ButtonColorData(
+    val containerColor: Color = Color(0xFF667EEA),
+    val disabledContainerColor: Color = Color.Gray
+)
 
 @Composable
-fun IconButton(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Surface(
+fun CustomIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    androidx.compose.material.Surface(
         modifier = modifier
             .clip(CircleShape)
             .clickable { onClick() },
@@ -417,13 +407,13 @@ fun IconButton(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Com
 }
 
 @Composable
-fun DropdownMenu(
+fun CustomDropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
     if (expanded) {
-        Surface(
+        androidx.compose.material.Surface(
             modifier = Modifier
                 .fillMaxWidth(0.3f)
                 .shadow(8.dp),
@@ -439,12 +429,12 @@ fun DropdownMenu(
 }
 
 @Composable
-fun DropdownMenuItem(
+fun CustomDropdownMenuItem(
     text: @Composable () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    androidx.compose.material.Surface(
         modifier = modifier
             .fillMaxWidth()
             .height(40.dp)
@@ -459,26 +449,47 @@ fun DropdownMenuItem(
 }
 
 @Composable
-fun Surface(
+fun CustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    color: Color = Color.White,
-    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
-    content: @Composable () -> Unit
+    label: String? = null,
+    colors: TextFieldColorData = TextFieldColorData(),
+    singleLine: Boolean = false,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+    textStyle: androidx.compose.ui.text.TextStyle = androidx.compose.ui.text.TextStyle.Default,
+    placeholder: @Composable (() -> Unit)? = null
 ) {
-    Box(
-        modifier = modifier
-            .background(color, shape),
-        contentAlignment = Alignment.TopStart
-    ) {
-        content()
-    }
+    androidx.compose.material.TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        singleLine = singleLine,
+        visualTransformation = visualTransformation,
+        placeholder = placeholder,
+        colors = androidx.compose.material.TextFieldDefaults.textFieldColors(
+            backgroundColor = colors.unfocusedContainerColor,
+            focusedIndicatorColor = colors.focusedIndicatorColor,
+            unfocusedIndicatorColor = colors.unfocusedIndicatorColor,
+            textColor = colors.focusedTextColor
+        )
+    )
 }
 
+data class TextFieldColorData(
+    val focusedContainerColor: Color = Color.White,
+    val unfocusedContainerColor: Color = Color.White,
+    val focusedIndicatorColor: Color = Color.Black,
+    val unfocusedIndicatorColor: Color = Color.Gray,
+    val focusedTextColor: Color = Color.Black,
+    val unfocusedTextColor: Color = Color.Black
+)
+
 @Composable
-fun Divider(
+fun CustomDivider(
     modifier: Modifier = Modifier,
     color: Color = Color.Gray,
-    thickness: Dp = 1.dp
+    thickness: androidx.compose.ui.unit.Dp = 1.dp
 ) {
     Box(
         modifier = modifier

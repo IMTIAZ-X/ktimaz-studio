@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -110,7 +110,7 @@ fun ModernActiveApiBar(
     settings: AppSettings,
     onRemove: (String) -> Unit
 ) {
-    androidx.compose.material3.Surface(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(8.dp),
@@ -158,7 +158,7 @@ fun ModernActiveApiBar(
 
 @Composable
 fun ModernApiChip(api: ApiConfig, onRemove: () -> Unit) {
-    androidx.compose.material3.Surface(
+    Surface(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .pointerInput(Unit) {
@@ -241,7 +241,7 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
             Spacer(Modifier.height(24.dp))
 
             if (session?.activeApis?.isEmpty() == true) {
-                androidx.compose.material3.Surface(
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .clip(RoundedCornerShape(16.dp)),
@@ -275,17 +275,18 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
 
                 Spacer(Modifier.height(16.dp))
 
-                androidx.compose.material3.Button(
+                CustomButton(
                     onClick = { viewModel.openSettings() },
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF667EEA)
+                    buttonColorData = ButtonColorData(
+                        containerColor = Color(0xFF667EEA),
+                        disabledContainerColor = Color.Gray
                     )
                 ) {
-                    Icon(Icons.Default.Settings, null, Modifier.size(18.dp))
+                    Text("⚙", fontSize = 18.sp)
                     Spacer(Modifier.width(8.dp))
                     Text("Open Settings", fontWeight = FontWeight.Bold)
                 }
@@ -350,7 +351,7 @@ fun ModernMessageBubble(msg: ChatMessage) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         msg.usedApis.forEach { api ->
-                            androidx.compose.material3.Surface(
+                            Surface(
                                 color = Color.White.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
