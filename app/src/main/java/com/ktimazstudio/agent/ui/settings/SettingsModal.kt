@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
 @Composable
@@ -19,7 +20,10 @@ fun SettingsModal(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
 
-    Dialog(onDismissRequest = { viewModel.closeSettings() }) {
+    Dialog(
+        onDismissRequest = { viewModel.closeSettings() },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
@@ -44,11 +48,11 @@ fun SettingsModal(viewModel: AgentViewModel) {
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { viewModel.closeSettings() }) {
-                        Icon(Icons.Default.Close, "Close")
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
 
-                // Tabs
+                // Tab Row
                 TabRow(selectedTabIndex = selectedTab) {
                     listOf("General", "API Management", "Plan").forEachIndexed { index, title ->
                         Tab(

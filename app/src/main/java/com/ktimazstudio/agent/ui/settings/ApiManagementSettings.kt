@@ -8,21 +8,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.ktimazstudio.agent.data.*
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
 @Composable
@@ -32,25 +34,21 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
     val currentSession = viewModel.currentSession
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Stats Card
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(8.dp),
-            color = Color(0xFF1A1A2E),
-            shape = RoundedCornerShape(16.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
         ) {
             Column(Modifier.padding(20.dp)) {
                 Text(
                     "API Management",
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White
+                    fontWeight = FontWeight.Black
                 )
                 Spacer(Modifier.height(16.dp))
 
@@ -61,62 +59,50 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
                     StatItem(
                         label = "APIs Added",
                         value = "${settings.apiConfigs.size}/${if (settings.isProUser) "∞" else "5"}",
-                        color = Color(0xFF667EEA)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     StatItem(
                         label = "Active Now",
                         value = "${viewModel.activeApiCount}/5",
-                        color = Color(0xFF4ECDC4)
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
         }
 
         // Add Button
-        Surface(
+        Button(
+            onClick = { showAddDialog = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { showAddDialog = true },
-            color = Color(0xFF667EEA),
+                .height(48.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("➕", fontSize = 16.sp)
-                Text(
-                    "Add New API",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Add New API", fontWeight = FontWeight.Bold)
         }
 
         // Pro Limit Warning
         if (!settings.isProUser && settings.apiConfigs.size >= 5) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFFFF6B6B).copy(alpha = 0.15f),
-                shape = RoundedCornerShape(12.dp)
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("⚠️", fontSize = 16.sp)
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
                     Text(
                         "Free plan limited to 5 APIs",
                         fontSize = 12.sp,
-                        color = Color.White,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -126,8 +112,7 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
         Text(
             "Your Configurations",
             fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
+            fontWeight = FontWeight.Bold
         )
 
         // API List
@@ -180,28 +165,42 @@ fun StatItem(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, fontSize = 22.sp, fontWeight = FontWeight.Black, color = color)
         Spacer(Modifier.height(4.dp))
-        Text(label, fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
+        Text(
+            label,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
     }
 }
 
 @Composable
 fun EmptyApiState() {
-    Surface(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFF1A1A2E),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Column(
             modifier = Modifier.padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("☁️", fontSize = 40.sp)
-            Text("No APIs Configured", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Icon(
+                Icons.Default.Cloud,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                "No APIs Configured",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
             Text(
                 "Add your first API to get started",
                 fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }
@@ -217,10 +216,16 @@ fun ApiConfigCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Surface(
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        color = if (isActive) api.provider.color.copy(alpha = 0.2f) else Color(0xFF1A1A2E),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) 
+                api.provider.color.copy(alpha = 0.2f) 
+            else 
+                MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
@@ -235,76 +240,76 @@ fun ApiConfigCard(
                         .background(api.provider.color)
                 )
                 Column(Modifier.weight(1f)) {
-                    Text(api.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
+                    Text(api.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     Text(
                         "${api.provider.title} • ${api.modelName}",
                         fontSize = 11.sp,
-                        color = Color.White.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
-                MenuButton(onEdit = onEdit, onDelete = onDelete)
+                
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    }
+                    
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = { onEdit(); showMenu = false },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                            onClick = { onDelete(); showMenu = false },
+                            leadingIcon = { 
+                                Icon(
+                                    Icons.Default.Delete, 
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                ) 
+                            }
+                        )
+                    }
+                }
             }
 
-            DividerCustom(modifier = Modifier.fillMaxWidth(), thickness = 1.dp)
+            HorizontalDivider()
 
-            ToggleRow(
-                label = "Globally Active",
-                icon = "⚡",
-                enabled = isActive,
-                onToggle = onToggleActive
-            )
-
-            ToggleRow(
-                label = "Use in Chat",
-                icon = "💬",
-                enabled = isInChat && isActive,
-                onToggle = onToggleChat
-            )
-        }
-    }
-}
-
-@Composable
-fun ToggleRow(
-    label: String,
-    icon: String,
-    enabled: Boolean,
-    onToggle: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .clickable { onToggle() }
-            .background(Color(0xFF667EEA).copy(alpha = if (enabled) 0.3f else 0.1f))
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(icon, fontSize = 14.sp)
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White, modifier = Modifier.weight(1f))
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .background(if (enabled) Color(0xFF667EEA) else Color.Gray.copy(alpha = 0.3f)),
-            contentAlignment = Alignment.Center
-        ) {
-            if (enabled) Text("✓", fontSize = 10.sp, color = Color.White)
-        }
-    }
-}
-
-@Composable
-fun MenuButton(onEdit: () -> Unit, onDelete: () -> Unit) {
-    var showMenu by remember { mutableStateOf(false) }
-    Box {
-        Text("⋮", fontSize = 14.sp, color = Color.White.copy(alpha = 0.6f), modifier = Modifier.clickable { showMenu = true })
-        if (showMenu) {
-            DropdownMenuCustom(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItemCustom(text = { Text("Edit", fontSize = 12.sp, color = Color.White) }, onClick = { onEdit(); showMenu = false })
-                DropdownMenuItemCustom(text = { Text("Delete", fontSize = 12.sp, color = Color(0xFFFF6B6B)) }, onClick = { onDelete(); showMenu = false })
+            // Toggle switches
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = isActive,
+                    onClick = onToggleActive,
+                    label = { Text("Globally Active") },
+                    leadingIcon = {
+                        Icon(
+                            if (isActive) Icons.Default.CheckCircle else Icons.Default.Circle,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                )
+                
+                FilterChip(
+                    selected = isInChat && isActive,
+                    onClick = onToggleChat,
+                    enabled = isActive,
+                    label = { Text("Use in Chat") },
+                    leadingIcon = {
+                        Icon(
+                            if (isInChat) Icons.Default.CheckCircle else Icons.Default.Circle,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                )
             }
         }
     }
@@ -324,29 +329,29 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
         baseUrl = selectedProvider.defaultUrl
     }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .shadow(16.dp),
-            color = Color(0xFF0F0F1F),
+                .fillMaxHeight(0.9f),
             shape = RoundedCornerShape(20.dp)
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxSize().padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    Text("Add New API", fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color.White)
+                    Text("Add New API", fontSize = 20.sp, fontWeight = FontWeight.Black)
                 }
 
                 item {
-                    Text("Select Provider", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.7f))
+                    Text("Select Provider", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(AiProvider.values()) { provider ->
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        AiProvider.values().forEach { provider ->
                             ProviderSelector(
                                 provider = provider,
                                 isSelected = selectedProvider == provider,
@@ -356,70 +361,43 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                     }
                 }
 
-                item {
-                    ApiInputField("Configuration Name", name) { name = it }
-                }
-
-                item {
-                    ApiInputField("API Key", apiKey, isSecret = true) { apiKey = it }
-                }
-
-                item {
-                    ApiInputField("Model Name", modelName) { modelName = it }
-                }
-
-                item {
-                    ApiInputField("Base URL", baseUrl) { baseUrl = it }
-                }
-
-                item {
-                    ApiInputField("System Role (Optional)", systemRole) { systemRole = it }
-                }
+                item { ApiInputField("Configuration Name", name) { name = it } }
+                item { ApiInputField("API Key", apiKey, isSecret = true) { apiKey = it } }
+                item { ApiInputField("Model Name", modelName) { modelName = it } }
+                item { ApiInputField("Base URL", baseUrl) { baseUrl = it } }
+                item { ApiInputField("System Role (Optional)", systemRole) { systemRole = it } }
 
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onDismiss() },
-                            color = Color(0xFF1A1A2E),
-                            shape = RoundedCornerShape(12.dp)
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("Cancel", fontWeight = FontWeight.Bold, color = Color.White)
-                            }
+                            Text("Cancel")
                         }
 
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable(enabled = apiKey.isNotBlank()) {
-                                    if (apiKey.isNotBlank()) {
-                                        onSave(
-                                            ApiConfig(
-                                                provider = selectedProvider,
-                                                name = name.ifBlank { "My ${selectedProvider.title}" },
-                                                apiKey = apiKey,
-                                                modelName = modelName,
-                                                baseUrl = baseUrl,
-                                                systemRole = systemRole
-                                            )
+                        Button(
+                            onClick = {
+                                if (apiKey.isNotBlank()) {
+                                    onSave(
+                                        ApiConfig(
+                                            provider = selectedProvider,
+                                            name = name.ifBlank { "My ${selectedProvider.title}" },
+                                            apiKey = apiKey,
+                                            modelName = modelName,
+                                            baseUrl = baseUrl,
+                                            systemRole = systemRole
                                         )
-                                    }
-                                },
-                            color = if (apiKey.isNotBlank()) Color(0xFF667EEA) else Color.Gray.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = apiKey.isNotBlank()
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("Add API", fontWeight = FontWeight.Bold, color = Color.White)
-                            }
+                            Text("Add API")
                         }
                     }
                 }
@@ -436,24 +414,19 @@ fun EditApiDialog(api: ApiConfig, onDismiss: () -> Unit, onSave: (ApiConfig) -> 
     var baseUrl by remember { mutableStateOf(api.baseUrl) }
     var systemRole by remember { mutableStateOf(api.systemRole) }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .shadow(16.dp),
-            color = Color(0xFF0F0F1F),
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(0.9f).fillMaxHeight(0.8f),
             shape = RoundedCornerShape(20.dp)
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxSize().padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item {
-                    Text("Edit API", fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color.White)
-                }
-
+                item { Text("Edit API", fontSize = 20.sp, fontWeight = FontWeight.Black) }
                 item { ApiInputField("Name", name) { name = it } }
                 item { ApiInputField("API Key", apiKey, isSecret = true) { apiKey = it } }
                 item { ApiInputField("Model", modelName) { modelName = it } }
@@ -465,42 +438,24 @@ fun EditApiDialog(api: ApiConfig, onDismiss: () -> Unit, onSave: (ApiConfig) -> 
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onDismiss() },
-                            color = Color(0xFF1A1A2E),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("Cancel", fontWeight = FontWeight.Bold, color = Color.White)
-                            }
+                        OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                            Text("Cancel")
                         }
-
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    onSave(
-                                        api.copy(
-                                            name = name,
-                                            apiKey = apiKey,
-                                            modelName = modelName,
-                                            baseUrl = baseUrl,
-                                            systemRole = systemRole
-                                        )
+                        Button(
+                            onClick = {
+                                onSave(
+                                    api.copy(
+                                        name = name,
+                                        apiKey = apiKey,
+                                        modelName = modelName,
+                                        baseUrl = baseUrl,
+                                        systemRole = systemRole
                                     )
-                                },
-                            color = Color(0xFF667EEA),
-                            shape = RoundedCornerShape(12.dp)
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("Save", fontWeight = FontWeight.Bold, color = Color.White)
-                            }
+                            Text("Save")
                         }
                     }
                 }
@@ -511,18 +466,19 @@ fun EditApiDialog(api: ApiConfig, onDismiss: () -> Unit, onSave: (ApiConfig) -> 
 
 @Composable
 fun ProviderSelector(provider: AiProvider, isSelected: Boolean, onClick: () -> Unit) {
-    Surface(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
             .clickable { onClick() },
-        color = if (isSelected) provider.color.copy(alpha = 0.2f) else Color(0xFF1A1A2E),
-        shape = RoundedCornerShape(10.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) 
+                provider.color.copy(alpha = 0.2f) 
+            else 
+                MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -532,80 +488,39 @@ fun ProviderSelector(provider: AiProvider, isSelected: Boolean, onClick: () -> U
                     .clip(CircleShape)
                     .background(provider.color)
             )
-            Text(provider.title, color = Color.White, fontSize = 12.sp, modifier = Modifier.weight(1f))
-            if (isSelected) Text("✓", color = provider.color, fontWeight = FontWeight.Black)
+            Text(provider.title, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            if (isSelected) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    tint = provider.color,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ApiInputField(label: String, value: String, isSecret: Boolean = false, onValueChange: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.7f))
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp)),
-            color = Color(0xFF1A1A2E),
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            androidx.compose.material.TextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-                    .height(40.dp),
-                colors = androidx.compose.material.TextFieldDefaults.textFieldColors(
-                    backgroundColor = Color.Transparent,
-                    focusedIndicatorColor = Color(0xFF667EEA),
-                    unfocusedIndicatorColor = Color.Transparent,
-                    textColor = Color.White
-                ),
-                singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
-                visualTransformation = if (isSecret) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None
-            )
-        }
-    }
-}
-
-@Composable
-fun Surface(
-    modifier: Modifier = Modifier,
-    color: Color = Color.White,
-    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
-    content: @Composable () -> Unit
+fun ApiInputField(
+    label: String,
+    value: String,
+    isSecret: Boolean = false,
+    onValueChange: (String) -> Unit
 ) {
-    Box(modifier = modifier.background(color, shape)) {
-        content()
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = if (isSecret) PasswordVisualTransformation() else VisualTransformation.None
+        )
     }
-}
-
-@Composable
-fun DropdownMenuCustom(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    if (expanded) {
-        Surface(color = Color(0xFF1A1A2E), shape = RoundedCornerShape(8.dp)) {
-            Column(modifier = Modifier.padding(4.dp), content = content)
-        }
-    }
-}
-
-@Composable
-fun DropdownMenuItemCustom(text: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .clickable { onClick() },
-        color = Color.Transparent
-    ) {
-        Box(modifier = Modifier.padding(12.dp)) { text() }
-    }
-}
-
-@Composable
-fun DividerCustom(modifier: Modifier = Modifier, thickness: androidx.compose.ui.unit.Dp = 1.dp, color: Color = Color.White.copy(alpha = 0.1f)) {
-    Box(modifier = modifier.height(thickness).background(color))
 }

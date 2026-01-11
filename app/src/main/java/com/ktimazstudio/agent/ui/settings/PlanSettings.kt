@@ -21,7 +21,7 @@ import com.ktimazstudio.agent.viewmodel.AgentViewModel
 @Composable
 fun PlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // Current Plan Card
+        // Current Plan Status Card
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = if (settings.isProUser) {
@@ -55,7 +55,7 @@ fun PlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
             }
         }
 
-        // Toggle Button
+        // Toggle Plan Button (for demo purposes)
         Button(
             onClick = { viewModel.toggleProPlan(!settings.isProUser) },
             modifier = Modifier.fillMaxWidth(),
@@ -71,7 +71,7 @@ fun PlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
         ) {
             Icon(
                 if (settings.isProUser) Icons.Default.KeyboardArrowDown else Icons.Default.Rocket,
-                null
+                contentDescription = null
             )
             Spacer(Modifier.width(8.dp))
             Text(
@@ -89,7 +89,7 @@ fun PlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
         )
 
         // Features List
-        listOf(
+        val features = listOf(
             "Unlimited API configurations (vs 5 limit)" to Icons.Default.CloudQueue,
             "Unlimited chat conversations" to Icons.Default.ChatBubble,
             "Unlimited file uploads (vs 10 limit)" to Icons.Default.CloudUpload,
@@ -102,25 +102,29 @@ fun PlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
             "Creative Mode - Writing assistant" to Icons.Default.Create,
             "Priority support" to Icons.Default.Support,
             "Advanced analytics" to Icons.Default.Analytics
-        ).forEach { (feature, icon) ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 4.dp)
-            ) {
-                Icon(
-                    icon,
-                    null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Text(feature)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            features.forEach { (feature, icon) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(feature)
+                }
             }
         }
 
         Spacer(Modifier.height(8.dp))
 
-        // Info Card
+        // Free Plan Limitations Info Card
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.errorContainer
@@ -133,7 +137,7 @@ fun PlanSettings(viewModel: AgentViewModel, settings: AppSettings) {
             ) {
                 Icon(
                     Icons.Default.Info,
-                    null,
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )
@@ -159,7 +163,12 @@ fun ProBadge() {
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(14.dp))
+            Icon(
+                Icons.Default.Star,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(14.dp)
+            )
             Spacer(Modifier.width(4.dp))
             Text("PRO", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
         }
