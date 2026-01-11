@@ -196,110 +196,104 @@ fun ModernApiChip(api: ApiConfig, onRemove: () -> Unit) {
 
 @Composable
 fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: String) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .weight(1f),
-        contentAlignment = Alignment.Center
+            .weight(1f, fill = true),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(24.dp)
-        ) {
-            // App icon/logo
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(30.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                Color(0xFF667EEA),
-                                Color(0xFF764BA2)
-                            )
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(RoundedCornerShape(30.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            Color(0xFF667EEA),
+                            Color(0xFF764BA2)
                         )
-                    ),
-                contentAlignment = Alignment.Center
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Psychology,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(50.dp)
+            )
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Text(
+            "Welcome to $appName",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Black,
+            color = Color.White
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            "Your Advanced AI Agent Assistant",
+            fontSize = 14.sp,
+            color = Color.White.copy(alpha = 0.6f),
+            fontWeight = FontWeight.Medium
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        if (session?.activeApis?.isEmpty() == true) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .clip(RoundedCornerShape(16.dp)),
+                color = Color(0xFFFF6B6B).copy(alpha = 0.1f),
+                tonalElevation = 0.dp
             ) {
-                Icon(
-                    Icons.Default.Psychology,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(50.dp)
-                )
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = Color(0xFFFF6B6B),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "No APIs Active",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Configure APIs in settings to begin",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(16.dp))
 
-            Text(
-                "Welcome to $appName",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Black,
-                color = Color.White
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                "Your Advanced AI Agent Assistant",
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.6f),
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // Warning if no APIs are active
-            if (session?.activeApis?.isEmpty() == true) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .clip(RoundedCornerShape(16.dp)),
-                    color = Color(0xFFFF6B6B).copy(alpha = 0.1f),
-                    tonalElevation = 0.dp
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.ErrorOutline,
-                            contentDescription = null,
-                            tint = Color(0xFFFF6B6B),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "No APIs Active",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "Configure APIs in settings to begin",
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                Button(
-                    onClick = { viewModel.openSettings() },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF667EEA)
-                    )
-                ) {
-                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Open Settings", fontWeight = FontWeight.Bold)
-                }
+            Button(
+                onClick = { viewModel.openSettings() },
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF667EEA)
+                )
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Open Settings", fontWeight = FontWeight.Bold)
             }
         }
     }
