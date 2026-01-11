@@ -40,7 +40,6 @@ fun ChatInterface(viewModel: AgentViewModel) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             scope.launch { listState.animateScrollToItem(0) }
@@ -61,7 +60,6 @@ fun ChatInterface(viewModel: AgentViewModel) {
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Active APIs header bar
             if (currentSession != null && currentSession.activeApis.isNotEmpty()) {
                 ModernActiveApiBar(
                     apis = currentSession.activeApis,
@@ -70,7 +68,6 @@ fun ChatInterface(viewModel: AgentViewModel) {
                 )
             }
 
-            // Messages Area or Welcome Screen
             if (messages.isEmpty()) {
                 WelcomeScreen(viewModel, currentSession, AppTheme.APP_NAME)
             } else {
@@ -89,7 +86,6 @@ fun ChatInterface(viewModel: AgentViewModel) {
                 }
             }
 
-            // Input Bar
             ModernInputBar(
                 input = input,
                 onInputChange = { input = it },
@@ -348,7 +344,6 @@ fun ModernMessageBubble(msg: ChatMessage) {
                     lineHeight = 20.sp
                 )
 
-                // Show APIs used for this message
                 if (msg.usedApis.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
                     Row(
@@ -373,7 +368,6 @@ fun ModernMessageBubble(msg: ChatMessage) {
                     }
                 }
 
-                // Loading dots for streaming messages
                 if (msg.isStreaming) {
                     Spacer(Modifier.height(8.dp))
                     LoadingDots()
