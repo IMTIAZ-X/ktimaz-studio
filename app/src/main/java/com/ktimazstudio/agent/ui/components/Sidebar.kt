@@ -1,6 +1,7 @@
 package com.ktimazstudio.agent.ui.components
 
-import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,12 +17,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ktimazstudio.agent.data.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernSidebar(viewModel: AgentViewModel) {
     val settings by viewModel.settings.collectAsState()
@@ -34,18 +36,18 @@ fun ModernSidebar(viewModel: AgentViewModel) {
             .width(280.dp)
             .fillMaxHeight()
             .shadow(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 12.dp
+        color = Color(0xFF0F0F1F),
+        tonalElevation = 0.dp
     ) {
         Column(Modifier.fillMaxSize()) {
-            // Header
+            // Header - New Chat Button
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
                     .clip(RoundedCornerShape(16.dp)),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                tonalElevation = 4.dp
+                color = Color(0xFF1A1A2E),
+                tonalElevation = 0.dp
             ) {
                 Button(
                     onClick = { viewModel.newChat() },
@@ -54,8 +56,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = Color.White
+                        containerColor = Color(0xFF667EEA)
                     ),
                     contentPadding = PaddingValues(0.dp)
                 ) {
@@ -68,6 +69,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                     Text(
                         "New Chat",
                         fontWeight = FontWeight.Bold,
+                        color = Color.White,
                         fontSize = 14.sp
                     )
                 }
@@ -92,7 +94,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                             "PINNED",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            color = Color.White.copy(alpha = 0.4f),
                             modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 4.dp)
                         )
                     }
@@ -118,7 +120,7 @@ fun ModernSidebar(viewModel: AgentViewModel) {
                         "RECENT",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        color = Color.White.copy(alpha = 0.4f),
                         modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 4.dp)
                     )
                 }
@@ -168,8 +170,9 @@ fun ChatItem(
             .height(48.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable { onSelect() },
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = if (isSelected) 4.dp else 2.dp
+        color = if (isSelected) Color(0xFF667EEA).copy(alpha = 0.2f) else Color(0xFF1A1A2E),
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
@@ -185,18 +188,18 @@ fun ChatItem(
                     .background(
                         Brush.linearGradient(
                             listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary
+                                Color(0xFF667EEA),
+                                Color(0xFF764BA2)
                             )
                         )
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Chat,
-                    contentDescription = "Chat",
+                    Icons.Default.ChatBubble,
+                    contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
@@ -209,12 +212,11 @@ fun ChatItem(
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        focusedIndicatorColor = Color(0xFF667EEA),
                         unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    textStyle = MaterialTheme.typography.bodyMedium
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
                 )
                 IconButton(
                     onClick = { onRename(editText) },
@@ -223,7 +225,8 @@ fun ChatItem(
                     Icon(
                         Icons.Default.Check,
                         contentDescription = "Save",
-                        modifier = Modifier.size(18.dp)
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             } else {
@@ -233,13 +236,13 @@ fun ChatItem(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = Color.White,
                         fontSize = 13.sp
                     )
                     Text(
                         "${chat.messageCount} messages",
                         fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        color = Color.White.copy(alpha = 0.5f)
                     )
                 }
 
@@ -250,44 +253,27 @@ fun ChatItem(
                     ) {
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = "Menu",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            contentDescription = "More options",
+                            tint = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 
                     DropdownMenu(
                         expanded = showMenu,
-                        onDismissRequest = { showMenu = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
                             text = { Text("Rename", fontSize = 12.sp) },
-                            onClick = { onEdit(); showMenu = false },
-                            leadingIcon = {
-                                Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
-                            }
+                            onClick = { onEdit(); showMenu = false }
                         )
                         DropdownMenuItem(
                             text = { Text(if (chat.isPinned) "Unpin" else "Pin", fontSize = 12.sp) },
-                            onClick = { onPin(); showMenu = false },
-                            leadingIcon = {
-                                Icon(Icons.Default.PushPin, null, modifier = Modifier.size(16.dp))
-                            }
+                            onClick = { onPin(); showMenu = false }
                         )
                         DropdownMenuItem(
-                            text = { 
-                                Text("Delete", fontSize = 12.sp, color = MaterialTheme.colorScheme.error) 
-                            },
-                            onClick = { onDelete(); showMenu = false },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Delete, 
-                                    null, 
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
+                            text = { Text("Delete", fontSize = 12.sp, color = Color(0xFFFF6B6B)) },
+                            onClick = { onDelete(); showMenu = false }
                         )
                     }
                 }
@@ -304,14 +290,16 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Pro upgrade card for free users
         if (!settings.isProUser) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .clickable { viewModel.openSettings() },
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                tonalElevation = 4.dp
+                color = Color(0xFF667EEA).copy(alpha = 0.1f),
+                shape = RoundedCornerShape(14.dp),
+                tonalElevation = 0.dp
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp),
@@ -319,42 +307,44 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.Upgrade,
-                            contentDescription = "Upgrade",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            Icons.Default.Rocket,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             "Upgrade to Pro",
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = Color.White,
                             fontSize = 12.sp
                         )
                     }
                     Text(
                         "Unlimited APIs & modes",
                         fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = Color.White.copy(alpha = 0.6f)
                     )
                 }
             }
         }
 
-        Divider(
+        HorizontalDivider(
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+            color = Color.White.copy(alpha = 0.1f),
             thickness = 1.dp
         )
 
+        // User profile card
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .clickable { viewModel.openSettings() },
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            tonalElevation = 4.dp
+            color = Color(0xFF1A1A2E),
+            shape = RoundedCornerShape(12.dp),
+            tonalElevation = 0.dp
         ) {
             Row(
                 modifier = Modifier
@@ -370,8 +360,8 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
                         .background(
                             Brush.linearGradient(
                                 listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.secondary
+                                    Color(0xFF667EEA),
+                                    Color(0xFF764BA2)
                                 )
                             )
                         ),
@@ -380,19 +370,18 @@ fun SidebarFooter(viewModel: AgentViewModel, settings: AppSettings) {
                     Text("A", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text("Agent User", fontWeight = FontWeight.SemiBold, 
-                         color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
+                    Text("Agent User", fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 12.sp)
                     Text(
                         if (settings.isProUser) "Pro Account" else "Free Account",
                         fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = Color.White.copy(alpha = 0.6f)
                     )
                 }
                 Icon(
                     Icons.Default.Settings,
                     contentDescription = "Settings",
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    tint = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }

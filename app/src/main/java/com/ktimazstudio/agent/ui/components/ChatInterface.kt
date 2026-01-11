@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +40,7 @@ fun ChatInterface(viewModel: AgentViewModel) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             scope.launch { listState.animateScrollToItem(0) }
@@ -60,6 +61,7 @@ fun ChatInterface(viewModel: AgentViewModel) {
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // Active APIs header bar
             if (currentSession != null && currentSession.activeApis.isNotEmpty()) {
                 ModernActiveApiBar(
                     apis = currentSession.activeApis,
@@ -68,6 +70,7 @@ fun ChatInterface(viewModel: AgentViewModel) {
                 )
             }
 
+            // Messages Area or Welcome Screen
             if (messages.isEmpty()) {
                 WelcomeScreen(viewModel, currentSession, AppTheme.APP_NAME)
             } else {
@@ -86,6 +89,7 @@ fun ChatInterface(viewModel: AgentViewModel) {
                 }
             }
 
+            // Input Bar
             ModernInputBar(
                 input = input,
                 onInputChange = { input = it },
@@ -114,7 +118,8 @@ fun ModernActiveApiBar(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(8.dp),
-        color = Color(0xFF1A1A2E).copy(alpha = 0.95f)
+        color = Color(0xFF1A1A2E).copy(alpha = 0.95f),
+        tonalElevation = 0.dp
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(
@@ -123,8 +128,8 @@ fun ModernActiveApiBar(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    Icons.Default.CloudCircle,
-                    null,
+                    Icons.Default.Cloud,
+                    contentDescription = null,
                     tint = Color(0xFF4ECDC4),
                     modifier = Modifier.size(20.dp)
                 )
@@ -165,7 +170,8 @@ fun ModernApiChip(api: ApiConfig, onRemove: () -> Unit) {
                 detectTapGestures(onLongPress = { onRemove() })
             },
         color = api.provider.color.copy(alpha = 0.15f),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -200,6 +206,7 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(24.dp)
         ) {
+            // App icon/logo
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -214,9 +221,11 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "✨",
-                    fontSize = 50.sp
+                Icon(
+                    Icons.Default.Psychology,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(50.dp)
                 )
             }
 
@@ -240,12 +249,14 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
 
             Spacer(Modifier.height(24.dp))
 
+            // Warning if no APIs are active
             if (session?.activeApis?.isEmpty() == true) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .clip(RoundedCornerShape(16.dp)),
-                    color = Color(0xFFFF6B6B).copy(alpha = 0.1f)
+                    color = Color(0xFFFF6B6B).copy(alpha = 0.1f),
+                    tonalElevation = 0.dp
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -253,7 +264,7 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
                     ) {
                         Icon(
                             Icons.Default.ErrorOutline,
-                            null,
+                            contentDescription = null,
                             tint = Color(0xFFFF6B6B),
                             modifier = Modifier.size(24.dp)
                         )
@@ -275,18 +286,17 @@ fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: Str
 
                 Spacer(Modifier.height(16.dp))
 
-                CustomButton(
+                Button(
                     onClick = { viewModel.openSettings() },
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    buttonColorData = ButtonColorData(
-                        containerColor = Color(0xFF667EEA),
-                        disabledContainerColor = Color.Gray
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF667EEA)
                     )
                 ) {
-                    Text("⚙", fontSize = 18.sp)
+                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text("Open Settings", fontWeight = FontWeight.Bold)
                 }
@@ -344,6 +354,7 @@ fun ModernMessageBubble(msg: ChatMessage) {
                     lineHeight = 20.sp
                 )
 
+                // Show APIs used for this message
                 if (msg.usedApis.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
                     Row(
@@ -353,7 +364,8 @@ fun ModernMessageBubble(msg: ChatMessage) {
                         msg.usedApis.forEach { api ->
                             Surface(
                                 color = Color.White.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(8.dp),
+                                tonalElevation = 0.dp
                             ) {
                                 Text(
                                     api,
@@ -367,6 +379,7 @@ fun ModernMessageBubble(msg: ChatMessage) {
                     }
                 }
 
+                // Loading dots for streaming messages
                 if (msg.isStreaming) {
                     Spacer(Modifier.height(8.dp))
                     LoadingDots()

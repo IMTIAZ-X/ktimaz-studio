@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +42,7 @@ fun ModernInputBar(
     var showModeMenu by remember { mutableStateOf(false) }
     var charCount by remember { mutableStateOf(0) }
 
+    // File picker launchers
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             if (!settings.isProUser && attachedFiles.size >= 10) {
@@ -78,6 +78,7 @@ fun ModernInputBar(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
+        // Attachments preview row
         AnimatedVisibility(
             visible = attachedFiles.isNotEmpty(),
             enter = slideInVertically() + fadeIn(),
@@ -98,18 +99,20 @@ fun ModernInputBar(
             }
         }
 
+        // Selected mode indicator
         AnimatedVisibility(
             visible = selectedMode != AiMode.STANDARD,
             enter = slideInVertically() + fadeIn(),
             exit = slideOutVertically() + fadeOut()
         ) {
-            androidx.compose.material3.Surface(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp)
                     .clip(RoundedCornerShape(14.dp)),
                 color = Color(0xFF667EEA).copy(alpha = 0.15f),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(14.dp),
+                tonalElevation = 0.dp
             ) {
                 Row(
                     modifier = Modifier
@@ -132,13 +135,13 @@ fun ModernInputBar(
                             color = Color.White.copy(alpha = 0.6f)
                         )
                     }
-                    androidx.compose.material3.IconButton(
+                    IconButton(
                         onClick = { viewModel.setSelectedMode(AiMode.STANDARD) },
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
                             Icons.Default.Close,
-                            null,
+                            contentDescription = "Clear mode",
                             tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
@@ -147,13 +150,15 @@ fun ModernInputBar(
             }
         }
 
-        androidx.compose.material3.Surface(
+        // Main Input Card
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(12.dp, RoundedCornerShape(20.dp))
                 .clip(RoundedCornerShape(20.dp)),
             color = Color(0xFF1A1A2E),
-            shape = RoundedCornerShape(20.dp)
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 0.dp
         ) {
             Column {
                 Row(
@@ -163,123 +168,123 @@ fun ModernInputBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // File Attachment Button
                     Box {
-                        androidx.compose.material3.IconButton(
+                        IconButton(
                             onClick = { showFileMenu = true },
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 Icons.Default.AttachFile,
-                                null,
+                                contentDescription = "Attach file",
                                 tint = Color(0xFF4ECDC4),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
 
-                        if (showFileMenu) {
-                            DropdownMenuCustom(
-                                expanded = showFileMenu,
-                                onDismissRequest = { showFileMenu = false }
-                            ) {
-                                DropdownMenuItemCustom(
-                                    text = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Image,
-                                                null,
-                                                modifier = Modifier.size(20.dp),
-                                                tint = Color(0xFF667EEA)
-                                            )
-                                            Text("Upload Image", color = Color.White)
-                                        }
-                                    },
-                                    onClick = {
-                                        imagePicker.launch("image/*")
-                                        showFileMenu = false
+                        DropdownMenu(
+                            expanded = showFileMenu,
+                            onDismissRequest = { showFileMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Image,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = Color(0xFF667EEA)
+                                        )
+                                        Text("Upload Image", color = Color.Black)
                                     }
-                                )
-                                DropdownMenuItemCustom(
-                                    text = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Description,
-                                                null,
-                                                modifier = Modifier.size(20.dp),
-                                                tint = Color(0xFF764BA2)
-                                            )
-                                            Text("Upload File", color = Color.White)
-                                        }
-                                    },
-                                    onClick = {
-                                        filePicker.launch("*/*")
-                                        showFileMenu = false
+                                },
+                                onClick = {
+                                    imagePicker.launch("image/*")
+                                    showFileMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Description,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = Color(0xFF764BA2)
+                                        )
+                                        Text("Upload File", color = Color.Black)
                                     }
-                                )
-                            }
+                                },
+                                onClick = {
+                                    filePicker.launch("*/*")
+                                    showFileMenu = false
+                                }
+                            )
                         }
                     }
 
+                    // AI Mode Selection Button
                     Box {
-                        androidx.compose.material3.IconButton(
+                        IconButton(
                             onClick = { showModeMenu = true },
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 Icons.Default.Psychology,
-                                null,
+                                contentDescription = "Select AI mode",
                                 tint = Color(0xFF764BA2),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
 
-                        if (showModeMenu) {
-                            DropdownMenuCustom(
-                                expanded = showModeMenu,
-                                onDismissRequest = { showModeMenu = false }
-                            ) {
-                                AiMode.values().forEach { mode ->
-                                    val isLocked = mode.isPro && !settings.isProUser
-                                    DropdownMenuItemCustom(
-                                        text = {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                Text(mode.icon, fontSize = 16.sp)
-                                                Column(Modifier.weight(1f)) {
+                        DropdownMenu(
+                            expanded = showModeMenu,
+                            onDismissRequest = { showModeMenu = false }
+                        ) {
+                            AiMode.values().forEach { mode ->
+                                val isLocked = mode.isPro && !settings.isProUser
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(mode.icon, fontSize = 16.sp)
+                                            Column(Modifier.weight(1f)) {
+                                                Text(
+                                                    mode.title,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = Color.Black
+                                                )
+                                                if (isLocked) {
                                                     Text(
-                                                        mode.title,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = Color.White
+                                                        "Pro Only",
+                                                        fontSize = 11.sp,
+                                                        color = Color(0xFFFF6B6B)
                                                     )
-                                                    if (isLocked) {
-                                                        Text(
-                                                            "Pro Only",
-                                                            fontSize = 11.sp,
-                                                            color = Color(0xFFFF6B6B)
-                                                        )
-                                                    }
                                                 }
                                             }
-                                        },
-                                        onClick = {
-                                            if (!isLocked) {
-                                                viewModel.setSelectedMode(mode)
-                                                showModeMenu = false
-                                            }
                                         }
-                                    )
-                                }
+                                    },
+                                    onClick = {
+                                        if (!isLocked) {
+                                            viewModel.setSelectedMode(mode)
+                                            showModeMenu = false
+                                        }
+                                    },
+                                    enabled = !isLocked
+                                )
                             }
                         }
                     }
 
+                    // Text Input Field
                     TextField(
                         value = input,
                         onValueChange = {
@@ -304,14 +309,15 @@ fun ModernInputBar(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
                         ),
-                        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                        textStyle = LocalTextStyle.current.copy(
                             fontSize = 14.sp,
                             color = Color.White
                         ),
                         maxLines = 5
                     )
 
-                    androidx.compose.material3.Button(
+                    // Send Button
+                    Button(
                         onClick = onSend,
                         enabled = input.isNotBlank() || attachedFiles.isNotEmpty(),
                         modifier = Modifier
@@ -327,13 +333,14 @@ fun ModernInputBar(
                     ) {
                         Icon(
                             Icons.Default.Send,
-                            null,
+                            contentDescription = "Send",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
 
+                // Character Count and File Count
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -361,14 +368,15 @@ fun ModernInputBar(
 
 @Composable
 fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
-    androidx.compose.material3.Surface(
+    Surface(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = { onRemove() })
             },
         color = Color(0xFF667EEA).copy(alpha = 0.2f),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -377,7 +385,7 @@ fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
         ) {
             Icon(
                 if (attachment.isImage) Icons.Default.Image else Icons.Default.Description,
-                null,
+                contentDescription = null,
                 tint = Color(0xFF4ECDC4),
                 modifier = Modifier.size(16.dp)
             )
@@ -389,43 +397,12 @@ fun ModernAttachmentChip(attachment: Attachment, onRemove: () -> Unit) {
             )
             Icon(
                 Icons.Default.Close,
-                null,
+                contentDescription = "Remove",
                 tint = Color.White.copy(alpha = 0.6f),
                 modifier = Modifier
                     .size(14.dp)
-                    .pointerInput(Unit) {
-                        detectTapGestures(onTap = { onRemove() })
-                    }
+                    .clickable { onRemove() }
             )
         }
-    }
-}
-
-@Composable
-fun DropdownMenuCustom(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    if (expanded) {
-        androidx.compose.material3.Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.3f)
-                .shadow(8.dp),
-            color = Color(0xFF1A1A2E),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(modifier = Modifier.padding(4.dp), content = content)
-        }
-    }
-}
-
-@Composable
-fun DropdownMenuItemCustom(text: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    androidx.compose.material3.Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick() },
-        color = Color.Transparent
-    ) {
-        Box(modifier = Modifier.padding(12.dp)) { text() }
     }
 }
