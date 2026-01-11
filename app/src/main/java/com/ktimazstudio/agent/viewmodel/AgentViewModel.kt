@@ -10,37 +10,29 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AgentViewModel : ViewModel() {
-    // Settings State - holds all app configuration including theme, pro status, and API configs
     private val _settings = MutableStateFlow(AppSettings())
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
-    // Chat Sessions State - manages all conversations
     private val _chatSessions = MutableStateFlow<List<ChatSession>>(
         listOf(ChatSession(title = "New Chat"))
     )
     val chatSessions: StateFlow<List<ChatSession>> = _chatSessions.asStateFlow()
 
-    // Current Session ID - tracks which conversation is active
     private val _currentSessionId = MutableStateFlow(_chatSessions.value.firstOrNull()?.id ?: "")
     val currentSessionId: StateFlow<String> = _currentSessionId.asStateFlow()
 
-    // UI State - controls sidebar visibility
     private val _isSidebarOpen = MutableStateFlow(true)
     val isSidebarOpen: StateFlow<Boolean> = _isSidebarOpen.asStateFlow()
 
-    // Settings Modal State
     private val _isSettingsModalOpen = MutableStateFlow(false)
     val isSettingsModalOpen: StateFlow<Boolean> = _isSettingsModalOpen.asStateFlow()
 
-    // Selected AI Mode for current input
     private val _selectedMode = MutableStateFlow(AiMode.STANDARD)
     val selectedMode: StateFlow<AiMode> = _selectedMode.asStateFlow()
 
-    // Computed property to get the current active session
     val currentSession: ChatSession?
         get() = _chatSessions.value.find { it.id == _currentSessionId.value }
 
-    // Count of globally active APIs
     val activeApiCount: Int
         get() = _settings.value.apiConfigs.count { it.isActive }
 
@@ -48,11 +40,11 @@ class AgentViewModel : ViewModel() {
         loadInitialData()
     }
 
-    // Initialize with default data if none exists
     private fun loadInitialData() {
-        if (_settings.value.apiConfigs.isEmpty()) {
-            _settings.value = _settings.value.copy(
-                apiConfigs = listOf(
+        val loadedSettings = PreferenceManager.loadSettings()
+        _settings.value = loadedSettings.copy(
+            apiConfigs = if (loadedSettings.apiConfigs.isEmpty()) {
+                listOf(
                     ApiConfig(
                         provider = AiProvider.GEMINI,
                         name = "Gemini Default",
@@ -62,32 +54,21 @@ class AgentViewModel : ViewModel() {
                         isActive = false
                     )
                 )
-            )
-        }
-    }
-
-    // Persist all data to SharedPreferences
-    fun saveAllData() {
-        PreferenceManager.saveBasicSettings(_settings.value)
-        PreferenceManager.saveApiConfigs(_settings.value.apiConfigs)
-        PreferenceManager.saveChatSessions(_chatSessions.value)
-    }
-
-    // Load saved data from SharedPreferences
-    fun loadAllData() {
-        val loadedSettings = PreferenceManager.loadBasicSettings().copy(
-            apiConfigs = PreferenceManager.loadApiConfigs()
+            } else {
+                loadedSettings.apiConfigs
+            }
         )
-        _settings.value = loadedSettings
-        
-        val loadedSessions = PreferenceManager.loadChatSessions()
-        if (loadedSessions.isNotEmpty()) {
-            _chatSessions.value = loadedSessions
-            _currentSessionId.value = loadedSessions.first().id
-        }
     }
 
-    // UI Actions
+    fun saveAllData() {
+        PreferenceManager.saveSettings(_settings.value)
+    }
+
+    fun loadAllData() {
+        val loadedSettings = PreferenceManager.loadSettings()
+        _settings.value = loadedSettings
+    }
+
     fun toggleSidebar() {
         _isSidebarOpen.value = !_isSidebarOpen.value
     }
@@ -115,16 +96,13 @@ class AgentViewModel : ViewModel() {
         _selectedMode.value = mode
     }
 
-    // API Management Functions
     fun addApiConfig(config: ApiConfig): Boolean {
         val currentSettings = _settings.value
         
-        // Enforce free plan limit of 5 APIs
         if (!currentSettings.isProUser && currentSettings.apiConfigs.size >= AppTheme.FREE_API_LIMIT) {
             return false
         }
 
-        // Validate that API key is not empty
         if (config.apiKey.isBlank()) {
             return false
         }
@@ -155,12 +133,10 @@ class AgentViewModel : ViewModel() {
 
     fun deleteApiConfig(configId: String) {
         try {
-            // Remove from global API configs
             _settings.value = _settings.value.copy(
                 apiConfigs = _settings.value.apiConfigs.filter { it.id != configId }
             )
             
-            // Remove from all chat sessions that were using this API
             _chatSessions.value = _chatSessions.value.map { session ->
                 session.copy(
                     activeApis = session.activeApis.filter { it != configId }.toMutableList()
@@ -177,7 +153,6 @@ class AgentViewModel : ViewModel() {
             val config = _settings.value.apiConfigs.find { it.id == configId } ?: return
             val currentlyActive = _settings.value.apiConfigs.count { it.isActive }
             
-            // Prevent activating more than 5 APIs globally
             if (!config.isActive && currentlyActive >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
                 return
             }
@@ -199,17 +174,14 @@ class AgentViewModel : ViewModel() {
             val mutableApis = session.activeApis.toMutableList()
             
             if (mutableApis.contains(configId)) {
-                // Remove API from this chat
                 mutableApis.remove(configId)
             } else {
-                // Add API to this chat, removing oldest if at limit
                 if (mutableApis.size >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
                     mutableApis.removeAt(0)
                 }
                 mutableApis.add(configId)
             }
             
-            // Update the session with new active APIs
             _chatSessions.value = _chatSessions.value.map { s ->
                 if (s.id == session.id) s.copy(activeApis = mutableApis) else s
             }
@@ -219,7 +191,6 @@ class AgentViewModel : ViewModel() {
         }
     }
 
-    // Chat Management Functions
     fun newChat() {
         try {
             val newSession = ChatSession(title = "New Chat")
@@ -251,10 +222,8 @@ class AgentViewModel : ViewModel() {
         try {
             _chatSessions.value = _chatSessions.value.filter { it.id != sessionId }
             
-            // If we deleted the current chat, switch to the first available
             if (_currentSessionId.value == sessionId) {
                 _currentSessionId.value = _chatSessions.value.firstOrNull()?.id ?: ""
-                // Create a new chat if none exist
                 if (_chatSessions.value.isEmpty()) {
                     newChat()
                 }
@@ -276,25 +245,21 @@ class AgentViewModel : ViewModel() {
         }
     }
 
-    // Message Sending with validation and AI response simulation
     fun sendUserMessage(text: String, attachments: List<Attachment>, mode: AiMode) {
         try {
             val settings = _settings.value
             val currentSession = this.currentSession ?: return
 
-            // Validate attachment limit for free users
             if (!settings.isProUser && attachments.size > 10) {
                 appendAiMessage("Free plan limited to 10 attachments per message")
                 return
             }
 
-            // Validate mode access for free users
             if (!settings.isProUser && mode.isPro) {
                 appendAiMessage("${mode.title} Mode requires Pro account")
                 return
             }
 
-            // Get active APIs for this chat
             val activeApis = settings.apiConfigs.filter { api ->
                 api.isActive && currentSession.activeApis.contains(api.id)
             }
@@ -304,7 +269,6 @@ class AgentViewModel : ViewModel() {
                 return
             }
 
-            // Add the user's message to the chat
             val userMessage = ChatMessage(
                 text = text.trim(),
                 isUser = true,
@@ -314,19 +278,15 @@ class AgentViewModel : ViewModel() {
             
             currentSession.messages.add(userMessage)
             
-            // Auto-generate chat title from first message
             if (currentSession.messages.size == 1 && currentSession.title.startsWith("New Chat")) {
                 currentSession.title = text.take(40) + if (text.length > 40) "..." else ""
             }
             
-            // Trigger UI update
             _chatSessions.value = _chatSessions.value.toList()
             saveAllData()
 
-            // Simulate AI response with coroutine
             viewModelScope.launch {
                 try {
-                    // Update token usage and cost
                     _settings.value = settings.copy(
                         tokenUsage = settings.tokenUsage + 150,
                         estimatedCost = settings.estimatedCost + 0.00075
@@ -335,7 +295,6 @@ class AgentViewModel : ViewModel() {
 
                     delay(800)
                     
-                    // Show loading indicator
                     currentSession.messages.add(
                         ChatMessage(text = "...", isUser = false, isStreaming = true)
                     )
@@ -343,7 +302,6 @@ class AgentViewModel : ViewModel() {
 
                     delay(1500)
                     
-                    // Remove loading and add actual response
                     if (currentSession.messages.isNotEmpty()) {
                         currentSession.messages.removeLast()
                     }
@@ -368,7 +326,6 @@ class AgentViewModel : ViewModel() {
         }
     }
 
-    // Generate simulated AI reply based on mode and active APIs
     private fun generateAiReply(userMessage: ChatMessage, activeApis: List<ApiConfig>): String {
         return when (userMessage.mode) {
             AiMode.THINKING -> """
@@ -404,7 +361,6 @@ class AgentViewModel : ViewModel() {
         }
     }
 
-    // Helper to append AI messages for errors/warnings
     private fun appendAiMessage(text: String) {
         try {
             currentSession?.messages?.add(ChatMessage(text = text, isUser = false))
