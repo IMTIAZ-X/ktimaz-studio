@@ -69,7 +69,7 @@ fun ChatInterface(viewModel: AgentViewModel) {
             }
 
             if (messages.isEmpty()) {
-                WelcomeScreen(viewModel, currentSession, AppTheme.APP_NAME)
+                WelcomeScreen(viewModel, currentSession, AppTheme.APP_NAME,modifier = Modifier.weight(1f, fill = true))
             } else {
                 LazyColumn(
                     modifier = Modifier
@@ -191,7 +191,7 @@ fun ModernApiChip(api: ApiConfig, onRemove: () -> Unit) {
 }
 
 @Composable
-fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: String) {
+fun WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: String,modifier: Modifier = Modifier) {
     Column(
         modifier = Modifier
             .fillMaxSize()
