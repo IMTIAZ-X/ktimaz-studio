@@ -10,9 +10,10 @@ data class Attachment(
     val type: AttachmentType,
     val uri: Uri? = null,
     val content: String = "",
-    val size: Long = 0,
-    val isImage: Boolean = type == AttachmentType.IMAGE
-)
+    val size: Long = 0
+) {
+    val isImage: Boolean get() = type == AttachmentType.IMAGE
+}
 
 enum class AttachmentType {
     IMAGE, TEXT, CODE, JSON, PDF, DOCUMENT, UNKNOWN
@@ -77,44 +78,46 @@ enum class AiMode(
 
 enum class AiProvider(
     val title: String,
-    val color: Color,
     val defaultModel: String,
     val defaultUrl: String
 ) {
     GEMINI(
         "Google Gemini",
-        Color(0xFF4285F4),
         "gemini-2.0-flash-exp",
         "https://generativelanguage.googleapis.com/v1beta"
     ),
     CHATGPT(
         "OpenAI ChatGPT",
-        Color(0xFF10A37F),
         "gpt-4o",
         "https://api.openai.com/v1"
     ),
     CLAUDE(
         "Anthropic Claude",
-        Color(0xFFCC785C),
         "claude-sonnet-4-20250514",
         "https://api.anthropic.com/v1"
     ),
     GROK(
         "Grok (X.AI)",
-        Color(0xFF000000),
         "grok-2-latest",
         "https://api.x.ai/v1"
     ),
     DEEPSEEK(
         "DeepSeek",
-        Color(0xFF6366F1),
         "deepseek-chat",
         "https://api.deepseek.com/v1"
     ),
     LOCAL_LLM(
         "Local LLM",
-        Color(0xFF8B5CF6),
         "llama-3.1-8b",
         "http://localhost:1234/v1"
-    )
+    );
+
+    val color: Color get() = when (this) {
+        GEMINI -> Color(0xFF4285F4)
+        CHATGPT -> Color(0xFF10A37F)
+        CLAUDE -> Color(0xFFCC785C)
+        GROK -> Color(0xFF000000)
+        DEEPSEEK -> Color(0xFF6366F1)
+        LOCAL_LLM -> Color(0xFF8B5CF6)
+    }
 }

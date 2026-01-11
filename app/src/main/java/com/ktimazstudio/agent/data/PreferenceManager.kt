@@ -2,9 +2,6 @@ package com.ktimazstudio.agent.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 
 object PreferenceManager {
     private lateinit var prefs: SharedPreferences
@@ -13,70 +10,26 @@ object PreferenceManager {
         prefs = context.getSharedPreferences("agent_prefs", Context.MODE_PRIVATE)
     }
     
-    // Save Settings
     fun saveSettings(settings: AppSettings) {
-        try {
-            val json = Json.encodeToString(settings)
-            prefs.edit().putString("app_settings", json).apply()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        prefs.edit().apply {
+            putBoolean("is_pro_user", settings.isProUser)
+            putBoolean("is_dark_theme", settings.isDarkTheme)
+            putInt("token_usage", settings.tokenUsage)
+            putFloat("estimated_cost", settings.estimatedCost.toFloat())
+            apply()
         }
     }
     
-    // Load Settings
-    fun loadSettings(): AppSettings? {
-        return try {
-            val json = prefs.getString("app_settings", null) ?: return null
-            Json.decodeFromString<AppSettings>(json)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+    fun loadSettings(): AppSettings {
+        return AppSettings(
+            isProUser = prefs.getBoolean("is_pro_user", false),
+            isDarkTheme = prefs.getBoolean("is_dark_theme", true),
+            tokenUsage = prefs.getInt("token_usage", 0),
+            estimatedCost = prefs.getFloat("estimated_cost", 0f).toDouble(),
+            apiConfigs = emptyList()
+        )
     }
     
-    // Save API Configs
-    fun saveApiConfigs(configs: List<ApiConfig>) {
-        try {
-            val json = Json.encodeToString(configs)
-            prefs.edit().putString("api_configs", json).apply()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-    
-    // Load API Configs
-    fun loadApiConfigs(): List<ApiConfig>? {
-        return try {
-            val json = prefs.getString("api_configs", null) ?: return null
-            Json.decodeFromString<List<ApiConfig>>(json)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-    
-    // Save Chat Sessions
-    fun saveChatSessions(sessions: List<ChatSession>) {
-        try {
-            val json = Json.encodeToString(sessions)
-            prefs.edit().putString("chat_sessions", json).apply()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-    
-    // Load Chat Sessions
-    fun loadChatSessions(): List<ChatSession>? {
-        return try {
-            val json = prefs.getString("chat_sessions", null) ?: return null
-            Json.decodeFromString<List<ChatSession>>(json)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-    
-    // Clear All
     fun clearAll() {
         prefs.edit().clear().apply()
     }
