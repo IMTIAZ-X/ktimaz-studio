@@ -33,9 +33,11 @@ fun ModernAgentTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-        typography = MaterialTheme.typography,
+        colorScheme = colorScheme,
+        typography = Typography(),
         content = content
     )
 }
