@@ -18,7 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -26,13 +25,15 @@ import androidx.compose.ui.window.DialogProperties
 import com.ktimazstudio.agent.data.*
 import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
     var showAddDialog by remember { mutableStateOf(false) }
     var editingApiId by remember { mutableStateOf<String?>(null) }
     
-    // Safe access to current session
-    val currentSession by remember {
+    // Safe access to current session with a stable key logic
+    // Note: derivedStateOf works best if currentSession is a State object in ViewModel
+    val currentSession by remember(viewModel) {
         derivedStateOf { 
             try {
                 viewModel.currentSession
@@ -72,9 +73,10 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
                         value = "${settings.apiConfigs.size}/${if (settings.isProUser) "∞" else "5"}",
                         color = MaterialTheme.colorScheme.primary
                     )
+                    // Safely accessing active count, assuming it's an Int property
                     StatItem(
                         label = "Active Now",
-                        value = "${viewModel.activeApiCount}/5",
+                        value = "${try { viewModel.activeApiCount } catch(e: Exception) { 0 }}/5",
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
@@ -130,9 +132,12 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
         if (settings.apiConfigs.isEmpty()) {
             EmptyApiState()
         } else {
+            // FIX: Added weight(1f) to prevent layout crash inside Column
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f) 
             ) {
                 items(
                     items = settings.apiConfigs,
@@ -141,6 +146,7 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
                     ApiConfigCard(
                         api = api,
                         isActive = api.isActive,
+                        // Safe check for null session or list
                         isInChat = currentSession?.activeApis?.contains(api.id) == true,
                         onToggleActive = { viewModel.toggleApiActive(api.id) },
                         onToggleChat = { viewModel.toggleApiForCurrentChat(api.id) },
@@ -226,6 +232,7 @@ fun EmptyApiState() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApiConfigCard(
     api: ApiConfig,
@@ -484,7 +491,9 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                                             apiKey = apiKey,
                                             modelName = modelName,
                                             baseUrl = baseUrl,
-                                            systemRole = systemRole
+                                            systemRole = systemRole,
+                                            // Ensure ID and defaults are handled in data class or here
+                                            isActive = true
                                         )
                                     )
                                 }
