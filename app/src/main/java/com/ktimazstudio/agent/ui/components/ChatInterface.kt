@@ -69,13 +69,7 @@ fun ChatInterface(viewModel: AgentViewModel) {
             }
 
             if (messages.isEmpty()) {
-                // FIX: Pass the weight modifier to WelcomeScreen from the ColumnScope
-                WelcomeScreen(
-                    viewModel, 
-                    currentSession, 
-                    AppTheme.APP_NAME,
-                    modifier = Modifier.weight(1f, fill = true)
-                )
+                WelcomeScreen(viewModel, currentSession, AppTheme.APP_NAME)
             } else {
                 LazyColumn(
                     modifier = Modifier
@@ -197,14 +191,11 @@ fun ModernApiChip(api: ApiConfig, onRemove: () -> Unit) {
 }
 
 @Composable
-fun WelcomeScreen(
-    viewModel: AgentViewModel, 
-    session: ChatSession?, 
-    appName: String,
-    modifier: Modifier = Modifier // FIX: Added modifier parameter
-) {
+fun ColumnScope.WelcomeScreen(viewModel: AgentViewModel, session: ChatSession?, appName: String) {
     Column(
-        modifier = modifier.fillMaxSize(), // FIX: Use the passed modifier and chain fillMaxSize
+        modifier = Modifier
+            .fillMaxSize()
+            .weight(1f, fill = true),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
