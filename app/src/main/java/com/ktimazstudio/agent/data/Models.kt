@@ -45,26 +45,14 @@ data class ChatSession(
 data class ApiConfig(
     val id: String = UUID.randomUUID().toString(),
     val provider: AiProvider,
-    var name: String,
-    var isActive: Boolean = false,
-    var apiKey: String = "",
-    var modelName: String = "",
-    var baseUrl: String = "",
-    var systemRole: String = "",
+    val name: String,
+    val isActive: Boolean = false,
+    val apiKey: String = "",
+    val modelName: String = "",
+    val baseUrl: String = "",
+    val systemRole: String = "",
     val createdAt: Long = System.currentTimeMillis()
-) {
-    fun copy(
-        id: String = this.id,
-        provider: AiProvider = this.provider,
-        name: String = this.name,
-        isActive: Boolean = this.isActive,
-        apiKey: String = this.apiKey,
-        modelName: String = this.modelName,
-        baseUrl: String = this.baseUrl,
-        systemRole: String = this.systemRole,
-        createdAt: Long = this.createdAt
-    ) = ApiConfig(id, provider, name, isActive, apiKey, modelName, baseUrl, systemRole, createdAt)
-}
+)
 
 data class AppSettings(
     val isProUser: Boolean = false,
