@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -31,10 +30,22 @@ import com.ktimazstudio.agent.viewmodel.AgentViewModel
 fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
     var showAddDialog by remember { mutableStateOf(false) }
     var editingApiId by remember { mutableStateOf<String?>(null) }
-    val currentSession = viewModel.currentSession
+    
+    // Safe access to current session
+    val currentSession by remember {
+        derivedStateOf { 
+            try {
+                viewModel.currentSession
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Stats Card
@@ -75,12 +86,12 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
             onClick = { showAddDialog = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(12.dp)
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Add New API", fontWeight = FontWeight.Bold)
+            Text("Add New API", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
 
         // Pro Limit Warning
@@ -91,7 +102,7 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
                 )
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -101,8 +112,8 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
                         tint = MaterialTheme.colorScheme.error
                     )
                     Text(
-                        "Free plan limited to 5 APIs",
-                        fontSize = 12.sp,
+                        "Free plan limited to 5 APIs. Upgrade to Pro for unlimited.",
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -110,8 +121,8 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
         }
 
         Text(
-            "Your Configurations",
-            fontSize = 14.sp,
+            "Your API Configurations",
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
 
@@ -119,8 +130,14 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
         if (settings.apiConfigs.isEmpty()) {
             EmptyApiState()
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(settings.apiConfigs, key = { it.id }) { api ->
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(
+                    items = settings.apiConfigs,
+                    key = { it.id }
+                ) { api ->
                     ApiConfigCard(
                         api = api,
                         isActive = api.isActive,
@@ -135,24 +152,27 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
         }
     }
 
+    // Add API Dialog
     if (showAddDialog) {
         AddApiDialog(
             onDismiss = { showAddDialog = false },
-            onSave = {
-                viewModel.addApiConfig(it)
-                showAddDialog = false
+            onSave = { config ->
+                val success = viewModel.addApiConfig(config)
+                if (success) {
+                    showAddDialog = false
+                }
             }
         )
     }
 
+    // Edit API Dialog
     editingApiId?.let { apiId ->
-        val api = settings.apiConfigs.find { it.id == apiId }
-        if (api != null) {
+        settings.apiConfigs.find { it.id == apiId }?.let { api ->
             EditApiDialog(
                 api = api,
                 onDismiss = { editingApiId = null },
-                onSave = {
-                    viewModel.updateApiConfig(apiId, it)
+                onSave = { updatedConfig ->
+                    viewModel.updateApiConfig(apiId, updatedConfig)
                     editingApiId = null
                 }
             )
@@ -163,11 +183,11 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
 @Composable
 fun StatItem(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontSize = 22.sp, fontWeight = FontWeight.Black, color = color)
+        Text(value, fontSize = 24.sp, fontWeight = FontWeight.Black, color = color)
         Spacer(Modifier.height(4.dp))
         Text(
             label,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
     }
@@ -182,24 +202,24 @@ fun EmptyApiState() {
         )
     ) {
         Column(
-            modifier = Modifier.padding(32.dp),
+            modifier = Modifier.padding(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
                 Icons.Default.Cloud,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
             Text(
                 "No APIs Configured",
-                fontSize = 14.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                "Add your first API to get started",
-                fontSize = 12.sp,
+                "Add your first API to start using AI Agent",
+                fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
@@ -221,13 +241,16 @@ fun ApiConfigCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive) 
-                api.provider.color.copy(alpha = 0.2f) 
-            else 
+            containerColor = if (isActive)
+                api.provider.color.copy(alpha = 0.15f)
+            else
                 MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -235,24 +258,29 @@ fun ApiConfigCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
+                        .size(12.dp)
                         .clip(CircleShape)
                         .background(api.provider.color)
                 )
+                
                 Column(Modifier.weight(1f)) {
-                    Text(api.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(
+                        api.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                     Text(
                         "${api.provider.title} • ${api.modelName}",
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
-                
+
                 Box {
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "More options")
                     }
-                    
+
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
@@ -260,17 +288,17 @@ fun ApiConfigCard(
                         DropdownMenuItem(
                             text = { Text("Edit") },
                             onClick = { onEdit(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Default.Edit, null) }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                             onClick = { onDelete(); showMenu = false },
-                            leadingIcon = { 
+                            leadingIcon = {
                                 Icon(
-                                    Icons.Default.Delete, 
-                                    contentDescription = null,
+                                    Icons.Default.Delete,
+                                    null,
                                     tint = MaterialTheme.colorScheme.error
-                                ) 
+                                )
                             }
                         )
                     }
@@ -296,7 +324,7 @@ fun ApiConfigCard(
                         )
                     }
                 )
-                
+
                 FilterChip(
                     selected = isInChat && isActive,
                     onClick = onToggleChat,
@@ -324,6 +352,7 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
     var baseUrl by remember { mutableStateOf(selectedProvider.defaultUrl) }
     var systemRole by remember { mutableStateOf("") }
 
+    // Auto-update when provider changes
     LaunchedEffect(selectedProvider) {
         modelName = selectedProvider.defaultModel
         baseUrl = selectedProvider.defaultUrl
@@ -335,24 +364,39 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
+                .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.9f),
-            shape = RoundedCornerShape(20.dp)
+            shape = RoundedCornerShape(24.dp)
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 item {
-                    Text("Add New API", fontSize = 20.sp, fontWeight = FontWeight.Black)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Add New API",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, "Close")
+                        }
+                    }
                 }
 
                 item {
-                    Text("Select Provider", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Provider", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AiProvider.values().forEach { provider ->
-                            ProviderSelector(
+                            ProviderChip(
                                 provider = provider,
                                 isSelected = selectedProvider == provider,
                                 onClick = { selectedProvider = provider }
@@ -361,11 +405,60 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                     }
                 }
 
-                item { ApiInputField("Configuration Name", name) { name = it } }
-                item { ApiInputField("API Key", apiKey, isSecret = true) { apiKey = it } }
-                item { ApiInputField("Model Name", modelName) { modelName = it } }
-                item { ApiInputField("Base URL", baseUrl) { baseUrl = it } }
-                item { ApiInputField("System Role (Optional)", systemRole) { systemRole = it } }
+                item {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Configuration Name") },
+                        placeholder = { Text("My ${selectedProvider.title}") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = apiKey,
+                        onValueChange = { apiKey = it },
+                        label = { Text("API Key *") },
+                        placeholder = { Text("Enter your API key") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        isError = apiKey.isNotBlank() && apiKey.length < 10
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = modelName,
+                        onValueChange = { modelName = it },
+                        label = { Text("Model Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = baseUrl,
+                        onValueChange = { baseUrl = it },
+                        label = { Text("Base URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = systemRole,
+                        onValueChange = { systemRole = it },
+                        label = { Text("System Role (Optional)") },
+                        placeholder = { Text("You are a helpful assistant...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3
+                    )
+                }
 
                 item {
                     Row(
@@ -374,7 +467,9 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
                         ) {
                             Text("Cancel")
                         }
@@ -394,7 +489,9 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                                     )
                                 }
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
                             enabled = apiKey.isNotBlank()
                         ) {
                             Text("Add API")
@@ -419,28 +516,95 @@ fun EditApiDialog(api: ApiConfig, onDismiss: () -> Unit, onSave: (ApiConfig) -> 
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(0.9f).fillMaxHeight(0.8f),
-            shape = RoundedCornerShape(20.dp)
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.85f),
+            shape = RoundedCornerShape(24.dp)
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                item { Text("Edit API", fontSize = 20.sp, fontWeight = FontWeight.Black) }
-                item { ApiInputField("Name", name) { name = it } }
-                item { ApiInputField("API Key", apiKey, isSecret = true) { apiKey = it } }
-                item { ApiInputField("Model", modelName) { modelName = it } }
-                item { ApiInputField("Base URL", baseUrl) { baseUrl = it } }
-                item { ApiInputField("System Role", systemRole) { systemRole = it } }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Edit API", fontSize = 24.sp, fontWeight = FontWeight.Black)
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, "Close")
+                        }
+                    }
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = apiKey,
+                        onValueChange = { apiKey = it },
+                        label = { Text("API Key") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = modelName,
+                        onValueChange = { modelName = it },
+                        label = { Text("Model") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = baseUrl,
+                        onValueChange = { baseUrl = it },
+                        label = { Text("Base URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = systemRole,
+                        onValueChange = { systemRole = it },
+                        label = { Text("System Role") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3
+                    )
+                }
 
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
+                        ) {
                             Text("Cancel")
                         }
+
                         Button(
                             onClick = {
                                 onSave(
@@ -453,9 +617,11 @@ fun EditApiDialog(api: ApiConfig, onDismiss: () -> Unit, onSave: (ApiConfig) -> 
                                     )
                                 )
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
                         ) {
-                            Text("Save")
+                            Text("Save Changes")
                         }
                     }
                 }
@@ -465,62 +631,45 @@ fun EditApiDialog(api: ApiConfig, onDismiss: () -> Unit, onSave: (ApiConfig) -> 
 }
 
 @Composable
-fun ProviderSelector(provider: AiProvider, isSelected: Boolean, onClick: () -> Unit) {
+fun ProviderChip(provider: AiProvider, isSelected: Boolean, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) 
-                provider.color.copy(alpha = 0.2f) 
-            else 
+            containerColor = if (isSelected)
+                provider.color.copy(alpha = 0.2f)
+            else
                 MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(10.dp)
                     .clip(CircleShape)
                     .background(provider.color)
             )
-            Text(provider.title, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            Text(
+                provider.title,
+                fontSize = 14.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.weight(1f)
+            )
             if (isSelected) {
                 Icon(
                     Icons.Default.Check,
                     contentDescription = null,
                     tint = provider.color,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
-    }
-}
-
-@Composable
-fun ApiInputField(
-    label: String,
-    value: String,
-    isSecret: Boolean = false,
-    onValueChange: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = if (isSecret) PasswordVisualTransformation() else VisualTransformation.None
-        )
     }
 }
