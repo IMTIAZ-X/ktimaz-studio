@@ -52,7 +52,19 @@ data class ApiConfig(
     var baseUrl: String = "",
     var systemRole: String = "",
     val createdAt: Long = System.currentTimeMillis()
-)
+) {
+    fun copy(
+        id: String = this.id,
+        provider: AiProvider = this.provider,
+        name: String = this.name,
+        isActive: Boolean = this.isActive,
+        apiKey: String = this.apiKey,
+        modelName: String = this.modelName,
+        baseUrl: String = this.baseUrl,
+        systemRole: String = this.systemRole,
+        createdAt: Long = this.createdAt
+    ) = ApiConfig(id, provider, name, isActive, apiKey, modelName, baseUrl, systemRole, createdAt)
+}
 
 data class AppSettings(
     val isProUser: Boolean = false,
@@ -112,12 +124,13 @@ enum class AiProvider(
         "http://localhost:1234/v1"
     );
 
-    val color: Color get() = when (this) {
-        GEMINI -> Color(0xFF4285F4)
-        CHATGPT -> Color(0xFF10A37F)
-        CLAUDE -> Color(0xFFCC785C)
-        GROK -> Color(0xFF000000)
-        DEEPSEEK -> Color(0xFF6366F1)
-        LOCAL_LLM -> Color(0xFF8B5CF6)
-    }
+    val color: Color
+        get() = when (this) {
+            GEMINI -> Color(0xFF4285F4)
+            CHATGPT -> Color(0xFF10A37F)
+            CLAUDE -> Color(0xFFCC785C)
+            GROK -> Color(0xFF1DA1F2)
+            DEEPSEEK -> Color(0xFF6366F1)
+            LOCAL_LLM -> Color(0xFF8B5CF6)
+        }
 }
