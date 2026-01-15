@@ -31,9 +31,8 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
     var showAddDialog by remember { mutableStateOf(false) }
     var editingApiId by remember { mutableStateOf<String?>(null) }
     
-    // Safe access to current session with a stable key logic
-    // Note: derivedStateOf works best if currentSession is a State object in ViewModel
-    val currentSession by remember(viewModel) {
+    // Safe access to current session with proper error handling
+    val currentSession by remember {
         derivedStateOf { 
             try {
                 viewModel.currentSession
@@ -43,15 +42,26 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
         }
     }
 
+    // Safe access to active API count
+    val activeApiCount = remember {
+        derivedStateOf {
+            try {
+                viewModel.activeApiCount
+            } catch (e: Exception) {
+                0
+            }
+        }
+    }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Stats Card
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             )
@@ -73,10 +83,9 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
                         value = "${settings.apiConfigs.size}/${if (settings.isProUser) "∞" else "5"}",
                         color = MaterialTheme.colorScheme.primary
                     )
-                    // Safely accessing active count, assuming it's an Int property
                     StatItem(
                         label = "Active Now",
-                        value = "${try { viewModel.activeApiCount } catch(e: Exception) { 0 }}/5",
+                        value = "${activeApiCount.value}/5",
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
@@ -88,7 +97,8 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
             onClick = { showAddDialog = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(56.dp)
+                .padding(horizontal = 16.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
@@ -99,6 +109,9 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
         // Pro Limit Warning
         if (!settings.isProUser && settings.apiConfigs.size >= 5) {
             Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer
                 )
@@ -125,19 +138,20 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
         Text(
             "Your API Configurations",
             fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
 
-        // API List
+        // API List - CRITICAL FIX: Added weight(1f) to prevent infinite height
         if (settings.apiConfigs.isEmpty()) {
             EmptyApiState()
         } else {
-            // FIX: Added weight(1f) to prevent layout crash inside Column
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f) 
+                    .weight(1f) // CRITICAL FIX: Constrains LazyColumn height
             ) {
                 items(
                     items = settings.apiConfigs,
@@ -146,7 +160,6 @@ fun ApiManagementSettings(viewModel: AgentViewModel, settings: AppSettings) {
                     ApiConfigCard(
                         api = api,
                         isActive = api.isActive,
-                        // Safe check for null session or list
                         isInChat = currentSession?.activeApis?.contains(api.id) == true,
                         onToggleActive = { viewModel.toggleApiActive(api.id) },
                         onToggleChat = { viewModel.toggleApiForCurrentChat(api.id) },
@@ -202,7 +215,9 @@ fun StatItem(label: String, value: String, color: Color) {
 @Composable
 fun EmptyApiState() {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -491,9 +506,7 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                                             apiKey = apiKey,
                                             modelName = modelName,
                                             baseUrl = baseUrl,
-                                            systemRole = systemRole,
-                                            // Ensure ID and defaults are handled in data class or here
-                                            isActive = true
+                                            systemRole = systemRole
                                         )
                                     )
                                 }
