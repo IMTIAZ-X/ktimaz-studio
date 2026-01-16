@@ -4,7 +4,6 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import androidx.room.*
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.Flow
@@ -13,13 +12,28 @@ import okhttp3.OkHttpClient
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.Path
+// Note: Explicitly NO import for Query here to prevent conflicts
 import java.security.KeyStore
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+
+// Room Imports (Explicit - No Star Imports)
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.Update
 
 // ============================================
 // ROOM DATABASE - ENTITIES
@@ -74,7 +88,7 @@ data class AppSettingsEntity(
 
 @Dao
 interface ApiConfigDao {
-    @Query("SELECT * FROM api_configs ORDER BY createdAt DESC")
+    @androidx.room.Query("SELECT * FROM api_configs ORDER BY createdAt DESC")
     fun getAllConfigs(): Flow<List<ApiConfigEntity>>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -83,16 +97,16 @@ interface ApiConfigDao {
     @Update
     suspend fun updateConfig(config: ApiConfigEntity)
     
-    @Query("DELETE FROM api_configs WHERE id = :id")
+    @androidx.room.Query("DELETE FROM api_configs WHERE id = :id")
     suspend fun deleteById(id: String)
     
-    @Query("SELECT COUNT(*) FROM api_configs")
+    @androidx.room.Query("SELECT COUNT(*) FROM api_configs")
     suspend fun getCount(): Int
 }
 
 @Dao
 interface ChatSessionDao {
-    @Query("SELECT * FROM chat_sessions ORDER BY timestamp DESC")
+    @androidx.room.Query("SELECT * FROM chat_sessions ORDER BY timestamp DESC")
     fun getAllSessions(): Flow<List<ChatSessionEntity>>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -101,25 +115,25 @@ interface ChatSessionDao {
     @Update
     suspend fun updateSession(session: ChatSessionEntity)
     
-    @Query("DELETE FROM chat_sessions WHERE id = :id")
+    @androidx.room.Query("DELETE FROM chat_sessions WHERE id = :id")
     suspend fun deleteById(id: String)
 }
 
 @Dao
 interface ChatMessageDao {
-    @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
+    @androidx.room.Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
     fun getMessagesForSession(sessionId: String): Flow<List<ChatMessageEntity>>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: ChatMessageEntity)
     
-    @Query("DELETE FROM chat_messages WHERE sessionId = :sessionId")
+    @androidx.room.Query("DELETE FROM chat_messages WHERE sessionId = :sessionId")
     suspend fun deleteMessagesForSession(sessionId: String)
 }
 
 @Dao
 interface AppSettingsDao {
-    @Query("SELECT * FROM app_settings WHERE id = 1")
+    @androidx.room.Query("SELECT * FROM app_settings WHERE id = 1")
     fun getSettings(): Flow<AppSettingsEntity?>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -168,7 +182,7 @@ abstract class AgentDatabase : RoomDatabase() {
 // SECURITY - API KEY ENCRYPTION
 // ============================================
 
-class SecurityManager private constructor(context: Context) {
+class SecurityManager(context: Context) {
     
     companion object {
         private const val KEY_ALIAS = "agent_api_key_alias"
@@ -348,7 +362,7 @@ interface AiApiService {
     @POST("models/{model}:generateContent")
     suspend fun geminiGenerate(
         @Path("model") model: String,
-        @Query("key") apiKey: String,
+        @retrofit2.http.Query("key") apiKey: String,
         @Body request: GeminiRequest
     ): Response<GeminiResponse>
 }
@@ -474,7 +488,7 @@ class AiProviderHandler {
 // REPOSITORY
 // ============================================
 
-class AgentRepository private constructor(
+class AgentRepository(
     private val database: AgentDatabase,
     private val securityManager: SecurityManager
 ) {
