@@ -180,6 +180,15 @@ dependencies {
     implementation("androidx.compose.animation:animation-core")
     implementation("androidx.navigation:navigation-compose:2.9.0")
 
+	// ONLY 3 NEW LIBRARIES - Minimal and essential
+    implementation("com.google.code.gson:gson:2.10.1")  // JSON parsing (500KB)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")  // Networking (400KB)
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")  // Retrofit+Gson (400KB)
+    
+    // Coroutines (for async operations)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+
     // Optional
     // implementation("androidx.navigation:navigation-compose:2.7.7")
     // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
