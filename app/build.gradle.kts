@@ -8,13 +8,13 @@ plugins {
 
 android {
     namespace = "com.ktimazstudio"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.ktimazstudio"
         minSdk = 25
-        targetSdk = 35
-        versionCode = 1000
+        targetSdk = 36
+        versionCode = 2000
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -102,12 +102,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_23
-        targetCompatibility = JavaVersion.VERSION_23
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 
     kotlin {
-        jvmToolchain(23)
+        jvmToolchain(25)
     }
     
     /*
@@ -125,11 +125,18 @@ android {
         }
     }*/
     
-
+/*
     // composeOptions should be inside android block
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
+*/
+
+		// Optional: Use the new DSL for compiler options
+	composeCompiler {
+    	  enableStrongSkippingMode = true 
+    // এটি অন করলে অ্যাপের পারফরম্যান্স উল্লেখযোগ্যভাবে বাড়বে
+	}
 
     applicationVariants.all {
         val variant = this
@@ -172,14 +179,21 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-
+    
+    implementation(libs.androidx.material.icons.core)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.lifecycle.viewmodel-ktx)
+    implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.compose.animation.core)
+    implementation(libs.androidx.navigation.compose)
+/*
     implementation("androidx.compose.material:material-icons-core:1.7.8")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
     implementation("androidx.navigation:navigation-compose:2.9.0")
-
+*/
     // Optional
     // implementation("androidx.navigation:navigation-compose:2.7.7")
     // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
