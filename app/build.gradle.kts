@@ -5,7 +5,7 @@ plugins {
     // Existing plugins
     alias(libs.plugins.compose.compiler)
     
-    id("com.google.devtools.ksp") version "2.2.0-2.0.2"  // KSP instead of KAPT
+     id("org.jetbrains.kotlin.kapt") version "2.2.0" apply false
 }
 
 android {
