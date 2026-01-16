@@ -4,19 +4,17 @@ plugins {
 
     // Existing plugins
     alias(libs.plugins.compose.compiler)
-    
-     id("org.jetbrains.kotlin.kapt") version "2.2.0" apply false
 }
 
 android {
     namespace = "com.ktimazstudio"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.ktimazstudio"
         minSdk = 25
-        targetSdk = 36
-        versionCode = 5000
+        targetSdk = 35
+        versionCode = 1000
         versionName = "3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -188,28 +186,6 @@ dependencies {
     // implementation("androidx.datastore:datastore-preferences:1.1.1")
     // implementation("androidx.work:work-runtime-ktx:2.9.0")
     // implementation("androidx.startup:startup-runtime:1.1.1")
-    
-      // Room Database - Using KSP
-    val roomVersion = "2.6.1"
-    implementation("androidx.room:room-runtime:$roomVersion")
-    implementation("androidx.room:room-ktx:$roomVersion")
-    ksp("androidx.room:room-compiler:$roomVersion")  // KSP instead of kapt
-    
-    // Retrofit
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    
-    // Gson
-    implementation("com.google.code.gson:gson:2.10.1")
-    
-    // Security
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    
-    // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
