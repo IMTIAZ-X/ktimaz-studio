@@ -4,7 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import androidx.room.* // Imports Room's @Query
+import androidx.room.* // Default @Query will refer to Room
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +17,7 @@ import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
-import retrofit2.http.Query as HttpQuery // FIX: Alias Retrofit's Query to HttpQuery to avoid conflict
+// FIX: Removed "retrofit2.http.Query" import and alias entirely
 import java.security.KeyStore
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
@@ -352,7 +352,8 @@ interface AiApiService {
     @POST("models/{model}:generateContent")
     suspend fun geminiGenerate(
         @Path("model") model: String,
-        @HttpQuery("key") apiKey: String, // Uses the aliased annotation
+        // FIX: Use fully qualified name to ensure KAPT generates correct stubs
+        @retrofit2.http.Query("key") apiKey: String,
         @Body request: GeminiRequest
     ): Response<GeminiResponse>
 }
