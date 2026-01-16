@@ -1,12 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
-   // alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.jetbrains.kotlin.android)
 
     // Existing plugins
     alias(libs.plugins.compose.compiler)
-    
-    //alias(libs.plugins.kotlin.android)
-   // alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -128,18 +125,11 @@ android {
         }
     }*/
     
-/*
+
     // composeOptions should be inside android block
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
-*/
-
-		// Optional: Use the new DSL for compiler options
-	composeCompiler {
-    	  enableStrongSkippingMode = true 
-    // এটি অন করলে অ্যাপের পারফরম্যান্স উল্লেখযোগ্যভাবে বাড়বে
-	}
 
     applicationVariants.all {
         val variant = this
@@ -182,21 +172,14 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    
-    implementation(libs.androidx.material.icons.core)
-    implementation(libs.androidx.material.icons.extended)
-    implementation(libs.androidx.lifecycle.viewmodel-ktx)
-    implementation(libs.androidx.compose.animation)
-    implementation(libs.androidx.compose.animation.core)
-    implementation(libs.androidx.navigation.compose)
-/*
+
     implementation("androidx.compose.material:material-icons-core:1.7.8")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-core")
     implementation("androidx.navigation:navigation-compose:2.9.0")
-*/
+
     // Optional
     // implementation("androidx.navigation:navigation-compose:2.7.7")
     // implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
