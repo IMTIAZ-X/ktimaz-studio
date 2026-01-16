@@ -16,7 +16,6 @@ import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
-// Note: Explicitly NO import for Query here to prevent conflicts
 import java.security.KeyStore
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
@@ -83,7 +82,7 @@ data class AppSettingsEntity(
 )
 
 // ============================================
-// ROOM DATABASE - DAOs
+// ROOM DATABASE - DAOs (FIXED: Added ": Unit")
 // ============================================
 
 @Dao
@@ -92,13 +91,13 @@ interface ApiConfigDao {
     fun getAllConfigs(): Flow<List<ApiConfigEntity>>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertConfig(config: ApiConfigEntity)
+    suspend fun insertConfig(config: ApiConfigEntity): Unit // FIX: Added : Unit
     
     @Update
-    suspend fun updateConfig(config: ApiConfigEntity)
+    suspend fun updateConfig(config: ApiConfigEntity): Unit // FIX: Added : Unit
     
     @androidx.room.Query("DELETE FROM api_configs WHERE id = :id")
-    suspend fun deleteById(id: String)
+    suspend fun deleteById(id: String): Unit // FIX: Added : Unit
     
     @androidx.room.Query("SELECT COUNT(*) FROM api_configs")
     suspend fun getCount(): Int
@@ -110,13 +109,13 @@ interface ChatSessionDao {
     fun getAllSessions(): Flow<List<ChatSessionEntity>>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSession(session: ChatSessionEntity)
+    suspend fun insertSession(session: ChatSessionEntity): Unit // FIX: Added : Unit
     
     @Update
-    suspend fun updateSession(session: ChatSessionEntity)
+    suspend fun updateSession(session: ChatSessionEntity): Unit // FIX: Added : Unit
     
     @androidx.room.Query("DELETE FROM chat_sessions WHERE id = :id")
-    suspend fun deleteById(id: String)
+    suspend fun deleteById(id: String): Unit // FIX: Added : Unit
 }
 
 @Dao
@@ -125,10 +124,10 @@ interface ChatMessageDao {
     fun getMessagesForSession(sessionId: String): Flow<List<ChatMessageEntity>>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessage(message: ChatMessageEntity)
+    suspend fun insertMessage(message: ChatMessageEntity): Unit // FIX: Added : Unit
     
     @androidx.room.Query("DELETE FROM chat_messages WHERE sessionId = :sessionId")
-    suspend fun deleteMessagesForSession(sessionId: String)
+    suspend fun deleteMessagesForSession(sessionId: String): Unit // FIX: Added : Unit
 }
 
 @Dao
@@ -137,7 +136,7 @@ interface AppSettingsDao {
     fun getSettings(): Flow<AppSettingsEntity?>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSettings(settings: AppSettingsEntity)
+    suspend fun insertSettings(settings: AppSettingsEntity): Unit // FIX: Added : Unit
 }
 
 // ============================================
