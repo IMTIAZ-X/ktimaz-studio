@@ -1,411 +1,374 @@
-package com.ktimazstudio.agent.viewmodel
+package com.ktimazstudio.agent.data
 
 import android.content.Context
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
-import com.ktimazstudio.agent.data.*
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import android.content.SharedPreferences
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import okhttp3.OkHttpClient
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.*
+import java.security.KeyStore
+import java.util.concurrent.TimeUnit
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
+import com.google.gson.annotations.SerializedName
 
-class AgentViewModel(context: Context) : ViewModel() {
+// ============================================
+// SIMPLE PERSISTENCE - SharedPreferences
+// ============================================
+
+class SimpleDataManager private constructor(context: Context) {
     
-    private val dataManager = SimpleDataManager.getInstance(context)
-    private val aiProviderHandler = AiProviderHandler()
+    private val prefs: SharedPreferences = context.getSharedPreferences("agent_data", Context.MODE_PRIVATE)
+    private val gson = Gson()
+    private val securityManager = SecurityManager.getInstance(context)
     
-    // Settings State
-    private val _settings = MutableStateFlow(AppSettings())
-    val settings: StateFlow<AppSettings> = _settings.asStateFlow()
-
-    // Chat Sessions State
-    private val _chatSessions = MutableStateFlow<List<ChatSession>>(emptyList())
-    val chatSessions: StateFlow<List<ChatSession>> = _chatSessions.asStateFlow()
-
-    // Current Session ID
-    private val _currentSessionId = MutableStateFlow("")
-    val currentSessionId: StateFlow<String> = _currentSessionId.asStateFlow()
-
-    // UI State
-    private val _isSidebarOpen = MutableStateFlow(true)
-    val isSidebarOpen: StateFlow<Boolean> = _isSidebarOpen.asStateFlow()
-
-    private val _isSettingsModalOpen = MutableStateFlow(false)
-    val isSettingsModalOpen: StateFlow<Boolean> = _isSettingsModalOpen.asStateFlow()
-
-    // Selected Mode
-    private val _selectedMode = MutableStateFlow(AiMode.STANDARD)
-    val selectedMode: StateFlow<AiMode> = _selectedMode.asStateFlow()
-
-    // Loading state
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    // Computed Properties
-    val currentSession: ChatSession?
-        get() = _chatSessions.value.find { it.id == _currentSessionId.value }
-
-    val activeApiCount: Int
-        get() = _settings.value.apiConfigs.count { it.isActive }
-
-    init {
-        loadPersistedData()
-    }
-
-    private fun loadPersistedData() {
-        try {
-            // Load settings
-            val loadedSettings = dataManager.loadSettings()
-            val loadedConfigs = dataManager.loadApiConfigs()
-            _settings.value = loadedSettings.copy(apiConfigs = loadedConfigs)
-            
-            // Load chat sessions
-            val loadedSessions = dataManager.loadChatSessions()
-            _chatSessions.value = if (loadedSessions.isEmpty()) {
-                val newSession = ChatSession(title = "New Chat")
-                listOf(newSession)
-            } else {
-                loadedSessions
+    companion object {
+        @Volatile
+        private var INSTANCE: SimpleDataManager? = null
+        
+        fun getInstance(context: Context): SimpleDataManager {
+            return INSTANCE ?: synchronized(this) {
+                val instance = SimpleDataManager(context.applicationContext)
+                INSTANCE = instance
+                instance
             }
-            
-            _currentSessionId.value = _chatSessions.value.firstOrNull()?.id ?: ""
-        } catch (e: Exception) {
-            e.printStackTrace()
-            newChat()
         }
     }
-
-    // Save data whenever it changes
-    private fun saveData() {
-        try {
-            dataManager.saveSettings(_settings.value)
-            dataManager.saveApiConfigs(_settings.value.apiConfigs)
-            dataManager.saveChatSessions(_chatSessions.value)
-        } catch (e: Exception) {
-            e.printStackTrace()
+    
+    // Save API Configs
+    fun saveApiConfigs(configs: List<ApiConfig>) {
+        val encryptedConfigs = configs.map { config ->
+            config.copy(apiKey = securityManager.encryptApiKey(config.apiKey))
         }
+        val json = gson.toJson(encryptedConfigs)
+        prefs.edit().putString("api_configs", json).apply()
     }
-
-    // UI Actions
-    fun toggleSidebar() {
-        _isSidebarOpen.value = !_isSidebarOpen.value
-    }
-
-    fun openSettings() {
-        _isSettingsModalOpen.value = true
-    }
-
-    fun closeSettings() {
-        _isSettingsModalOpen.value = false
-    }
-
-    fun toggleProPlan(isPro: Boolean) {
-        _settings.value = _settings.value.copy(isProUser = isPro)
-        saveData()
-    }
-
-    fun toggleTheme(isDark: Boolean) {
-        _settings.value = _settings.value.copy(isDarkTheme = isDark)
-        saveData()
-    }
-
-    fun setSelectedMode(mode: AiMode) {
-        _selectedMode.value = mode
-    }
-
-    // API Management
-    fun addApiConfig(config: ApiConfig): Boolean {
+    
+    // Load API Configs
+    fun loadApiConfigs(): List<ApiConfig> {
+        val json = prefs.getString("api_configs", null) ?: return emptyList()
         return try {
-            val currentSettings = _settings.value
-
-            if (!currentSettings.isProUser && currentSettings.apiConfigs.size >= AppTheme.FREE_API_LIMIT) {
-                return false
+            val type = object : TypeToken<List<ApiConfig>>() {}.type
+            val configs: List<ApiConfig> = gson.fromJson(json, type)
+            configs.map { config ->
+                config.copy(apiKey = securityManager.decryptApiKey(config.apiKey))
             }
-
-            if (config.apiKey.isBlank()) {
-                return false
-            }
-
-            val updatedConfigs = currentSettings.apiConfigs.toMutableList()
-            updatedConfigs.add(config.copy(isActive = false))
-
-            _settings.value = currentSettings.copy(apiConfigs = updatedConfigs)
-            saveData()
-            true
         } catch (e: Exception) {
-            e.printStackTrace()
-            false
+            emptyList()
         }
     }
+    
+    // Save Chat Sessions
+    fun saveChatSessions(sessions: List<ChatSession>) {
+        val json = gson.toJson(sessions)
+        prefs.edit().putString("chat_sessions", json).apply()
+    }
+    
+    // Load Chat Sessions
+    fun loadChatSessions(): List<ChatSession> {
+        val json = prefs.getString("chat_sessions", null) ?: return emptyList()
+        return try {
+            val type = object : TypeToken<List<ChatSession>>() {}.type
+            gson.fromJson(json, type) ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+    
+    // Save App Settings
+    fun saveSettings(settings: AppSettings) {
+        prefs.edit().apply {
+            putBoolean("is_pro_user", settings.isProUser)
+            putBoolean("is_dark_theme", settings.isDarkTheme)
+            putInt("token_usage", settings.tokenUsage)
+            putFloat("estimated_cost", settings.estimatedCost.toFloat())
+            apply()
+        }
+    }
+    
+    // Load App Settings
+    fun loadSettings(): AppSettings {
+        return AppSettings(
+            isProUser = prefs.getBoolean("is_pro_user", false),
+            isDarkTheme = prefs.getBoolean("is_dark_theme", true),
+            tokenUsage = prefs.getInt("token_usage", 0),
+            estimatedCost = prefs.getFloat("estimated_cost", 0f).toDouble(),
+            apiConfigs = emptyList()
+        )
+    }
+    
+    // Clear all data
+    fun clearAll() {
+        prefs.edit().clear().apply()
+    }
+}
 
-    fun updateApiConfig(configId: String, updatedConfig: ApiConfig) {
+// ============================================
+// SECURITY - API KEY ENCRYPTION
+// ============================================
+
+class SecurityManager private constructor(context: Context) {
+    
+    companion object {
+        private const val KEY_ALIAS = "agent_api_key_alias"
+        private const val TRANSFORMATION = "AES/GCM/NoPadding"
+        private const val IV_SEPARATOR = "]]]"
+        
+        @Volatile
+        private var INSTANCE: SecurityManager? = null
+        
+        fun getInstance(context: Context): SecurityManager {
+            return INSTANCE ?: synchronized(this) {
+                val instance = SecurityManager(context.applicationContext)
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+    
+    private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+        load(null)
+    }
+    
+    init {
+        createKeyIfNotExists()
+    }
+    
+    private fun createKeyIfNotExists() {
+        if (!keyStore.containsAlias(KEY_ALIAS)) {
+            val keyGenerator = KeyGenerator.getInstance(
+                KeyProperties.KEY_ALGORITHM_AES,
+                "AndroidKeyStore"
+            )
+            
+            val keyGenParameterSpec = KeyGenParameterSpec.Builder(
+                KEY_ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setKeySize(256)
+                .build()
+            
+            keyGenerator.init(keyGenParameterSpec)
+            keyGenerator.generateKey()
+        }
+    }
+    
+    private fun getSecretKey(): SecretKey {
+        return keyStore.getKey(KEY_ALIAS, null) as SecretKey
+    }
+    
+    fun encryptApiKey(plainText: String): String {
+        if (plainText.isBlank()) return ""
+        
         try {
-            val currentSettings = _settings.value
-            val updatedConfigs = currentSettings.apiConfigs.map { api ->
-                if (api.id == configId) updatedConfig.copy(id = configId) else api
-            }
-            _settings.value = currentSettings.copy(apiConfigs = updatedConfigs)
-            saveData()
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, getSecretKey())
+            
+            val iv = cipher.iv
+            val encryptedBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
+            
+            return Base64.encodeToString(iv, Base64.NO_WRAP) + 
+                   IV_SEPARATOR + 
+                   Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
         } catch (e: Exception) {
             e.printStackTrace()
+            return plainText // Fallback to plaintext if encryption fails
         }
     }
-
-    fun deleteApiConfig(configId: String) {
+    
+    fun decryptApiKey(encryptedText: String): String {
+        if (encryptedText.isBlank()) return ""
+        if (!encryptedText.contains(IV_SEPARATOR)) return encryptedText // Already plaintext
+        
         try {
-            val currentSettings = _settings.value
-            val updatedConfigs = currentSettings.apiConfigs.filter { it.id != configId }
-            _settings.value = currentSettings.copy(apiConfigs = updatedConfigs)
-
-            val updatedSessions = _chatSessions.value.map { session ->
-                session.copy(
-                    activeApis = session.activeApis.filter { it != configId }.toMutableList()
-                )
-            }
-            _chatSessions.value = updatedSessions
-            saveData()
+            val parts = encryptedText.split(IV_SEPARATOR)
+            if (parts.size != 2) return encryptedText
+            
+            val iv = Base64.decode(parts[0], Base64.NO_WRAP)
+            val encryptedBytes = Base64.decode(parts[1], Base64.NO_WRAP)
+            
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            val spec = GCMParameterSpec(128, iv)
+            cipher.init(Cipher.DECRYPT_MODE, getSecretKey(), spec)
+            
+            val decryptedBytes = cipher.doFinal(encryptedBytes)
+            return String(decryptedBytes, Charsets.UTF_8)
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-    fun toggleApiActive(configId: String) {
-        try {
-            val currentSettings = _settings.value
-            val config = currentSettings.apiConfigs.find { it.id == configId } ?: return
-            val currentlyActive = currentSettings.apiConfigs.count { it.isActive }
-
-            if (!config.isActive && currentlyActive >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
-                return
-            }
-
-            val updatedConfigs = currentSettings.apiConfigs.map { api ->
-                if (api.id == configId) api.copy(isActive = !api.isActive) else api
-            }
-            _settings.value = currentSettings.copy(apiConfigs = updatedConfigs)
-            saveData()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun toggleApiForCurrentChat(configId: String) {
-        try {
-            val session = currentSession ?: return
-            val mutableApis = session.activeApis.toMutableList()
-
-            if (mutableApis.contains(configId)) {
-                mutableApis.remove(configId)
-            } else {
-                if (mutableApis.size >= AppTheme.MAX_ACTIVE_APIS_PER_CHAT) {
-                    mutableApis.removeAt(0)
-                }
-                mutableApis.add(configId)
-            }
-
-            val updatedSessions = _chatSessions.value.map { s ->
-                if (s.id == session.id) s.copy(activeApis = mutableApis) else s
-            }
-            _chatSessions.value = updatedSessions
-            saveData()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    // Chat Management
-    fun newChat() {
-        try {
-            val newSession = ChatSession(title = "New Chat")
-            _chatSessions.value = listOf(newSession) + _chatSessions.value
-            _currentSessionId.value = newSession.id
-            _selectedMode.value = AiMode.STANDARD
-            saveData()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun openChat(sessionId: String) {
-        _currentSessionId.value = sessionId
-    }
-
-    fun renameChat(sessionId: String, newTitle: String) {
-        try {
-            val updatedSessions = _chatSessions.value.map { chat ->
-                if (chat.id == sessionId) chat.copy(title = newTitle) else chat
-            }
-            _chatSessions.value = updatedSessions
-            saveData()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun deleteChat(sessionId: String) {
-        try {
-            _chatSessions.value = _chatSessions.value.filter { it.id != sessionId }
-
-            if (_currentSessionId.value == sessionId) {
-                _currentSessionId.value = _chatSessions.value.firstOrNull()?.id ?: ""
-                if (_chatSessions.value.isEmpty()) {
-                    newChat()
-                }
-            }
-            saveData()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun pinChat(sessionId: String) {
-        try {
-            val updatedSessions = _chatSessions.value.map { chat ->
-                if (chat.id == sessionId) chat.copy(isPinned = !chat.isPinned) else chat
-            }
-            _chatSessions.value = updatedSessions
-            saveData()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    // REAL AI MESSAGE SENDING
-    fun sendUserMessage(text: String, attachments: List<Attachment>, mode: AiMode) {
-        viewModelScope.launch {
-            try {
-                val currentSettings = _settings.value
-                val session = currentSession
-
-                if (session == null) {
-                    newChat()
-                    return@launch
-                }
-
-                if (!currentSettings.isProUser && attachments.size > 10) {
-                    appendAiMessage("Free plan limited to 10 attachments per message")
-                    return@launch
-                }
-
-                if (!currentSettings.isProUser && mode.isPro) {
-                    appendAiMessage("${mode.title} Mode requires Pro account")
-                    return@launch
-                }
-
-                val activeApis = currentSettings.apiConfigs.filter { api ->
-                    api.isActive && 
-                    session.activeApis.contains(api.id) && 
-                    api.apiKey.isNotBlank()
-                }
-
-                if (activeApis.isEmpty()) {
-                    appendAiMessage("No active APIs configured. Please add and activate APIs in Settings.")
-                    return@launch
-                }
-
-                // Add user message
-                val userMessage = ChatMessage(
-                    text = text.trim(),
-                    isUser = true,
-                    attachments = attachments,
-                    mode = mode
-                )
-
-                session.messages.add(userMessage)
-
-                // Auto-generate title
-                if (session.messages.size == 1 && session.title.startsWith("New Chat")) {
-                    val newTitle = text.take(40) + if (text.length > 40) "..." else ""
-                    renameChat(session.id, newTitle)
-                }
-
-                _chatSessions.value = _chatSessions.value.toList()
-                saveData()
-
-                // Update token usage
-                _settings.value = currentSettings.copy(
-                    tokenUsage = currentSettings.tokenUsage + 150,
-                    estimatedCost = currentSettings.estimatedCost + 0.00075
-                )
-
-                // Show loading
-                _isLoading.value = true
-
-                // REAL API CALL
-                val responses = mutableListOf<String>()
-                for (api in activeApis) {
-                    val result = aiProviderHandler.sendMessage(
-                        apiConfig = api,
-                        userMessage = buildPrompt(text, mode),
-                        systemRole = api.systemRole
-                    )
-
-                    result.fold(
-                        onSuccess = { response ->
-                            responses.add("**${api.name}**: $response")
-                        },
-                        onFailure = { error ->
-                            responses.add("**${api.name}** (Error): ${error.message}")
-                        }
-                    )
-                }
-
-                _isLoading.value = false
-
-                // Add AI reply
-                val aiMessage = ChatMessage(
-                    text = responses.joinToString("\n\n---\n\n"),
-                    isUser = false,
-                    mode = mode,
-                    usedApis = activeApis.map { it.name }
-                )
-
-                session.messages.add(aiMessage)
-                _chatSessions.value = _chatSessions.value.toList()
-                saveData()
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _isLoading.value = false
-                currentSession?.messages?.add(
-                    ChatMessage(
-                        text = "Error: ${e.message ?: "Unknown error occurred"}",
-                        isUser = false
-                    )
-                )
-                _chatSessions.value = _chatSessions.value.toList()
-            }
-        }
-    }
-
-    private fun buildPrompt(text: String, mode: AiMode): String {
-        return when (mode) {
-            AiMode.THINKING -> "[THINKING MODE] Analyze deeply: $text"
-            AiMode.RESEARCH -> "[RESEARCH MODE] Research with citations: $text"
-            AiMode.STUDY -> "[STUDY MODE] Explain for learning: $text"
-            AiMode.CODE -> "[CODE MODE] Provide code solutions: $text"
-            AiMode.CREATIVE -> "[CREATIVE MODE] Be creative: $text"
-            else -> text
-        }
-    }
-
-    private fun appendAiMessage(text: String) {
-        try {
-            currentSession?.messages?.add(ChatMessage(text = text, isUser = false))
-            _chatSessions.value = _chatSessions.value.toList()
-            saveData()
-        } catch (e: Exception) {
-            e.printStackTrace()
+            return encryptedText // Return as-is if decryption fails
         }
     }
 }
 
-// ADD THIS FACTORY TO PREVENT STARTUP CRASH
-class AgentViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(AgentViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return AgentViewModel(context) as T
+// ============================================
+// RETROFIT - NETWORK MODELS
+// ============================================
+
+data class UniversalAiRequest(
+    val model: String,
+    val messages: List<MessageContent>,
+    @SerializedName("max_tokens")
+    val maxTokens: Int = 1000,
+    val temperature: Double = 0.7
+)
+
+data class MessageContent(
+    val role: String,
+    val content: String
+)
+
+data class UniversalAiResponse(
+    val id: String? = null,
+    val choices: List<Choice>? = null,
+    val error: ErrorDetail? = null
+)
+
+data class Choice(
+    val message: MessageContent? = null,
+    @SerializedName("finish_reason")
+    val finishReason: String? = null
+)
+
+data class ErrorDetail(
+    val message: String
+)
+
+data class GeminiRequest(
+    val contents: List<GeminiContent>
+)
+
+data class GeminiContent(
+    val parts: List<GeminiPart>
+)
+
+data class GeminiPart(
+    val text: String
+)
+
+data class GeminiResponse(
+    val candidates: List<GeminiCandidate>? = null,
+    val error: GeminiError? = null
+)
+
+data class GeminiCandidate(
+    val content: GeminiContent
+)
+
+data class GeminiError(
+    val message: String
+)
+
+// ============================================
+// RETROFIT - API SERVICE
+// ============================================
+
+interface AiApiService {
+    
+    @POST("chat/completions")
+    suspend fun chatCompletion(
+        @Header("Authorization") authorization: String,
+        @Body request: UniversalAiRequest
+    ): Response<UniversalAiResponse>
+    
+    @POST("models/{model}:generateContent")
+    suspend fun geminiGenerate(
+        @Path("model") model: String,
+        @Query("key") apiKey: String,
+        @Body request: GeminiRequest
+    ): Response<GeminiResponse>
+}
+
+object AiApiClient {
+    
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+    
+    fun createService(baseUrl: String): AiApiService {
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(AiApiService::class.java)
+    }
+}
+
+// ============================================
+// AI PROVIDER HANDLER
+// ============================================
+
+class AiProviderHandler {
+    
+    suspend fun sendMessage(
+        apiConfig: ApiConfig,
+        userMessage: String,
+        systemRole: String = ""
+    ): Result<String> {
+        return try {
+            when (apiConfig.provider) {
+                AiProvider.GEMINI -> handleGemini(apiConfig, userMessage)
+                else -> handleUniversalApi(apiConfig, userMessage, systemRole)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+    
+    private suspend fun handleGemini(config: ApiConfig, message: String): Result<String> {
+        try {
+            val service = AiApiClient.createService(config.baseUrl)
+            val request = GeminiRequest(
+                contents = listOf(GeminiContent(parts = listOf(GeminiPart(text = message))))
+            )
+            
+            val response = service.geminiGenerate(config.modelName, config.apiKey, request)
+            
+            if (response.isSuccessful) {
+                val text = response.body()?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                return if (text != null) Result.success(text)
+                else Result.failure(Exception("Empty response from Gemini"))
+            } else {
+                return Result.failure(Exception("Gemini API error: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+    }
+    
+    private suspend fun handleUniversalApi(config: ApiConfig, message: String, systemRole: String): Result<String> {
+        try {
+            val service = AiApiClient.createService(config.baseUrl)
+            val messages = mutableListOf<MessageContent>()
+            if (systemRole.isNotBlank()) {
+                messages.add(MessageContent(role = "system", content = systemRole))
+            }
+            messages.add(MessageContent(role = "user", content = message))
+            
+            val request = UniversalAiRequest(model = config.modelName, messages = messages)
+            val response = service.chatCompletion("Bearer ${config.apiKey}", request)
+            
+            if (response.isSuccessful) {
+                val text = response.body()?.choices?.firstOrNull()?.message?.content
+                return if (text != null) Result.success(text)
+                else Result.failure(Exception("Empty response"))
+            } else {
+                return Result.failure(Exception("API error: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
     }
 }
