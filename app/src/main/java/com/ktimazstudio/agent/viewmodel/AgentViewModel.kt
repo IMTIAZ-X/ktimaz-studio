@@ -2,6 +2,7 @@ package com.ktimazstudio.agent.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ktimazstudio.agent.data.*
 import kotlinx.coroutines.flow.*
@@ -395,5 +396,16 @@ class AgentViewModel(context: Context) : ViewModel() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+}
+
+// ADD THIS FACTORY TO PREVENT STARTUP CRASH
+class AgentViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(AgentViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return AgentViewModel(context) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
