@@ -22,7 +22,56 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 // ============================================
-// 1. ROOM ENTITIES (DATABASE MODELS)
+// 1. ENUMS & UI MODELS (এগুলো না থাকলে MissingType এরর হয়)
+// ============================================
+
+enum class AiProvider { GEMINI, OPENAI, ANTHROPIC, GROQ, OLLAMA, CUSTOM }
+enum class AiMode { CHAT, RESEARCH, CODE, IMAGE }
+
+data class Attachment(val type: String, val content: String)
+
+data class ApiConfig(
+    val id: String,
+    val provider: AiProvider,
+    val name: String,
+    val isActive: Boolean,
+    val apiKey: String,
+    val modelName: String,
+    val baseUrl: String,
+    val systemRole: String,
+    val createdAt: Long
+)
+
+data class ChatSession(
+    val id: String,
+    val title: String,
+    val messages: MutableList<ChatMessage> = mutableListOf(),
+    val timestamp: Long,
+    val isPinned: Boolean,
+    val activeApis: MutableList<String> = mutableListOf()
+)
+
+data class ChatMessage(
+    val id: String,
+    val text: String,
+    val isUser: Boolean,
+    val attachments: List<Attachment> = emptyList(),
+    val mode: AiMode = AiMode.CHAT,
+    val isError: Boolean = false,
+    val timestamp: Long = System.currentTimeMillis(),
+    val usedApis: List<String> = emptyList()
+)
+
+data class AppSettings(
+    val isProUser: Boolean = false,
+    val isDarkTheme: Boolean = true,
+    val tokenUsage: Int = 0,
+    val estimatedCost: Double = 0.0,
+    val apiConfigs: List<ApiConfig> = emptyList()
+)
+
+// ============================================
+// 2. ROOM ENTITIES
 // ============================================
 
 @Entity(tableName = "api_configs")
@@ -69,7 +118,7 @@ data class AppSettingsEntity(
 )
 
 // ============================================
-// 2. MODERN DAOs (FIXED FOR KSP K2 BUG)
+// 3. DAOs (FIXED: returning Long/Int for KSP)
 // ============================================
 
 @Dao
@@ -127,19 +176,10 @@ interface AppSettingsDao {
 }
 
 // ============================================
-// 3. DATABASE INSTANCE
+// 4. DATABASE & SECURITY
 // ============================================
 
-@Database(
-    entities = [
-        ApiConfigEntity::class, 
-        ChatSessionEntity::class, 
-        ChatMessageEntity::class, 
-        AppSettingsEntity::class
-    ],
-    version = 1,
-    exportSchema = false
-)
+@Database(entities = [ApiConfigEntity::class, ChatSessionEntity::class, ChatMessageEntity::class, AppSettingsEntity::class], version = 1, exportSchema = false)
 abstract class AgentDatabase : RoomDatabase() {
     abstract fun apiConfigDao(): ApiConfigDao
     abstract fun chatSessionDao(): ChatSessionDao
@@ -148,112 +188,47 @@ abstract class AgentDatabase : RoomDatabase() {
 
     companion object {
         @Volatile private var instance: AgentDatabase? = null
-        fun getInstance(context: Context): AgentDatabase {
-            return instance ?: synchronized(this) {
-                instance ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    AgentDatabase::class.java,
-                    "agent_database.db"
-                ).fallbackToDestructiveMigration().build().also { instance = it }
-            }
+        fun getInstance(context: Context): AgentDatabase = instance ?: synchronized(this) {
+            instance ?: Room.databaseBuilder(context.applicationContext, AgentDatabase::class.java, "agent_v3.db")
+                .fallbackToDestructiveMigration().build().also { instance = it }
         }
     }
 }
 
-// ============================================
-// 4. ADVANCED SECURITY MANAGER
-// ============================================
-
 class SecurityManager private constructor(context: Context) {
     private val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-    private val alias = "AiAgentSecureKeyV3"
+    private val alias = "AiAgentKeyV4"
 
     init {
         if (!keyStore.containsAlias(alias)) {
             val keyGen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
-            keyGen.init(KeyGenParameterSpec.Builder(alias, 
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .build())
+            keyGen.init(KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
             keyGen.generateKey()
         }
     }
 
     fun encrypt(text: String): String {
-        if (text.isBlank()) return ""
+        if (text.isEmpty()) return ""
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, keyStore.getKey(alias, null) as SecretKey)
-        val iv = Base64.encodeToString(cipher.iv, Base64.NO_WRAP)
-        val encrypted = Base64.encodeToString(cipher.doFinal(text.toByteArray()), Base64.NO_WRAP)
-        return "$iv:$encrypted"
+        return Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(cipher.doFinal(text.toByteArray()), Base64.NO_WRAP)
     }
 
-    fun decrypt(encryptedData: String): String {
-        if (encryptedData.isBlank()) return ""
-        return try {
-            val parts = encryptedData.split(":")
-            val iv = Base64.decode(parts[0], Base64.NO_WRAP)
-            val data = Base64.decode(parts[1], Base64.NO_WRAP)
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            cipher.init(Cipher.DECRYPT_MODE, keyStore.getKey(alias, null) as SecretKey, GCMParameterSpec(128, iv))
-            String(cipher.doFinal(data))
-        } catch (e: Exception) { "" }
-    }
+    fun decrypt(data: String): String = try {
+        val parts = data.split(":")
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, keyStore.getKey(alias, null) as SecretKey, GCMParameterSpec(128, Base64.decode(parts[0], Base64.NO_WRAP)))
+        String(cipher.doFinal(Base64.decode(parts[1], Base64.NO_WRAP)))
+    } catch (e: Exception) { "" }
 
     companion object {
-        @Volatile private var instance: SecurityManager? = null
-        fun getInstance(context: Context) = instance ?: synchronized(this) {
-            instance ?: SecurityManager(context).also { instance = it }
-        }
+        fun getInstance(context: Context) = SecurityManager(context)
     }
 }
 
 // ============================================
-// 5. NETWORK LAYER (RETROFIT)
-// ============================================
-
-data class UniversalAiRequest(
-    val model: String,
-    val messages: List<MessageContent>,
-    @SerializedName("max_tokens") val maxTokens: Int = 1000,
-    val temperature: Double = 0.7
-)
-
-data class MessageContent(val role: String, val content: String)
-
-data class UniversalAiResponse(
-    val choices: List<Choice>? = null,
-    val usage: Usage? = null
-)
-
-data class Choice(val message: MessageContent? = null)
-data class Usage(@SerializedName("total_tokens") val totalTokens: Int = 0)
-
-// Gemini Specific
-data class GeminiRequest(val contents: List<GeminiContent>)
-data class GeminiContent(val parts: List<GeminiPart>)
-data class GeminiPart(val text: String)
-data class GeminiResponse(val candidates: List<GeminiCandidate>? = null)
-data class GeminiCandidate(val content: GeminiContent)
-
-interface AiApiService {
-    @POST("chat/completions")
-    suspend fun chatCompletion(
-        @Header("Authorization") auth: String,
-        @Body request: UniversalAiRequest
-    ): Response<UniversalAiResponse>
-
-    @POST("models/{model}:generateContent")
-    suspend fun geminiGenerate(
-        @Path("model") model: String,
-        @Query("key") apiKey: String,
-        @Body request: GeminiRequest
-    ): Response<GeminiResponse>
-}
-
-// ============================================
-// 6. CLEAN REPOSITORY (DATA ORCHESTRATOR)
+// 5. REPOSITORY & NETWORK
 // ============================================
 
 class AgentRepository(context: Context) {
@@ -261,65 +236,38 @@ class AgentRepository(context: Context) {
     private val security = SecurityManager.getInstance(context)
     private val gson = Gson()
 
-    // API Configurations
-    fun getConfigs(): Flow<List<ApiConfig>> = db.apiConfigDao().getAllConfigs().map { entities ->
+    fun getConfigs() = db.apiConfigDao().getAllConfigs().map { entities ->
         entities.map { it.toModel(security.decrypt(it.encryptedApiKey)) }
     }
 
-    suspend fun saveConfig(config: ApiConfig) {
-        db.apiConfigDao().insertConfig(config.toEntity(security.encrypt(config.apiKey)))
-    }
-
+    suspend fun saveConfig(c: ApiConfig) = db.apiConfigDao().insertConfig(c.toEntity(security.encrypt(c.apiKey)))
+    
     suspend fun deleteConfig(id: String) = db.apiConfigDao().deleteById(id)
 
-    // Chat Sessions
-    fun getSessions(): Flow<List<ChatSession>> = db.chatSessionDao().getAllSessions().map { entities ->
-        entities.map { it.toModel() }
-    }
-
-    suspend fun saveSession(session: ChatSession) {
-        db.chatSessionDao().insertSession(session.toEntity())
-    }
-
-    suspend fun deleteSession(id: String) {
-        db.chatMessageDao().deleteMessagesForSession(id)
-        db.chatSessionDao().deleteById(id)
-    }
-
-    // Messages
-    fun getMessages(sessionId: String): Flow<List<ChatMessage>> = 
-        db.chatMessageDao().getMessagesForSession(sessionId).map { entities ->
-            entities.map { it.toModel(gson) }
-        }
-
-    suspend fun saveMessage(sessionId: String, msg: ChatMessage) {
-        db.chatMessageDao().insertMessage(msg.toEntity(sessionId, gson))
-    }
-
-    // Settings
-    fun getSettings(): Flow<AppSettings?> = db.appSettingsDao().getSettings().map { it?.toModel() }
+    fun getSessions() = db.chatSessionDao().getAllSessions().map { entities -> entities.map { it.toModel() } }
     
-    suspend fun saveSettings(s: AppSettings) {
-        db.appSettingsDao().insertSettings(s.toEntity())
-    }
+    suspend fun saveSession(s: ChatSession) = db.chatSessionDao().insertSession(s.toEntity())
+
+    fun getMessages(sid: String) = db.chatMessageDao().getMessagesForSession(sid).map { entities -> entities.map { it.toModel(gson) } }
+    
+    suspend fun saveMessage(sid: String, m: ChatMessage) = db.chatMessageDao().insertMessage(m.toEntity(sid, gson))
+
+    fun getSettings() = db.appSettingsDao().getSettings().map { it?.toModel() }
+    
+    suspend fun saveSettings(s: AppSettings) = db.appSettingsDao().insertSettings(s.toEntity())
 }
 
 // ============================================
-// 7. EXTENSION MAPPERS (CLEAN ARCHITECTURE)
+// 6. MAPPING EXTENSIONS
 // ============================================
 
 fun ApiConfigEntity.toModel(key: String) = ApiConfig(id, AiProvider.valueOf(provider), name, isActive, key, modelName, baseUrl, systemRole, createdAt)
-fun ApiConfig.toEntity(encKey: String) = ApiConfigEntity(id, provider.name, name, isActive, encKey, modelName, baseUrl, systemRole, createdAt)
+fun ApiConfig.toEntity(enc: String) = ApiConfigEntity(id, provider.name, name, isActive, enc, modelName, baseUrl, systemRole, createdAt)
 
 fun ChatSessionEntity.toModel() = ChatSession(id, title, mutableListOf(), timestamp, isPinned, activeApiIds.split(",").filter { it.isNotBlank() }.toMutableList())
 fun ChatSession.toEntity() = ChatSessionEntity(id, title, timestamp, isPinned, activeApis.joinToString(","))
 
-fun ChatMessageEntity.toModel(gson: Gson) = ChatMessage(
-    id = id, text = text, isUser = isUser, 
-    mode = AiMode.valueOf(mode), timestamp = timestamp, 
-    usedApis = usedApiNames.split(",").filter { it.isNotBlank() },
-    attachments = try { gson.fromJson(attachmentsJson, Array<Attachment>::class.java).toList() } catch (e: Exception) { emptyList() }
-)
+fun ChatMessageEntity.toModel(gson: Gson) = ChatMessage(id, text, isUser, emptyList(), AiMode.valueOf(mode), false, timestamp, usedApiNames.split(",").filter { it.isNotBlank() })
 fun ChatMessage.toEntity(sid: String, gson: Gson) = ChatMessageEntity(id, sid, text, isUser, mode.name, timestamp, usedApis.joinToString(","), gson.toJson(attachments))
 
 fun AppSettingsEntity.toModel() = AppSettings(isProUser, isDarkTheme, tokenUsage, estimatedCost)
