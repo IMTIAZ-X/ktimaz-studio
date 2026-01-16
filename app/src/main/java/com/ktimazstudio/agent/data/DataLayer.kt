@@ -4,7 +4,16 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.Update
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.flow.Flow
@@ -13,7 +22,11 @@ import okhttp3.OkHttpClient
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
 import java.security.KeyStore
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
@@ -168,7 +181,7 @@ abstract class AgentDatabase : RoomDatabase() {
 // SECURITY - API KEY ENCRYPTION
 // ============================================
 
-class SecurityManager(context: Context) {
+class SecurityManager private constructor(context: Context) {
     
     companion object {
         private const val KEY_ALIAS = "agent_api_key_alias"
@@ -474,7 +487,7 @@ class AiProviderHandler {
 // REPOSITORY
 // ============================================
 
-class AgentRepository(
+class AgentRepository private constructor(
     private val database: AgentDatabase,
     private val securityManager: SecurityManager
 ) {
