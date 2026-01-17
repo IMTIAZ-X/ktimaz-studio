@@ -502,7 +502,13 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                         placeholder = { Text("You are a helpful AI assistant...") },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 4,
-                        leadingIcon = { Icon(Icons.Default.Person, null, modifier = Modifier.align(Alignment.Top).padding(top = 12.dp)) }
+                        leadingIcon = { 
+                            Icon(
+                                Icons.Default.Person, 
+                                null, 
+                                modifier = Modifier.padding(top = 12.dp)
+                            ) 
+                        }
                     )
                 }
 
