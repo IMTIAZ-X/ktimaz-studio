@@ -26,9 +26,9 @@ import com.google.gson.annotations.SerializedName
 
 class SimpleDataManager private constructor(context: Context) {
     
-    private val prefs: SharedPreferences = context.getSharedPreferences("agent_data", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences
     private val gson = Gson()
-    private val securityManager = SecurityManager.getInstance(context)
+    private val securityManager: SecurityManager
     
     companion object {
         @Volatile
@@ -40,6 +40,22 @@ class SimpleDataManager private constructor(context: Context) {
                 INSTANCE = instance
                 instance
             }
+        }
+    }
+    
+    init {
+        prefs = try {
+            context.getSharedPreferences("agent_data", Context.MODE_PRIVATE)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            context.applicationContext.getSharedPreferences("agent_data", Context.MODE_PRIVATE)
+        }
+        
+        securityManager = try {
+            SecurityManager.getInstance(context.applicationContext)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            SecurityManager.getInstance(context)
         }
     }
     
