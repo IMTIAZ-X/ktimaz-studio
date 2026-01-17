@@ -299,8 +299,12 @@ class AgentViewModel(context: Context) : ViewModel() {
                 for (api in activeApis) {
                     val result = aiHandler.sendMessage(api, buildPrompt(text, mode), api.systemRole)
                     result.fold(
-                        onSuccess = { responses.add("**${api.name}**: $response") },
-                        onFailure = { responses.add("**${api.name}** Error: ${it.message}") }
+                        onSuccess = { response -> 
+                            responses.add("**${api.name}**: $response")
+                        },
+                        onFailure = { error -> 
+                            responses.add("**${api.name}** Error: ${error.message}")
+                        }
                     )
                 }
 
