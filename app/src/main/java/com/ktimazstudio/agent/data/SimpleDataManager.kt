@@ -21,7 +21,7 @@ import javax.crypto.spec.GCMParameterSpec
 import com.google.gson.annotations.SerializedName
 
 // ============================================
-// SIMPLE PERSISTENCE - SharedPreferences
+// DATA MANAGER - SharedPreferences
 // ============================================
 
 class SimpleDataManager private constructor(context: Context) {
@@ -44,99 +44,182 @@ class SimpleDataManager private constructor(context: Context) {
     }
     
     init {
-        prefs = try {
-            context.getSharedPreferences("agent_data", Context.MODE_PRIVATE)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            context.applicationContext.getSharedPreferences("agent_data", Context.MODE_PRIVATE)
-        }
-        
-        securityManager = try {
-            SecurityManager.getInstance(context.applicationContext)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            SecurityManager.getInstance(context)
-        }
+        prefs = context.getSharedPreferences("agent_prefs", Context.MODE_PRIVATE)
+        securityManager = SecurityManager.getInstance(context)
     }
     
     // Save API Configs
     fun saveApiConfigs(configs: List<ApiConfig>) {
-        val encryptedConfigs = configs.map { config ->
-            config.copy(apiKey = securityManager.encryptApiKey(config.apiKey))
+        try {
+            val configsToSave = configs.map { config ->
+                mapOf(
+                    "id" to config.id,
+                    "provider" to config.provider.name,
+                    "name" to config.name,
+                    "isActive" to config.isActive,
+                    "apiKey" to securityManager.encryptApiKey(config.apiKey),
+                    "modelName" to config.modelName,
+                    "baseUrl" to config.baseUrl,
+                    "systemRole" to config.systemRole,
+                    "createdAt" to config.createdAt
+                )
+            }
+            val json = gson.toJson(configsToSave)
+            prefs.edit().putString("api_configs", json).commit()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        val json = gson.toJson(encryptedConfigs)
-        prefs.edit().putString("api_configs", json).apply()
     }
     
     // Load API Configs
     fun loadApiConfigs(): List<ApiConfig> {
-        val json = prefs.getString("api_configs", null) ?: return emptyList()
-        return try {
-            val type = object : TypeToken<List<ApiConfig>>() {}.type
-            val configs: List<ApiConfig> = gson.fromJson(json, type)
-            configs.map { config ->
-                config.copy(apiKey = securityManager.decryptApiKey(config.apiKey))
+        try {
+            val json = prefs.getString("api_configs", null) ?: return emptyList()
+            val type = object : TypeToken<List<Map<String, Any>>>() {}.type
+            val configMaps: List<Map<String, Any>> = gson.fromJson(json, type) ?: return emptyList()
+            
+            return configMaps.mapNotNull { map ->
+                try {
+                    ApiConfig(
+                        id = map["id"] as? String ?: return@mapNotNull null,
+                        provider = AiProvider.valueOf(map["provider"] as? String ?: "GEMINI"),
+                        name = map["name"] as? String ?: "",
+                        isActive = map["isActive"] as? Boolean ?: false,
+                        apiKey = securityManager.decryptApiKey(map["apiKey"] as? String ?: ""),
+                        modelName = map["modelName"] as? String ?: "",
+                        baseUrl = map["baseUrl"] as? String ?: "",
+                        systemRole = map["systemRole"] as? String ?: "",
+                        createdAt = (map["createdAt"] as? Double)?.toLong() ?: System.currentTimeMillis()
+                    )
+                } catch (e: Exception) {
+                    null
+                }
             }
         } catch (e: Exception) {
-            emptyList()
+            e.printStackTrace()
+            return emptyList()
         }
     }
     
     // Save Chat Sessions
     fun saveChatSessions(sessions: List<ChatSession>) {
-        val json = gson.toJson(sessions)
-        prefs.edit().putString("chat_sessions", json).apply()
+        try {
+            val sessionsToSave = sessions.map { session ->
+                mapOf(
+                    "id" to session.id,
+                    "title" to session.title,
+                    "timestamp" to session.timestamp,
+                    "isPinned" to session.isPinned,
+                    "activeApis" to session.activeApis.joinToString(","),
+                    "messages" to session.messages.map { msg ->
+                        mapOf(
+                            "id" to msg.id,
+                            "text" to msg.text,
+                            "isUser" to msg.isUser,
+                            "mode" to msg.mode.name,
+                            "timestamp" to msg.timestamp,
+                            "usedApis" to msg.usedApis.joinToString(","),
+                            "isStreaming" to msg.isStreaming
+                        )
+                    }
+                )
+            }
+            val json = gson.toJson(sessionsToSave)
+            prefs.edit().putString("chat_sessions", json).commit()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
     
     // Load Chat Sessions
     fun loadChatSessions(): List<ChatSession> {
-        val json = prefs.getString("chat_sessions", null) ?: return emptyList()
-        return try {
-            val type = object : TypeToken<List<ChatSession>>() {}.type
-            gson.fromJson(json, type) ?: emptyList()
+        try {
+            val json = prefs.getString("chat_sessions", null) ?: return emptyList()
+            val type = object : TypeToken<List<Map<String, Any>>>() {}.type
+            val sessionMaps: List<Map<String, Any>> = gson.fromJson(json, type) ?: return emptyList()
+            
+            return sessionMaps.mapNotNull { map ->
+                try {
+                    val messagesList = map["messages"] as? List<Map<String, Any>> ?: emptyList()
+                    val messages = messagesList.mapNotNull { msgMap ->
+                        try {
+                            ChatMessage(
+                                id = msgMap["id"] as? String ?: return@mapNotNull null,
+                                text = msgMap["text"] as? String ?: "",
+                                isUser = msgMap["isUser"] as? Boolean ?: false,
+                                mode = AiMode.valueOf(msgMap["mode"] as? String ?: "STANDARD"),
+                                timestamp = (msgMap["timestamp"] as? Double)?.toLong() ?: System.currentTimeMillis(),
+                                usedApis = (msgMap["usedApis"] as? String ?: "").split(",").filter { it.isNotBlank() },
+                                isStreaming = msgMap["isStreaming"] as? Boolean ?: false
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }.toMutableList()
+                    
+                    ChatSession(
+                        id = map["id"] as? String ?: return@mapNotNull null,
+                        title = map["title"] as? String ?: "New Chat",
+                        timestamp = (map["timestamp"] as? Double)?.toLong() ?: System.currentTimeMillis(),
+                        isPinned = map["isPinned"] as? Boolean ?: false,
+                        activeApis = (map["activeApis"] as? String ?: "").split(",").filter { it.isNotBlank() }.toMutableList(),
+                        messages = messages
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }
         } catch (e: Exception) {
-            emptyList()
+            e.printStackTrace()
+            return emptyList()
         }
     }
     
-    // Save App Settings
+    // Save Settings
     fun saveSettings(settings: AppSettings) {
-        prefs.edit().apply {
-            putBoolean("is_pro_user", settings.isProUser)
-            putBoolean("is_dark_theme", settings.isDarkTheme)
-            putInt("token_usage", settings.tokenUsage)
-            putFloat("estimated_cost", settings.estimatedCost.toFloat())
-            apply()
+        try {
+            prefs.edit().apply {
+                putBoolean("is_pro_user", settings.isProUser)
+                putBoolean("is_dark_theme", settings.isDarkTheme)
+                putInt("token_usage", settings.tokenUsage)
+                putFloat("estimated_cost", settings.estimatedCost.toFloat())
+                commit()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
     
-    // Load App Settings
+    // Load Settings
     fun loadSettings(): AppSettings {
-        return AppSettings(
-            isProUser = prefs.getBoolean("is_pro_user", false),
-            isDarkTheme = prefs.getBoolean("is_dark_theme", true),
-            tokenUsage = prefs.getInt("token_usage", 0),
-            estimatedCost = prefs.getFloat("estimated_cost", 0f).toDouble(),
-            apiConfigs = emptyList()
-        )
+        return try {
+            AppSettings(
+                isProUser = prefs.getBoolean("is_pro_user", false),
+                isDarkTheme = prefs.getBoolean("is_dark_theme", true),
+                tokenUsage = prefs.getInt("token_usage", 0),
+                estimatedCost = prefs.getFloat("estimated_cost", 0f).toDouble(),
+                apiConfigs = emptyList()
+            )
+        } catch (e: Exception) {
+            AppSettings()
+        }
     }
     
-    // Clear all data
     fun clearAll() {
-        prefs.edit().clear().apply()
+        prefs.edit().clear().commit()
     }
 }
 
 // ============================================
-// SECURITY - API KEY ENCRYPTION
+// SECURITY MANAGER
 // ============================================
 
 class SecurityManager private constructor(context: Context) {
     
     companion object {
-        private const val KEY_ALIAS = "agent_api_key_alias"
+        private const val KEY_ALIAS = "agent_key"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
-        private const val IV_SEPARATOR = "]]]"
+        private const val SEPARATOR = "|||"
         
         @Volatile
         private var INSTANCE: SecurityManager? = null
@@ -150,149 +233,99 @@ class SecurityManager private constructor(context: Context) {
         }
     }
     
-    private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
-        load(null)
-    }
+    private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
     
     init {
         createKeyIfNotExists()
     }
     
     private fun createKeyIfNotExists() {
-        if (!keyStore.containsAlias(KEY_ALIAS)) {
-            val keyGenerator = KeyGenerator.getInstance(
-                KeyProperties.KEY_ALGORITHM_AES,
-                "AndroidKeyStore"
-            )
-            
-            val keyGenParameterSpec = KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-            )
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setKeySize(256)
-                .build()
-            
-            keyGenerator.init(keyGenParameterSpec)
-            keyGenerator.generateKey()
+        try {
+            if (!keyStore.containsAlias(KEY_ALIAS)) {
+                val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+                val spec = KeyGenParameterSpec.Builder(
+                    KEY_ALIAS,
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                )
+                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                    .setKeySize(256)
+                    .build()
+                keyGenerator.init(spec)
+                keyGenerator.generateKey()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-    }
-    
-    private fun getSecretKey(): SecretKey {
-        return keyStore.getKey(KEY_ALIAS, null) as SecretKey
     }
     
     fun encryptApiKey(plainText: String): String {
         if (plainText.isBlank()) return ""
-        
         try {
             val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.ENCRYPT_MODE, getSecretKey())
-            
+            cipher.init(Cipher.ENCRYPT_MODE, keyStore.getKey(KEY_ALIAS, null) as SecretKey)
             val iv = cipher.iv
-            val encryptedBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
-            
-            return Base64.encodeToString(iv, Base64.NO_WRAP) + 
-                   IV_SEPARATOR + 
-                   Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
+            val encrypted = cipher.doFinal(plainText.toByteArray())
+            return Base64.encodeToString(iv, Base64.NO_WRAP) + SEPARATOR + Base64.encodeToString(encrypted, Base64.NO_WRAP)
         } catch (e: Exception) {
-            e.printStackTrace()
-            return plainText // Fallback to plaintext if encryption fails
+            return plainText
         }
     }
     
     fun decryptApiKey(encryptedText: String): String {
-        if (encryptedText.isBlank()) return ""
-        if (!encryptedText.contains(IV_SEPARATOR)) return encryptedText // Already plaintext
-        
+        if (encryptedText.isBlank() || !encryptedText.contains(SEPARATOR)) return encryptedText
         try {
-            val parts = encryptedText.split(IV_SEPARATOR)
-            if (parts.size != 2) return encryptedText
-            
+            val parts = encryptedText.split(SEPARATOR)
             val iv = Base64.decode(parts[0], Base64.NO_WRAP)
-            val encryptedBytes = Base64.decode(parts[1], Base64.NO_WRAP)
-            
+            val encrypted = Base64.decode(parts[1], Base64.NO_WRAP)
             val cipher = Cipher.getInstance(TRANSFORMATION)
-            val spec = GCMParameterSpec(128, iv)
-            cipher.init(Cipher.DECRYPT_MODE, getSecretKey(), spec)
-            
-            val decryptedBytes = cipher.doFinal(encryptedBytes)
-            return String(decryptedBytes, Charsets.UTF_8)
+            cipher.init(Cipher.DECRYPT_MODE, keyStore.getKey(KEY_ALIAS, null) as SecretKey, GCMParameterSpec(128, iv))
+            return String(cipher.doFinal(encrypted))
         } catch (e: Exception) {
-            e.printStackTrace()
-            return encryptedText // Return as-is if decryption fails
+            return encryptedText
         }
     }
 }
 
 // ============================================
-// RETROFIT - NETWORK MODELS
+// RETROFIT MODELS
 // ============================================
 
 data class UniversalAiRequest(
     val model: String,
     val messages: List<MessageContent>,
-    @SerializedName("max_tokens")
-    val maxTokens: Int = 1000,
+    @SerializedName("max_tokens") val maxTokens: Int = 1000,
     val temperature: Double = 0.7
 )
 
-data class MessageContent(
-    val role: String,
-    val content: String
-)
+data class MessageContent(val role: String, val content: String)
 
 data class UniversalAiResponse(
-    val id: String? = null,
     val choices: List<Choice>? = null,
     val error: ErrorDetail? = null
 )
 
-data class Choice(
-    val message: MessageContent? = null,
-    @SerializedName("finish_reason")
-    val finishReason: String? = null
-)
+data class Choice(val message: MessageContent? = null)
+data class ErrorDetail(val message: String)
 
-data class ErrorDetail(
-    val message: String
-)
-
-data class GeminiRequest(
-    val contents: List<GeminiContent>
-)
-
-data class GeminiContent(
-    val parts: List<GeminiPart>
-)
-
-data class GeminiPart(
-    val text: String
-)
-
+data class GeminiRequest(val contents: List<GeminiContent>)
+data class GeminiContent(val parts: List<GeminiPart>)
+data class GeminiPart(val text: String)
 data class GeminiResponse(
     val candidates: List<GeminiCandidate>? = null,
     val error: GeminiError? = null
 )
-
-data class GeminiCandidate(
-    val content: GeminiContent
-)
-
-data class GeminiError(
-    val message: String
-)
+data class GeminiCandidate(val content: GeminiContent)
+data class GeminiError(val message: String)
 
 // ============================================
-// RETROFIT - API SERVICE
+// RETROFIT SERVICE
 // ============================================
 
 interface AiApiService {
-    
     @POST("chat/completions")
     suspend fun chatCompletion(
-        @Header("Authorization") authorization: String,
+        @Header("Authorization") auth: String,
         @Body request: UniversalAiRequest
     ): Response<UniversalAiResponse>
     
@@ -305,17 +338,15 @@ interface AiApiService {
 }
 
 object AiApiClient {
-    
-    private val okHttpClient = OkHttpClient.Builder()
+    private val okHttp = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
     
-    fun createService(baseUrl: String): AiApiService {
+    fun create(baseUrl: String): AiApiService {
         return Retrofit.Builder()
             .baseUrl(baseUrl)
-            .client(okHttpClient)
+            .client(okHttp)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(AiApiService::class.java)
@@ -327,16 +358,11 @@ object AiApiClient {
 // ============================================
 
 class AiProviderHandler {
-    
-    suspend fun sendMessage(
-        apiConfig: ApiConfig,
-        userMessage: String,
-        systemRole: String = ""
-    ): Result<String> {
+    suspend fun sendMessage(config: ApiConfig, message: String, systemRole: String = ""): Result<String> {
         return try {
-            when (apiConfig.provider) {
-                AiProvider.GEMINI -> handleGemini(apiConfig, userMessage)
-                else -> handleUniversalApi(apiConfig, userMessage, systemRole)
+            when (config.provider) {
+                AiProvider.GEMINI -> handleGemini(config, message)
+                else -> handleUniversal(config, message, systemRole)
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -344,47 +370,42 @@ class AiProviderHandler {
     }
     
     private suspend fun handleGemini(config: ApiConfig, message: String): Result<String> {
-        try {
-            val service = AiApiClient.createService(config.baseUrl)
-            val request = GeminiRequest(
-                contents = listOf(GeminiContent(parts = listOf(GeminiPart(text = message))))
-            )
-            
+        return try {
+            val service = AiApiClient.create(config.baseUrl)
+            val request = GeminiRequest(listOf(GeminiContent(listOf(GeminiPart(message)))))
             val response = service.geminiGenerate(config.modelName, config.apiKey, request)
             
             if (response.isSuccessful) {
                 val text = response.body()?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-                return if (text != null) Result.success(text)
-                else Result.failure(Exception("Empty response from Gemini"))
+                if (text != null) Result.success(text)
+                else Result.failure(Exception("Empty response"))
             } else {
-                return Result.failure(Exception("Gemini API error: ${response.code()}"))
+                Result.failure(Exception("API error: ${response.code()}"))
             }
         } catch (e: Exception) {
-            return Result.failure(e)
+            Result.failure(e)
         }
     }
     
-    private suspend fun handleUniversalApi(config: ApiConfig, message: String, systemRole: String): Result<String> {
-        try {
-            val service = AiApiClient.createService(config.baseUrl)
+    private suspend fun handleUniversal(config: ApiConfig, message: String, systemRole: String): Result<String> {
+        return try {
+            val service = AiApiClient.create(config.baseUrl)
             val messages = mutableListOf<MessageContent>()
-            if (systemRole.isNotBlank()) {
-                messages.add(MessageContent(role = "system", content = systemRole))
-            }
-            messages.add(MessageContent(role = "user", content = message))
+            if (systemRole.isNotBlank()) messages.add(MessageContent("system", systemRole))
+            messages.add(MessageContent("user", message))
             
-            val request = UniversalAiRequest(model = config.modelName, messages = messages)
+            val request = UniversalAiRequest(config.modelName, messages)
             val response = service.chatCompletion("Bearer ${config.apiKey}", request)
             
             if (response.isSuccessful) {
                 val text = response.body()?.choices?.firstOrNull()?.message?.content
-                return if (text != null) Result.success(text)
+                if (text != null) Result.success(text)
                 else Result.failure(Exception("Empty response"))
             } else {
-                return Result.failure(Exception("API error: ${response.code()}"))
+                Result.failure(Exception("API error: ${response.code()}"))
             }
         } catch (e: Exception) {
-            return Result.failure(e)
+            Result.failure(e)
         }
     }
 }
