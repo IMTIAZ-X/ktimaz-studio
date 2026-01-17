@@ -8,6 +8,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ktimazstudio.agent.ui.theme.ModernAgentTheme
 import com.ktimazstudio.agent.ui.components.*
@@ -16,7 +19,21 @@ import com.ktimazstudio.agent.viewmodel.AgentViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AgentScreen(viewModel: AgentViewModel = viewModel()) {
+fun AgentScreen() {
+    val context = LocalContext.current
+    
+    // Create ViewModel with custom factory - FIXED
+    val viewModel: AgentViewModel = viewModel(
+        factory = remember(context) {
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return AgentViewModel(context.applicationContext) as T
+                }
+            }
+        }
+    )
+    
     val settings by viewModel.settings.collectAsState()
 
     ModernAgentTheme(darkTheme = settings.isDarkTheme) {
