@@ -373,11 +373,16 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
     var modelName by remember { mutableStateOf(selectedProvider.defaultModel) }
     var baseUrl by remember { mutableStateOf(selectedProvider.defaultUrl) }
     var systemRole by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
 
     // Auto-update when provider changes
     LaunchedEffect(selectedProvider) {
-        modelName = selectedProvider.defaultModel
-        baseUrl = selectedProvider.defaultUrl
+        if (modelName.isBlank() || modelName == AiProvider.values().find { it != selectedProvider }?.defaultModel) {
+            modelName = selectedProvider.defaultModel
+        }
+        if (baseUrl.isBlank() || baseUrl == AiProvider.values().find { it != selectedProvider }?.defaultUrl) {
+            baseUrl = selectedProvider.defaultUrl
+        }
     }
 
     Dialog(
@@ -402,11 +407,7 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            "Add New API",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                        Text("Add Custom AI/API", fontSize = 24.sp, fontWeight = FontWeight.Black)
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.Default.Close, "Close")
                         }
@@ -414,7 +415,7 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                 }
 
                 item {
-                    Text("Provider", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("Select Provider", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AiProvider.values().forEach { provider ->
@@ -432,9 +433,10 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Configuration Name") },
-                        placeholder = { Text("My ${selectedProvider.title}") },
+                        placeholder = { Text("e.g., My ${selectedProvider.title}") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Label, null) }
                     )
                 }
 
@@ -443,12 +445,29 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                         value = apiKey,
                         onValueChange = { apiKey = it },
                         label = { Text("API Key *") },
-                        placeholder = { Text("Enter your API key") },
+                        placeholder = { Text("Enter your ${selectedProvider.title} API key") },
                         modifier = Modifier.fillMaxWidth(),
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         singleLine = true,
-                        isError = apiKey.isNotBlank() && apiKey.length < 10
+                        isError = apiKey.isNotBlank() && apiKey.length < 10,
+                        leadingIcon = { Icon(Icons.Default.Key, null) },
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    "Toggle visibility"
+                                )
+                            }
+                        }
                     )
+                    if (apiKey.isNotBlank() && apiKey.length < 10) {
+                        Text(
+                            "API key too short",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
+                    }
                 }
 
                 item {
@@ -456,8 +475,10 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                         value = modelName,
                         onValueChange = { modelName = it },
                         label = { Text("Model Name") },
+                        placeholder = { Text("e.g., ${selectedProvider.defaultModel}") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.SmartToy, null) }
                     )
                 }
 
@@ -466,8 +487,10 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                         value = baseUrl,
                         onValueChange = { baseUrl = it },
                         label = { Text("Base URL") },
+                        placeholder = { Text(selectedProvider.defaultUrl) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Link, null) }
                     )
                 }
 
@@ -476,10 +499,32 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                         value = systemRole,
                         onValueChange = { systemRole = it },
                         label = { Text("System Role (Optional)") },
-                        placeholder = { Text("You are a helpful assistant...") },
+                        placeholder = { Text("You are a helpful AI assistant...") },
                         modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3
+                        maxLines = 4,
+                        leadingIcon = { Icon(Icons.Default.Person, null, modifier = Modifier.align(Alignment.Top).padding(top = 12.dp)) }
                     )
+                }
+
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Quick Guide", fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text("• Name: A friendly name for this configuration", fontSize = 12.sp)
+                            Text("• API Key: Your secret key from the provider", fontSize = 12.sp)
+                            Text("• Model: Specific model (e.g., gpt-4, claude-3)", fontSize = 12.sp)
+                            Text("• Base URL: API endpoint URL", fontSize = 12.sp)
+                            Text("• System Role: Instructions for AI behavior", fontSize = 12.sp)
+                        }
+                    }
                 }
 
                 item {
@@ -489,34 +534,32 @@ fun AddApiDialog(onDismiss: () -> Unit, onSave: (ApiConfig) -> Unit) {
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
+                            modifier = Modifier.weight(1f).height(56.dp)
                         ) {
                             Text("Cancel")
                         }
 
                         Button(
                             onClick = {
-                                if (apiKey.isNotBlank()) {
+                                if (apiKey.isNotBlank() && apiKey.length >= 10) {
                                     onSave(
                                         ApiConfig(
                                             provider = selectedProvider,
                                             name = name.ifBlank { "My ${selectedProvider.title}" },
                                             apiKey = apiKey,
-                                            modelName = modelName,
-                                            baseUrl = baseUrl,
+                                            modelName = modelName.ifBlank { selectedProvider.defaultModel },
+                                            baseUrl = baseUrl.ifBlank { selectedProvider.defaultUrl },
                                             systemRole = systemRole
                                         )
                                     )
                                 }
                             },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            enabled = apiKey.isNotBlank()
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            enabled = apiKey.isNotBlank() && apiKey.length >= 10
                         ) {
-                            Text("Add API")
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Add API", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
