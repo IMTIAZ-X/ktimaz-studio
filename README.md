@@ -1,6 +1,10 @@
-<h1 style="text-align: center;">KTIMAZ STUDIO</h1>
+<h1>KTIMAZ STUDIO</h1>
 <h4>Historys</h4>
-The app create : Apr 24, 2025, 8:54 PM GMT+6
+
+Start : Apr 24, 2025
+
+<br>
+The app has been created: Apr 24, 2025, 8:54 PM GMT+6
 <br><br>
 Successful build: Apr 24, 2025, 9:19 PM GMT+6
 <br><br>
